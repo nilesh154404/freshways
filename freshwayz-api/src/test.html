@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Community Chat Test</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        #messages { 
+            border: 1px solid black; 
+            height: 300px; 
+            overflow-y: scroll; 
+            padding: 10px; 
+        }
+        input { padding: 10px; width: 250px; }
+        button { padding: 10px; }
+    </style>
+</head>
+<body>
+    <h2>Community Chat Test</h2>
+
+    <label>Customer ID</label>
+    <input id="customerId" type="number" value="1" />
+
+    <br><br>
+
+    <label>Community ID</label>
+    <input id="communityId" type="number" value="1" />
+
+    <br><br>
+
+    <button onclick="join()">Join Community</button>
+
+    <hr>
+
+    <div id="messages"></div>
+
+    <br>
+
+    <input id="msgInput" placeholder="Type message..." />
+    <button onclick="sendMessage()">Send</button>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+    const socket = io("http://localhost:3064");
+
+    function join() {
+        let comId = +document.getElementById("communityId").value;
+
+        socket.emit("joinCommunity", comId);
+
+        alert("Joined Room community_" + comId);
+    }
+
+    function sendMessage() {
+        let comId = +document.getElementById("communityId").value;
+        let cusId = +document.getElementById("customerId").value;
+
+        let txt = document.getElementById("msgInput").value;
+
+        if(!txt.trim()) return;
+
+        socket.emit("sendMessage", {
+            communityId: comId,
+            customerId: cusId,
+            message: txt
+        });
+
+        document.getElementById("msgInput").value = "";
+    }
+
+    socket.on("newMessage", (msg) => {
+        let box = document.getElementById("messages");
+        box.innerHTML += `<div><b>User ${msg.sender.id}:</b> ${msg.message}</div>`;
+        box.scrollTop = box.scrollHeight;
+    });
+
+</script>
+
+</body>
+</html>
+
+<VirtualHost *:80>
+    ServerName admin.freshwayz.dexpertsystems.com
+    ServerAlias www.admin.freshwayz.dexpertsystems.com
+
+    # Redirect all HTTP requests to the local dev server
+    ProxyPreserveHost On
+    ProxyPass / http://localhost:3084/
+    ProxyPassReverse / http://localhost:3084/
+
+    ErrorLog ${APACHE_LOG_DIR}/admin.freshwayz.dexpertsystems.com_error.log
+    CustomLog ${APACHE_LOG_DIR}/admin.freshwayz.dexpertsystems.com_access.log combined
+</VirtualHost>

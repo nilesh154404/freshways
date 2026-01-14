@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "120760760102",
+    "project_id": "freshways-70a94",
+    "storage_bucket": "freshways-70a94.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:120760760102:android:13c91294abbf4bf76133e7",
+        "android_client_info": {
+          "package_name": "com.example.freshwayz_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmKTg16HyQOHZtYnatXtzXg9aNfvaT7wM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,548 @@
+import { useEffect, useState } from "react";
+import ComponentCard from "../../components/common/ComponentCard";
+import PaginateTable, { Column } from "../components/Table";
+import Badge from "../../components/ui/badge/Badge";
+import axios from "axios";
+import { Contract } from "./types";
+import PropertyContractModal from "../sub-components/PropertyContractModal";
+
+interface ContractV2Props {
+  PropertyHierarchyLevelId: number;
+}
+
+interface Tenant {
+  id: number;
+  name: string;
+  external_id?: string;
+}
+
+const ContractV2 = ({ PropertyHierarchyLevelId }: ContractV2Props) => {
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<Contract | undefined>();
+  const [tenantModalOpen, setTenantModalOpen] = useState(false);
+
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [tenantFiles, setTenantFiles] = useState<string[]>([]);
+
+  const tenantKey = PropertyHierarchyLevelId === 3 ? "JC" : "TENANT";
+
+  // Fetch contracts
+  const fetchContracts = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `https://dev.api.prms.payplatter.in/api/contracts?PropertyHierarchyLevelId=${PropertyHierarchyLevelId}`
+      );
+      setContracts(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch contracts", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch tenant files
+  const fetchTenantFiles = async (tenantId: number) => {
+    try {
+      const response = await axios.get<string[]>(
+        `https://freshwayz.dexpertsystems.com/files/msfc/${tenantId}`
+      );
+      setTenantFiles(response.data || []);
+    } catch (err) {
+      console.error("Failed to fetch tenant files", err);
+      setTenantFiles([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts();
+  }, [PropertyHierarchyLevelId]);
+
+  // Table columns
+  const columns: Column<Contract>[] = [
+    { key: "property_name", label: "PROPERTY" },
+    {
+      key: "tenants",
+      label: tenantKey,
+      render: (row) =>
+        row.tenants && row.tenants.length > 0 ? (
+          <div>
+            {row.tenants.map((t, i) => (
+              <div key={i} className="mb-2">
+                <b>{t.name}</b> <small>({t.external_id})</small>
+                <button
+                  className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-sm"
+                  onClick={() => {
+                    setSelectedTenant(t);
+                    setTenantModalOpen(true);
+                    fetchTenantFiles(t.id);
+                  }}
+                >
+                  View Documents
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      key: "id",
+      label: "CONTRACT ID",
+      render: (row) => <Badge size="sm" color="success">CONTRACT-{row.id}</Badge>,
+    },
+    {
+      key: "contractDuration",
+      label: "CONTRACT DURATION",
+      render: (row) => `${row.start_date} - ${row.end_date}`,
+    },
+    {
+      key: "rent_amount",
+      label: "RENT AMOUNT",
+      render: (row) => `₹${Number(row.rent_amount).toLocaleString()}`,
+    },
+    {
+      key: "security_deposit",
+      label: "SECURITY DEPOSIT",
+      render: (row) => `₹${Number(row.security_deposit).toLocaleString()}`,
+    },
+    {
+      key: "action",
+      label: "ACTIONS",
+      render: (row) => (
+        <button
+          className="text-blue-600"
+          onClick={() => {
+            setSelectedContract(row);
+          }}
+        >
+          👁️
+        </button>
+      ),
+    },
+  ];
+
+  // Close contract modal + refresh if updated
+  const handleModalClose = (open: boolean, updated = false) => {
+    setOpen(open);
+    if (updated) fetchContracts();
+  };
+
+  return (
+    <ComponentCard
+      title="Contract List"
+      action={
+        <button
+          className="bg-blue-600 text-white px-3 py-2 rounded-md"
+          onClick={() => {
+            setSelectedContract(undefined);
+            setOpen(true);
+          }}
+        >
+          Add Contract
+        </button>
+      }
+    >
+      {loading ? (
+        <div className="text-center py-6">Loading...</div>
+      ) : contracts.length > 0 ? (
+        <PaginateTable data={contracts} columns={columns} rowsPerPage={5} />
+      ) : (
+        <div className="text-center py-6">No contracts found.</div>
+      )}
+
+      {/* Tenant Documents Modal */}
+      <TenantDocumentsModal
+        open={tenantModalOpen}
+        onClose={() => setTenantModalOpen(false)}
+        tenant={selectedTenant}
+        files={tenantFiles}
+      />
+
+      {/* Contract Modal */}
+      <PropertyContractModal
+        open={open}
+        setOpen={handleModalClose}
+        PropertyHierarchyLevelId={PropertyHierarchyLevelId}
+      />
+    </ComponentCard>
+  );
+};
+
+export default ContractV2;
+
+// ----------------------
+// Tenant Documents Modal
+// ----------------------
+interface TenantDocumentsModalProps {
+  open: boolean;
+  onClose: () => void;
+  tenant: { id: number; name: string } | null;
+  files: string[];
+}
+
+const TenantDocumentsModal = ({ open, onClose, tenant, files }: TenantDocumentsModalProps) => {
+  if (!open || !tenant) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6 border-b pb-2">
+          <h2 className="text-2xl font-semibold">{tenant.name} - Documents</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-red-600 font-bold text-xl"
+          >
+            ✖
+          </button>
+        </div>
+
+        {/* File List */}
+        {files.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {files.map((url, idx) =>
+              url.endsWith(".pdf") ? (
+                <div key={idx} className="border rounded p-2">
+                  <iframe
+                    src={url}
+                    width="100%"
+                    height="300px"
+                    title={`PDF ${idx + 1}`}
+                  />
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mt-2 text-blue-600 hover:underline text-sm"
+                  >
+                    Open PDF in new tab
+                  </a>
+                </div>
+              ) : (
+                <div key={idx} className="border rounded p-2">
+                  <img
+                    src={url}
+                    alt={`File ${idx + 1}`}
+                    className="max-w-full h-auto rounded"
+                  />
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mt-2 text-blue-600 hover:underline text-sm"
+                  >
+                    Open Image in new tab
+                  </a>
+                </div>
+              )
+            )}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center">No documents uploaded for this tenant.</p>
+        )}
+
+        {/* Footer */}
+        {files.length > 0 && (
+          <div className="mt-6 text-right">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// import { useEffect, useState } from "react";
+// import ComponentCard from "../../components/common/ComponentCard";
+// import PaginateTable, { Column } from "../components/Table";
+// import Badge from "../../components/ui/badge/Badge";
+// import axios from "axios";
+// import { Contract } from "./types";
+// import PropertyContractModalV2 from "./PropertyContractModalV2";
+// import PropertyContractModal from "../sub-components/PropertyContractModal";
+// import TenantDetailsModal from "./TenantOutstandingViewModal";
+
+// interface ContractV2Props {
+//     PropertyHierarchyLevelId: number;
+// }
+
+// const ContractV2 = ({ PropertyHierarchyLevelId }: ContractV2Props) => {
+//     const [contracts, setContracts] = useState<Contract[]>([]);
+//     const [loading, setLoading] = useState(true);
+//     const [open, setOpen] = useState(false);
+//     const [selectedContract, setSelectedContract] = useState<Contract | undefined>();
+//     const [tenantModalOpen, setTenantModalOpen] = useState(false);
+
+//     const [selectedTenant, setSelectedTenant] = useState<{
+//         id: number;
+//         name: string;
+//         external_id?: string;
+//     } | null>(null);
+
+
+//     const [tenantFiles, setTenantFiles] = useState<string[]>([]);
+
+//     const fetchTenantFiles = async (tenantId: number) => {
+//         try {
+//             const response = await axios.get<string[]>(
+//                 `https://freshwayz.dexpertsystems.com/files/msfc/${tenantId}`
+//             );
+//             setTenantFiles(response.data || []);
+//         } catch (err) {
+//             console.error("Failed to fetch tenant files", err);
+//             setTenantFiles([]);
+//         }
+//     };
+
+
+//     const tenantKey = PropertyHierarchyLevelId == 3 ? "JC" : "TENANT";
+//     const fetchContracts = async () => {
+//         setLoading(true);
+//         try {
+//             const response = await axios.get(`https://dev.api.prms.payplatter.in/api/contracts?PropertyHierarchyLevelId=${PropertyHierarchyLevelId}`);
+//             setContracts(response.data || []);
+//         } catch (error) {
+//             console.error("Failed to fetch contracts", error);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
+//     useEffect(() => {
+//         fetchContracts();
+//     }, [PropertyHierarchyLevelId]);
+
+//     const columns: Column<Contract>[] = [
+//         { key: "property_name", label: "PROPERTY" },
+//         // {
+//         //     key: "tenants",
+//         //     label: tenantKey,
+//         //     render: (row) =>
+//         //         row.tenants && row.tenants.length > 0 ? (
+//         //             <div>
+//         //                 {row.tenants.map((t, i) => (
+//         //                     <div key={i}>
+//         //                         <b
+//         //                             className="text-blue-600 cursor-pointer hover:underline"
+//         //                             onClick={() => {
+//         //                                 setSelectedTenant(t);
+//         //                                 setTenantModalOpen(true);
+//         //                             }}
+//         //                         >
+//         //                             {t.name}
+//         //                         </b>
+//         //                         {/* <b>{t.name}</b> <br /> */}
+//         //                         <small>({t.external_id})</small>
+//         //                         {i !== row.tenants.length - 1 && <hr style={{ margin: "4px 0" }} />}
+//         //                     </div>
+//         //                 ))}
+//         //             </div>
+//         //         ) : (
+//         //             "-"
+//         //         ),
+//         // },
+//         {
+//             key: "tenants",
+//             label: tenantKey,
+//             render: (row) =>
+//                 row.tenants && row.tenants.length > 0 ? (
+//                     <div>
+//                         {row.tenants.map((t, i) => (
+//                             <div key={i} className="mb-2">
+//                                 <b>{t.name}</b> <small>({t.external_id})</small>
+//                                 <button
+//                                     className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-sm"
+//                                     onClick={() => {
+//                                         setSelectedTenant(t);
+//                                         setTenantModalOpen(true);
+//                                         fetchTenantFiles(t.id); // fetch their files
+//                                     }}
+//                                 >
+//                                     View Documents
+//                                 </button>
+//                             </div>
+//                         ))}
+//                     </div>
+//                 ) : (
+//                     "-"
+//                 ),
+//         },
+//         {
+//             key: "id",
+//             label: "CONTRACT ID",
+//             render: (row) => <Badge size="sm" color="success">CONTRACT-{row.id}</Badge>,
+//         },
+//         {
+//             key: "contractDuration",
+//             label: "CONTRACT DURATION",
+//             render: (row) => `${row.start_date} - ${row.end_date}`,
+//         },
+//         {
+//             key: "rent_amount",
+//             label: "RENT AMOUNT",
+//             render: (row) => `₹${Number(row.rent_amount).toLocaleString()}`,
+//         },
+//         {
+//             key: "security_deposit",
+//             label: "SECURITY DEPOSIT",
+//             render: (row) => `₹${Number(row.security_deposit).toLocaleString()}`,
+//         },
+//         {
+//             key: "action",
+//             label: "ACTIONS",
+//             render: (row) => (
+//                 <button
+//                     className="text-blue-600"
+//                     onClick={() => {
+//                         setSelectedContract(row);
+//                         // setOpen(true);
+//                     }}
+//                 >
+//                     👁️
+//                 </button>
+//             ),
+//         },
+//     ];
+
+//     // ✅ Close modal + refresh if updated
+//     const handleModalClose = (open: boolean, updated = false) => {
+//         setOpen(open);
+//         if (updated) fetchContracts();
+//     };
+//     return (
+//         <ComponentCard
+//             title="Contract List"
+//             action={
+//                 <button
+//                     className="bg-blue-600 text-white px-3 py-2 rounded-md"
+//                     onClick={() => {
+//                         setSelectedContract(undefined);
+//                         setOpen(true);
+//                     }}
+//                 >
+//                     Add Contract
+//                 </button>
+//             }
+//         >
+//             {loading ? (
+//                 <div className="text-center py-6">Loading...</div>
+//             ) : contracts.length > 0 ? (
+//                 <PaginateTable data={contracts} columns={columns} rowsPerPage={5} />
+//             ) : (
+//                 <div className="text-center py-6">No contracts found.</div>
+//             )}
+
+//             {/* <PropertyContractModalV2
+//                 open={open}
+//                 setOpen={(val, updated) => {
+//                     setOpen(val);
+//                     if (updated) fetchContracts();
+//                 }}
+//                 contract={selectedContract}
+//             /> */}
+//             <TenantDetailsModal
+//                 open={tenantModalOpen}
+//                 onClose={() => setTenantModalOpen(false)}
+//                 tenant={selectedTenant}
+//             />
+
+//             <PropertyContractModal open={open} setOpen={handleModalClose} PropertyHierarchyLevelId={PropertyHierarchyLevelId} />
+
+//         </ComponentCard>
+//     );
+// };
+
+// export default ContractV2;
+
+// interface TenantDocumentsModalProps {
+//   open: boolean;
+//   onClose: () => void;
+//   tenant: { id: number; name: string } | null;
+//   files: string[];
+// }
+
+// const TenantDocumentsModal = ({ open, onClose, tenant, files }: TenantDocumentsModalProps) => {
+//   if (!open || !tenant) return null;
+
+//   return (
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+//       <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+//         {/* Header */}
+//         <div className="flex justify-between items-center mb-6 border-b pb-2">
+//           <h2 className="text-2xl font-semibold">{tenant.name} - Documents</h2>
+//           <button
+//             onClick={onClose}
+//             className="text-gray-500 hover:text-red-600 font-bold text-xl"
+//           >
+//             ✖
+//           </button>
+//         </div>
+
+//         {/* File List */}
+//         {files.length > 0 ? (
+//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//             {files.map((url, idx) =>
+//               url.endsWith(".pdf") ? (
+//                 <div key={idx} className="border rounded p-2">
+//                   <iframe
+//                     src={url}
+//                     width="100%"
+//                     height="300px"
+//                     title={`PDF ${idx + 1}`}
+//                   />
+//                   <a
+//                     href={url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className="block mt-2 text-blue-600 hover:underline text-sm"
+//                   >
+//                     Open PDF in new tab
+//                   </a>
+//                 </div>
+//               ) : (
+//                 <div key={idx} className="border rounded p-2">
+//                   <img
+//                     src={url}
+//                     alt={`File ${idx + 1}`}
+//                     className="max-w-full h-auto rounded"
+//                   />
+//                   <a
+//                     href={url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className="block mt-2 text-blue-600 hover:underline text-sm"
+//                   >
+//                     Open Image in new tab
+//                   </a>
+//                 </div>
+//               )
+//             )}
+//           </div>
+//         ) : (
+//           <p className="text-gray-500 text-center">No documents uploaded for this tenant.</p>
+//         )}
+
+//         {/* Footer */}
+//         {files.length > 0 && (
+//           <div className="mt-6 text-right">
+//             <button
+//               onClick={onClose}
+//               className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+//             >
+//               Close
+//             </button>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
