@@ -42,6 +42,7 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path;
 
   return (
+    <>
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border py-4">
         <div className="flex flex-col items-center gap-2 px-4">
@@ -82,5 +83,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
+    </>
   );
 }

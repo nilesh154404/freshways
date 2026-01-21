@@ -29,7 +29,7 @@ const UsersPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://192.168.1.36:3064/auth/customer");
+        const res = await fetch("http://localhost:3064/auth/customer");
         const data = await res.json();
 
         // Map backend response to User type
