@@ -27,9 +27,11 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 import { MarketingContentModule } from './marketing-content/marketing-content.module';
 import { DeliverySlotsModule } from './delivery-slot/delivery-slot.module';
 import { ProductDiscountModule } from './product-discount/product-discount.module';
+import { CustomerProductListModule } from './customer-product-list/customer-product-list.module';
 
 @Module({
   imports: [
+    CustomerProductListModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -43,7 +45,7 @@ import { ProductDiscountModule } from './product-discount/product-discount.modul
         database: config.get('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-        autoLoadEntities: true
+        autoLoadEntities: true,
       }),
     }),
     AuthModule,
@@ -70,7 +72,7 @@ import { ProductDiscountModule } from './product-discount/product-discount.modul
     FileUploadModule,
     MarketingContentModule,
     DeliverySlotsModule,
-    ProductDiscountModule
+    ProductDiscountModule,
   ],
 })
 export class AppModule implements OnModuleInit {
