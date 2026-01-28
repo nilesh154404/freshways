@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Users, ShoppingBag, Calendar, MapPin, FileText, Leaf, Megaphone, LogOut, Rss, Bookmark } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingBag, Calendar, MapPin, FileText, Leaf, Megaphone, LogOut, Rss, Bookmark, ShoppingCart } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -18,7 +18,9 @@ import {
 const allMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["Admin", "Vendor","PathalogyVendor"] },
   { title: "Feed", url: "/feed", icon: Rss, roles: ["Customer"] },
+  { title: "Browse Vendors", url: "/browse-vendors", icon: ShoppingBag, roles: ["Customer"] },
   { title: "Saved Posts", url: "/saved-posts", icon: Bookmark, roles: ["Customer"] },
+  { title: "My Product List", url: "/my-product-list", icon: ShoppingCart, roles: ["Customer"] },
   { title: "Categories", url: "/categories", icon: Leaf, roles: ["Admin"] },
   // { title: "Service Offerings", url: "/service-offerings", icon: FileText, roles: ["Admin"] },
   { title: "Products", url: "/products", icon: Package, roles: ["Admin", "Vendor","PathalogyVendor"] },

@@ -266,19 +266,17 @@ export class MarketingContentService {
   // }
 
   async incrementShare(id: number) {
-  const post = await this.marketingRepo.findOne({ where: { id } });
-  if (!post) throw new NotFoundException("Post not found");
+    const post = await this.marketingRepo.findOne({ where: { id } });
+    if (!post) throw new NotFoundException("Post not found");
 
-  post.shareCount += 1;
-  await this.marketingRepo.save(post);
+    post.shareCount += 1;
+    await this.marketingRepo.save(post);
 
-  return {
-    deepLink: `http://localhost:8080/post/${id}`, // ✅ WEB URL
-  };
-}
-
-
-
+    return {
+      deepLink: `http://localhost:8080/post/${id}`, // ✅ WEB URL
+      // const deepLink = `freshwayz://marketing-content?id=${id}`;
+    };
+  }
 
   // Get saved posts for a user
   async getSavedPosts(userId: number) {
