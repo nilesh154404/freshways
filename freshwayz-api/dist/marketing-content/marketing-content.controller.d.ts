@@ -31,8 +31,9 @@ export declare class MarketingContentController {
         message: string;
     }>;
     sharePost(id: number): Promise<{
-        message: string;
-        shareCount: number;
+        deepLink: {
+            deepLink: string;
+        };
     }>;
     getSavedPosts(userId: number): Promise<import("./entities/marketing-content.entity").MarketingContent[]>;
 }

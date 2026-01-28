@@ -58,7 +58,8 @@ let MarketingContentController = class MarketingContentController {
         return this.marketingService.deleteComment(commentId);
     }
     async sharePost(id) {
-        return this.marketingService.incrementShare(id);
+        const deepLink = await this.marketingService.incrementShare(id);
+        return { deepLink };
     }
     async getSavedPosts(userId) {
         return this.marketingService.getSavedPosts(userId);

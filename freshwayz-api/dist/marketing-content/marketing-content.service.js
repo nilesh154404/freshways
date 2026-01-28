@@ -149,13 +149,15 @@ let MarketingContentService = class MarketingContentService {
         await this.commentRepo.remove(comment);
         return { message: 'Comment deleted successfully' };
     }
-    async incrementShare(contentId) {
-        const content = await this.marketingRepo.findOne({ where: { id: contentId } });
-        if (!content)
-            throw new common_1.NotFoundException('Marketing content not found');
-        content.shareCount = (content.shareCount || 0) + 1;
-        await this.marketingRepo.save(content);
-        return { message: 'Share count incremented', shareCount: content.shareCount };
+    async incrementShare(id) {
+        const post = await this.marketingRepo.findOne({ where: { id } });
+        if (!post)
+            throw new common_1.NotFoundException("Post not found");
+        post.shareCount += 1;
+        await this.marketingRepo.save(post);
+        return {
+            deepLink: `http://localhost:8080/post/${id}`,
+        };
     }
     async getSavedPosts(userId) {
         const savedPosts = await this.saveRepo.find({

@@ -32,9 +32,8 @@ export declare class MarketingContentService {
     deleteComment(commentId: number): Promise<{
         message: string;
     }>;
-    incrementShare(contentId: number): Promise<{
-        message: string;
-        shareCount: number;
+    incrementShare(id: number): Promise<{
+        deepLink: string;
     }>;
     getSavedPosts(userId: number): Promise<MarketingContent[]>;
 }

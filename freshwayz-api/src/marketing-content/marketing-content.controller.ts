@@ -122,11 +122,14 @@ export class MarketingContentController {
     return this.marketingService.deleteComment(commentId);
   }
 
-  // Share post (increment share count)
-  @Post(':id/share')
-  async sharePost(@Param('id') id: number) {
-    return this.marketingService.incrementShare(id);
-  }
+// Share post + generate deep link
+@Post(':id/share')
+async sharePost(@Param('id') id: number) {
+  const deepLink = await this.marketingService.incrementShare(id);
+  return { deepLink };
+}
+
+
 
   // Get saved posts for a user
   @Get('user/:userId/saved')

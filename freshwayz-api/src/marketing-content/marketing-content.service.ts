@@ -255,15 +255,30 @@ export class MarketingContentService {
   }
 
   // Increment share count
-  async incrementShare(contentId: number) {
-    const content = await this.marketingRepo.findOne({ where: { id: contentId } });
-    if (!content) throw new NotFoundException('Marketing content not found');
+  // async incrementShare(contentId: number) {
+  //   const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+  //   if (!content) throw new NotFoundException('Marketing content not found');
 
-    content.shareCount = (content.shareCount || 0) + 1;
-    await this.marketingRepo.save(content);
+  //   content.shareCount = (content.shareCount || 0) + 1;
+  //   await this.marketingRepo.save(content);
 
-    return { message: 'Share count incremented', shareCount: content.shareCount };
-  }
+  //   return { message: 'Share count incremented', shareCount: content.shareCount };
+  // }
+
+  async incrementShare(id: number) {
+  const post = await this.marketingRepo.findOne({ where: { id } });
+  if (!post) throw new NotFoundException("Post not found");
+
+  post.shareCount += 1;
+  await this.marketingRepo.save(post);
+
+  return {
+    deepLink: `http://localhost:8080/post/${id}`, // ✅ WEB URL
+  };
+}
+
+
+
 
   // Get saved posts for a user
   async getSavedPosts(userId: number) {
