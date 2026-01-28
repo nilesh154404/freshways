@@ -53,6 +53,9 @@ let OrderController = class OrderController {
     findOne(id) {
         return this.orderService.findOne(+id);
     }
+    findOneByVendorServicePlan(id, customerId) {
+        return this.orderService.findOneByVendorServicePlan(id, customerId);
+    }
     update(id, updateOrderDto) {
         return this.orderService.update(+id, updateOrderDto);
     }
@@ -128,6 +131,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], OrderController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)('vendor-service-plan/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get order by vendor service plan ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: order_entity_1.Order }),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Query)('customerId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", void 0)
+], OrderController.prototype, "findOneByVendorServicePlan", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Update order by ID' }),

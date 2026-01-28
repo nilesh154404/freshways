@@ -3,6 +3,9 @@ import { Categories } from 'src/categories/categories.entity';
 import { FileUpload } from 'src/file-upload/entities/file-upload.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
+import { MarketingComment } from './marketing-comment.entity';
+import { MarketingLike } from './marketing-like.entity';
+import { MarketingSave } from './marketing-save.entity';
 import {
     Entity,
     PrimaryGeneratedColumn,
@@ -34,6 +37,18 @@ export class MarketingContent {
     @Column({ type: 'text', nullable: true })
     description: string;
 
+    @Column({ default: 0 })
+    shareCount: number;
+
     @OneToMany(() => FileUpload, (file) => file.marketingContent)
     media: FileUpload[];
+
+    @OneToMany(() => MarketingComment, (comment) => comment.marketingContent)
+    comments: MarketingComment[];
+
+    @OneToMany(() => MarketingLike, (like) => like.marketingContent)
+    likes: MarketingLike[];
+
+    @OneToMany(() => MarketingSave, (save) => save.marketingContent)
+    saves: MarketingSave[];
 }

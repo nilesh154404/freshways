@@ -90,6 +90,9 @@ let AuthService = class AuthService {
         return { message: 'User registered successfully' };
     }
     async registerCustomer(dto) {
+        if (!dto.customer || !dto.customer.phone) {
+            throw new common_1.BadRequestException('Customer data with phone is required');
+        }
         const existingAuth = await this.authRepo.findOne({
             where: {
                 username: dto.customer.phone,
@@ -159,7 +162,7 @@ let AuthService = class AuthService {
     async login(dto) {
         const auth = await this.authRepo.findOne({
             where: { username: dto.username },
-            relations: ['user', 'vendor', 'user.userType', 'vendor.userType']
+            relations: ['user', 'vendor', 'customer', 'user.userType', 'vendor.userType', 'customer.userType']
         });
         if (!auth)
             throw new common_1.UnauthorizedException('Invalid credentials');
@@ -175,6 +178,10 @@ let AuthService = class AuthService {
         else if (auth.vendor) {
             role = auth.vendor.userType.typeName;
             profileId = auth.vendor.id;
+        }
+        else if (auth.customer) {
+            role = auth.customer.userType.typeName;
+            profileId = auth.customer.id;
         }
         const payload = { username: auth.username, sub: auth.id, role, profileId };
         const accessToken = this.jwtService.sign(payload);
@@ -198,16 +205,12 @@ let AuthService = class AuthService {
         return deepLink;
     }
     async findOneCustomer(username) {
-        const auth = await this.authRepo.findOne({
-            where: { username },
-            relations: ['customer',],
-            select: {
-                customer: true,
-            },
+        const auth = await this.customerRepo.findOne({
+            where: { phone: username },
         });
         if (!auth)
             throw new common_1.NotFoundException('Customer not found');
-        return auth.customer;
+        return auth;
     }
     async findCustomer() {
         const customer = await this.customerRepo.find();

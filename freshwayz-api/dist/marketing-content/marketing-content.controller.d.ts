@@ -12,4 +12,27 @@ export declare class MarketingContentController {
         media_files?: Express.Multer.File[];
     }): Promise<import("./entities/marketing-content.entity").MarketingContent>;
     remove(id: number): Promise<import("./entities/marketing-content.entity").MarketingContent>;
+    toggleSave(id: number, body: {
+        userId: number;
+        userType?: string;
+    }): Promise<{
+        message: string;
+        saved: boolean;
+    }>;
+    addComment(id: number, body: {
+        text: string;
+        userId: number;
+        userType?: string;
+    }): Promise<{
+        message: string;
+        comment: import("./entities/marketing-comment.entity").MarketingComment;
+    }>;
+    deleteComment(commentId: number): Promise<{
+        message: string;
+    }>;
+    sharePost(id: number): Promise<{
+        message: string;
+        shareCount: number;
+    }>;
+    getSavedPosts(userId: number): Promise<import("./entities/marketing-content.entity").MarketingContent[]>;
 }

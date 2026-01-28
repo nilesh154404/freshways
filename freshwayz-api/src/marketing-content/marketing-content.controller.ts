@@ -97,4 +97,40 @@ export class MarketingContentController {
   async remove(@Param('id') id: number) {
     return this.marketingService.remove(id);
   }
+
+  // Save/Unsave post
+  @Post(':id/save')
+  async toggleSave(
+    @Param('id') id: number,
+    @Body() body: { userId: number; userType?: string }
+  ) {
+    return this.marketingService.toggleSave(id, body.userId, body.userType || 'Customer');
+  }
+
+  // Add comment
+  @Post(':id/comment')
+  async addComment(
+    @Param('id') id: number,
+    @Body() body: { text: string; userId: number; userType?: string }
+  ) {
+    return this.marketingService.addComment(id, body.text, body.userId, body.userType || 'Customer');
+  }
+
+  // Delete comment
+  @Delete('comment/:commentId')
+  async deleteComment(@Param('commentId') commentId: number) {
+    return this.marketingService.deleteComment(commentId);
+  }
+
+  // Share post (increment share count)
+  @Post(':id/share')
+  async sharePost(@Param('id') id: number) {
+    return this.marketingService.incrementShare(id);
+  }
+
+  // Get saved posts for a user
+  @Get('user/:userId/saved')
+  async getSavedPosts(@Param('userId') userId: number) {
+    return this.marketingService.getSavedPosts(userId);
+  }
 }

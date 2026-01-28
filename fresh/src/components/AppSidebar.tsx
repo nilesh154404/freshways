@@ -1,6 +1,6 @@
-import { LayoutDashboard, Package, Users, ShoppingBag, Calendar, MapPin, FileText, Leaf, Megaphone } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingBag, Calendar, MapPin, FileText, Leaf, Megaphone, LogOut, Rss, Bookmark } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   Sidebar,
@@ -17,6 +17,8 @@ import {
 
 const allMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["Admin", "Vendor","PathalogyVendor"] },
+  { title: "Feed", url: "/feed", icon: Rss, roles: ["Customer"] },
+  { title: "Saved Posts", url: "/saved-posts", icon: Bookmark, roles: ["Customer"] },
   { title: "Categories", url: "/categories", icon: Leaf, roles: ["Admin"] },
   // { title: "Service Offerings", url: "/service-offerings", icon: FileText, roles: ["Admin"] },
   { title: "Products", url: "/products", icon: Package, roles: ["Admin", "Vendor","PathalogyVendor"] },
@@ -34,12 +36,20 @@ const allMenuItems = [
 export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const role = localStorage.getItem("role");
   const menuItems = allMenuItems.filter(item =>
     role ? item.roles.includes(role) : false
   );
   const isActive = (path: string) => currentPath === path;
+
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("role");
+    localStorage.removeItem("profileId");
+    navigate("/login");
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -77,6 +87,20 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Logout Button */}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

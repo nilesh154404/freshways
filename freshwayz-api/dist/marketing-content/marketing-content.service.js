@@ -17,12 +17,18 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const marketing_content_entity_1 = require("./entities/marketing-content.entity");
+const marketing_save_entity_1 = require("./entities/marketing-save.entity");
+const marketing_comment_entity_1 = require("./entities/marketing-comment.entity");
 const file_upload_service_1 = require("../file-upload/file-upload.service");
 let MarketingContentService = class MarketingContentService {
     marketingRepo;
+    saveRepo;
+    commentRepo;
     fileUploadService;
-    constructor(marketingRepo, fileUploadService) {
+    constructor(marketingRepo, saveRepo, commentRepo, fileUploadService) {
         this.marketingRepo = marketingRepo;
+        this.saveRepo = saveRepo;
+        this.commentRepo = commentRepo;
         this.fileUploadService = fileUploadService;
     }
     async create(dto, files) {
@@ -46,7 +52,8 @@ let MarketingContentService = class MarketingContentService {
     }
     findAll() {
         return this.marketingRepo.find({
-            relations: ['media', 'products'], order: {
+            relations: ['media', 'product', 'vendor', 'category', 'saves', 'comments'],
+            order: {
                 id: 'DESC',
             }
         });
@@ -78,26 +85,96 @@ let MarketingContentService = class MarketingContentService {
         const query = this.marketingRepo
             .createQueryBuilder('content')
             .leftJoinAndSelect('content.media', 'media')
-            .leftJoinAndSelect('content.vendor', 'vendor')
-            .leftJoinAndSelect('content.product', 'product');
+            .leftJoin('content.vendor', 'vendor')
+            .leftJoin('content.product', 'product');
         if (filters.vendorId) {
-            query.andWhere('vendor.id = :vendorId', { vendorId: filters.vendorId });
+            query.andWhere('vendor.id = :vendorId', {
+                vendorId: filters.vendorId,
+            });
         }
         if (filters.categoryId) {
-            query.andWhere('category.id = :categoryId', { categoryId: filters.categoryId });
+            query.andWhere('category.id = :categoryId', {
+                categoryId: filters.categoryId,
+            });
         }
         if (filters.productId) {
-            query.andWhere('product.id = :productId', { productId: filters.productId });
+            query.andWhere('product.id = :productId', {
+                productId: filters.productId,
+            });
         }
-        query.orderBy('content.id', 'DESC');
         return query.getMany();
+    }
+    async toggleSave(contentId, userId, userType) {
+        const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+        if (!content)
+            throw new common_1.NotFoundException('Marketing content not found');
+        const existingSave = await this.saveRepo.findOne({
+            where: {
+                marketingContent: { id: contentId },
+                userId,
+                userType,
+            },
+        });
+        if (existingSave) {
+            await this.saveRepo.remove(existingSave);
+            return { message: 'Post unsaved successfully', saved: false };
+        }
+        else {
+            const newSave = this.saveRepo.create({
+                userId,
+                userType,
+                marketingContent: content,
+            });
+            await this.saveRepo.save(newSave);
+            return { message: 'Post saved successfully', saved: true };
+        }
+    }
+    async addComment(contentId, text, userId, userType) {
+        const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+        if (!content)
+            throw new common_1.NotFoundException('Marketing content not found');
+        const comment = this.commentRepo.create({
+            text,
+            userId,
+            userType,
+            marketingContent: content,
+        });
+        await this.commentRepo.save(comment);
+        return { message: 'Comment added successfully', comment };
+    }
+    async deleteComment(commentId) {
+        const comment = await this.commentRepo.findOne({ where: { id: commentId } });
+        if (!comment)
+            throw new common_1.NotFoundException('Comment not found');
+        await this.commentRepo.remove(comment);
+        return { message: 'Comment deleted successfully' };
+    }
+    async incrementShare(contentId) {
+        const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+        if (!content)
+            throw new common_1.NotFoundException('Marketing content not found');
+        content.shareCount = (content.shareCount || 0) + 1;
+        await this.marketingRepo.save(content);
+        return { message: 'Share count incremented', shareCount: content.shareCount };
+    }
+    async getSavedPosts(userId) {
+        const savedPosts = await this.saveRepo.find({
+            where: { userId },
+            relations: ['marketingContent', 'marketingContent.media', 'marketingContent.vendor', 'marketingContent.category', 'marketingContent.comments', 'marketingContent.saves'],
+            order: { createdAt: 'DESC' },
+        });
+        return savedPosts.map(save => save.marketingContent);
     }
 };
 exports.MarketingContentService = MarketingContentService;
 exports.MarketingContentService = MarketingContentService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(marketing_content_entity_1.MarketingContent)),
+    __param(1, (0, typeorm_1.InjectRepository)(marketing_save_entity_1.MarketingSave)),
+    __param(2, (0, typeorm_1.InjectRepository)(marketing_comment_entity_1.MarketingComment)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         file_upload_service_1.FileUploadService])
 ], MarketingContentService);
 //# sourceMappingURL=marketing-content.service.js.map

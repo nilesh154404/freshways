@@ -21,6 +21,8 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Marketing from "./pages/Marketing";
 import VendorSignup from "./pages/VendorSignup";
+import Feed from "./pages/Feed";
+import SavedPosts from "./pages/SavedPosts";
 
 const queryClient = new QueryClient();
 
@@ -165,6 +167,25 @@ const App = () => {
               <ProtectedRoute>
                 <Layout>
                   <Marketing/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            {/* CUSTOMER ROUTES */}
+            <Route path="/feed" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Feed/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/saved-posts" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SavedPosts/>
                 </Layout>
               </ProtectedRoute>
             }/>

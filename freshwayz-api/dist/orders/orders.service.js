@@ -232,6 +232,25 @@ let OrderService = class OrderService {
             throw new common_1.NotFoundException('Order not found');
         return order;
     }
+    async findOneByVendorServicePlan(id, customerId) {
+        const order = await this.orderRepo.findOne({
+            where: {
+                vendorSubscriptionPlan: { id },
+                customer: { id: customerId },
+            },
+            relations: [
+                'listedOrders',
+                'listedOrders.product',
+            ],
+            order: {
+                id: 'DESC',
+            },
+        });
+        if (!order) {
+            throw new common_1.NotFoundException('Order not found');
+        }
+        return order.listedOrders;
+    }
     async update(id, updateOrderDto) {
         const order = await this.findOne(id);
         Object.assign(order, updateOrderDto);

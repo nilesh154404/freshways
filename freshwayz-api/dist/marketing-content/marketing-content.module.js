@@ -12,6 +12,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const marketing_content_service_1 = require("./marketing-content.service");
 const marketing_content_controller_1 = require("./marketing-content.controller");
 const marketing_content_entity_1 = require("./entities/marketing-content.entity");
+const marketing_save_entity_1 = require("./entities/marketing-save.entity");
+const marketing_comment_entity_1 = require("./entities/marketing-comment.entity");
 const file_upload_module_1 = require("../file-upload/file-upload.module");
 let MarketingContentModule = class MarketingContentModule {
 };
@@ -19,7 +21,7 @@ exports.MarketingContentModule = MarketingContentModule;
 exports.MarketingContentModule = MarketingContentModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([marketing_content_entity_1.MarketingContent]),
+            typeorm_1.TypeOrmModule.forFeature([marketing_content_entity_1.MarketingContent, marketing_save_entity_1.MarketingSave, marketing_comment_entity_1.MarketingComment]),
             file_upload_module_1.FileUploadModule,
         ],
         controllers: [marketing_content_controller_1.MarketingContentController],

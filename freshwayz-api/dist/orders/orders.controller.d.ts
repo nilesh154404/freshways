@@ -13,6 +13,7 @@ export declare class OrderController {
     create(createOrderDto: CreateOrderDto): Promise<Order>;
     findAll(customerId?: number, vendorId?: number, communityId?: number, orderStatus?: string, paymentStatus?: string, startDate?: string, endDate?: string, deliveryDate?: string): Promise<Order[]>;
     findOne(id: string): Promise<Order>;
+    findOneByVendorServicePlan(id: number, customerId: number): Promise<import("../listed-order/entities/listed-order.entity").ListedOrder[]>;
     update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order>;
     remove(id: string): Promise<void>;
     getOrdersByCustomer(customerId: string): Promise<Order[]>;

@@ -46,7 +46,7 @@ export default function VendorSignup() {
   useEffect(() => {
     axios
       .get<Category[]>(
-        "http://192.168.1.36:3064/categories/get-categories"
+        "http://localhost:3064/categories/get-categories"
       )
       .then((res) => setCategories(res.data))
       .catch((err) => {
@@ -100,7 +100,7 @@ export default function VendorSignup() {
       };
 
       await axios.post(
-        "http://192.168.1.36:3064/auth/register/vendor",
+        "http://localhost:3064/auth/register/vendor",
         payload
       );
 
@@ -313,7 +313,7 @@ export default function VendorSignup() {
 //   // Fetch categories
 //   useEffect(() => {
 //     axios
-//       .get("http://192.168.1.36:3064/categories/get-categories")
+//       .get("http://localhost:3064/categories/get-categories")
 //       .then((res) => setCategories(res.data))
 //       .catch(() => toast.error("Failed to load categories"));
 //   }, []);
@@ -348,7 +348,7 @@ export default function VendorSignup() {
 
 //     try {
 //       await axios.post(
-//         "http://192.168.1.36:3064/vendors/signup",
+//         "http://localhost:3064/vendors/signup",
 //         {
 //           businessName,
 //           ownerName,
@@ -543,7 +543,7 @@ export default function VendorSignup() {
 
 //   useEffect(() => {
 //     axios
-//       .get("http://192.168.1.36:3064/categories/get-categories")
+//       .get("http://localhost:3064/categories/get-categories")
 //       .then((res) => setCategories(res.data))
 //       .catch(() => toast.error("Failed to load categories"));
 //   }, []);
@@ -570,7 +570,7 @@ export default function VendorSignup() {
 //     setLoading(true);
 
 //     try {
-//       await axios.post("http://192.168.1.36:3064/vendors/signup", {
+//       await axios.post("http://localhost:3064/vendors/signup", {
 //         businessName,
 //         ownerName,
 //         email,
@@ -708,7 +708,7 @@ export default function VendorSignup() {
 //   const fetchCategories = async () => {
 //     try {
 //       const res = await axios.get<Category[]>(
-//         "http://192.168.1.36:3064/categories/get-categories"
+//         "http://localhost:3064/categories/get-categories"
 //       );
 //       setCategories(res.data);
 //     } catch (err) {
@@ -771,7 +771,7 @@ export default function VendorSignup() {
 
 //     try {
 //       await axios.post(
-//         "http://192.168.1.36:3064/vendors/signup",
+//         "http://localhost:3064/vendors/signup",
 //         formData,
 //         { headers: { "Content-Type": "multipart/form-data" } }
 //       );

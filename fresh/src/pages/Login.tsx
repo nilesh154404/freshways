@@ -25,7 +25,7 @@ export default function Login({ setToken }: LoginProps) {
     try {
       setLoading(true);
       const res = await axios.post<LoginResponse>(
-        "http://192.168.1.36:3064/auth/login",
+        "http://localhost:3064/auth/login",
         { username, password }
       );
 
@@ -113,7 +113,7 @@ export default function Login({ setToken }: LoginProps) {
 //             setLoading(true);
 
 //             const response = await axios.post<LoginResponse>(
-//                 "http://192.168.1.36:3064/auth/login",
+//                 "http://localhost:3064/auth/login",
 //                 {
 //                     username,
 //                     password,

@@ -47,6 +47,11 @@ export class AuthService {
 
     // ---------------------- Customer REGISTRATION ----------------------
     async registerCustomer(dto: RegisterCustomerDto) {
+        // Add validation check
+        if (!dto.customer || !dto.customer.phone) {
+            throw new BadRequestException('Customer data with phone is required');
+        }
+
         const existingAuth = await this.authRepo.findOne({
             where: {
                 // username: dto.username,
@@ -141,7 +146,7 @@ export class AuthService {
     async login(dto: AuthDto) {
         const auth = await this.authRepo.findOne({
             where: { username: dto.username },
-            relations: ['user', 'vendor', 'user.userType', 'vendor.userType']
+            relations: ['user', 'vendor', 'customer', 'user.userType', 'vendor.userType', 'customer.userType']
         });
 
         if (!auth) throw new UnauthorizedException('Invalid credentials');
@@ -158,6 +163,9 @@ export class AuthService {
         } else if (auth.vendor) {
             role = auth.vendor.userType.typeName;
             profileId = auth.vendor.id;
+        } else if (auth.customer) {
+            role = auth.customer.userType.typeName;
+            profileId = auth.customer.id;
         }
 
         const payload = { username: auth.username, sub: auth.id, role, profileId };

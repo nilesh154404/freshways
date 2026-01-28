@@ -45,7 +45,7 @@ const Vendors = () => {
 
   const fetchVendors = async () => {
     try {
-      const res = await axios.get<Vendor[]>("http://192.168.1.36:3064/vendors");
+      const res = await axios.get<Vendor[]>("http://localhost:3064/vendors");
       setVendors(res.data);
     } catch (err) {
       console.error(err);

@@ -14,6 +14,9 @@ const categories_entity_1 = require("../../categories/categories.entity");
 const file_upload_entity_1 = require("../../file-upload/entities/file-upload.entity");
 const product_entity_1 = require("../../products/entities/product.entity");
 const vendor_entity_1 = require("../../vendor/entities/vendor.entity");
+const marketing_comment_entity_1 = require("./marketing-comment.entity");
+const marketing_like_entity_1 = require("./marketing-like.entity");
+const marketing_save_entity_1 = require("./marketing-save.entity");
 const typeorm_1 = require("typeorm");
 let MarketingContent = class MarketingContent {
     id;
@@ -21,7 +24,11 @@ let MarketingContent = class MarketingContent {
     product;
     vendor;
     description;
+    shareCount;
     media;
+    comments;
+    likes;
+    saves;
 };
 exports.MarketingContent = MarketingContent;
 __decorate([
@@ -48,9 +55,25 @@ __decorate([
     __metadata("design:type", String)
 ], MarketingContent.prototype, "description", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], MarketingContent.prototype, "shareCount", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => file_upload_entity_1.FileUpload, (file) => file.marketingContent),
     __metadata("design:type", Array)
 ], MarketingContent.prototype, "media", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => marketing_comment_entity_1.MarketingComment, (comment) => comment.marketingContent),
+    __metadata("design:type", Array)
+], MarketingContent.prototype, "comments", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => marketing_like_entity_1.MarketingLike, (like) => like.marketingContent),
+    __metadata("design:type", Array)
+], MarketingContent.prototype, "likes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => marketing_save_entity_1.MarketingSave, (save) => save.marketingContent),
+    __metadata("design:type", Array)
+], MarketingContent.prototype, "saves", void 0);
 exports.MarketingContent = MarketingContent = __decorate([
     (0, typeorm_1.Entity)('marketing_contents')
 ], MarketingContent);

@@ -48,6 +48,21 @@ let MarketingContentController = class MarketingContentController {
     async remove(id) {
         return this.marketingService.remove(id);
     }
+    async toggleSave(id, body) {
+        return this.marketingService.toggleSave(id, body.userId, body.userType || 'Customer');
+    }
+    async addComment(id, body) {
+        return this.marketingService.addComment(id, body.text, body.userId, body.userType || 'Customer');
+    }
+    async deleteComment(commentId) {
+        return this.marketingService.deleteComment(commentId);
+    }
+    async sharePost(id) {
+        return this.marketingService.incrementShare(id);
+    }
+    async getSavedPosts(userId) {
+        return this.marketingService.getSavedPosts(userId);
+    }
 };
 exports.MarketingContentController = MarketingContentController;
 __decorate([
@@ -93,6 +108,43 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], MarketingContentController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)(':id/save'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "toggleSave", null);
+__decorate([
+    (0, common_1.Post)(':id/comment'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "addComment", null);
+__decorate([
+    (0, common_1.Delete)('comment/:commentId'),
+    __param(0, (0, common_1.Param)('commentId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "deleteComment", null);
+__decorate([
+    (0, common_1.Post)(':id/share'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "sharePost", null);
+__decorate([
+    (0, common_1.Get)('user/:userId/saved'),
+    __param(0, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "getSavedPosts", null);
 exports.MarketingContentController = MarketingContentController = __decorate([
     (0, swagger_1.ApiTags)('Marketing Content'),
     (0, common_1.Controller)('marketing'),

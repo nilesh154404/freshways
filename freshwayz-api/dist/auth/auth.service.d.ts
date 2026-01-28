@@ -37,6 +37,6 @@ export declare class AuthService {
         email: string;
         fullName: string;
     }): Promise<string>;
-    findOneCustomer(username: string): Promise<Customer | undefined>;
+    findOneCustomer(username: string): Promise<Customer>;
     findCustomer(): Promise<Customer[]>;
 }

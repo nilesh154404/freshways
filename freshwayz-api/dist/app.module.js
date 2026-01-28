@@ -65,6 +65,7 @@ exports.AppModule = AppModule = __decorate([
                     database: config.get('DB_NAME'),
                     entities: [__dirname + '/**/*.entity{.ts,.js}'],
                     synchronize: true,
+                    autoLoadEntities: true
                 }),
             }),
             auth_module_1.AuthModule,
