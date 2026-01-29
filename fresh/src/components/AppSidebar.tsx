@@ -98,7 +98,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                <SidebarMenuButton 
+                  onClick={handleLogout} 
+                  className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white hover:text-white shadow-lg hover:shadow-xl transition-all duration-300 border-none font-semibold"
+                >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
                 </SidebarMenuButton>

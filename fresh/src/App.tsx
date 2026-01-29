@@ -25,6 +25,7 @@ import Feed from "./pages/Feed";
 import SavedPosts from "./pages/SavedPosts";
 import CustomerProductList from "./pages/CustomerProductList";
 import BrowseVendors from "./pages/BrowseVendors";
+import PostDetail from "./pages/PostDetail";
 
 const queryClient = new QueryClient();
 
@@ -209,6 +210,11 @@ const App = () => {
                 </Layout>
               </ProtectedRoute>
             }/>
+
+            {/* PUBLIC POST DETAIL ROUTE */}
+            <Route path="/post/:id" 
+            element={<PostDetail />}
+             />
             
             <Route path="/vendor/signup" 
             element={<VendorSignup />}

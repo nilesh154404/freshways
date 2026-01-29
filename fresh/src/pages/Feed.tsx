@@ -14,12 +14,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface MarketingContent {
   id: number;
   description: string;
   shareCount: number;
   saveCount: number;
+  createdAt?: string;
   vendor?: { id: number; name: string; };
   category?: { id: number; name: string; };
   product?: { id: number; name: string; };
@@ -40,6 +48,7 @@ const Feed = () => {
   const [posts, setPosts] = useState<MarketingContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState<{ [key: number]: string }>({});
+  const [savesOpen, setSavesOpen] = useState<number | null>(null);
   const { toast } = useToast();
   
   const userId = parseInt(localStorage.getItem("profileId") || "0");
@@ -246,6 +255,14 @@ const Feed = () => {
 
   const handleShare = async (postId: number) => {
     try {
+      // Generate the shareable deep link
+      const baseUrl = window.location.origin;
+      const deepLink = `${baseUrl}/post/${postId}`;
+      
+      // Copy the link to clipboard
+      await navigator.clipboard.writeText(deepLink);
+      
+      // Call the backend API to increment share count
       const token = localStorage.getItem("accessToken");
       const response = await fetch(`http://localhost:3064/marketing/${postId}/share`, {
         method: "POST",
@@ -259,15 +276,15 @@ const Feed = () => {
       if (response.ok) {
         fetchPosts();
         toast({
-          title: "Success",
-          description: "Post shared successfully",
+          title: "Link Copied!",
+          description: "Share link has been copied to clipboard",
         });
       }
     } catch (error) {
       console.error("Error sharing:", error);
       toast({
         title: "Error",
-        description: "Failed to share post",
+        description: "Failed to copy share link",
         variant: "destructive",
       });
     }
@@ -301,14 +318,14 @@ const Feed = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       <DashboardHeader />
       
       <div className="flex-1 p-6">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Feed</h2>
-            <p className="text-muted-foreground">See what's happening in your community</p>
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-green-100">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Feed</h2>
+            <p className="text-gray-600 mt-1">Discover fresh content from your community</p>
           </div>
 
           <ScrollArea className="h-[calc(100vh-200px)]">
@@ -321,20 +338,32 @@ const Feed = () => {
                 </Card>
               ) : (
                 posts.map((post) => (
-                  <Card key={post.id} className="overflow-hidden">
-                    <CardHeader className="pb-3">
+                  <Card key={post.id} className="overflow-hidden bg-white border-2 border-gray-200 shadow-sm hover:shadow-lg hover:border-green-300 transition-all duration-300">
+                    <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-emerald-50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <Avatar>
-                            <AvatarFallback className="bg-primary text-primary-foreground">
+                          <Avatar className="ring-2 ring-green-200">
+                            <AvatarFallback className="bg-gradient-to-br from-green-600 to-emerald-600 text-white font-semibold">
                               {getAuthorInitials(getAuthorName(post))}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold text-sm">{getAuthorName(post)}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="font-semibold text-sm text-gray-900">{getAuthorName(post)}</p>
+                            <p className="text-xs text-gray-600 flex items-center gap-1">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
                               {post.vendor ? "Vendor" : "Admin"}
-                              {post.category && ` • ${post.category.name}`}
+                              {post.category && (
+                                <>
+                                  <span className="text-gray-400">•</span>
+                                  <span className="text-green-600 font-medium">{post.category.name}</span>
+                                </>
+                              )}
+                              {post.createdAt && (
+                                <>
+                                  <span className="text-gray-400">•</span>
+                                  <span className="text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</span>
+                                </>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -359,8 +388,8 @@ const Feed = () => {
                       </div>
                     </CardHeader>
 
-                    <CardContent className="pb-3">
-                      <p className="text-sm mb-3 whitespace-pre-wrap">{post.description}</p>
+                    <CardContent className="pb-3 px-6">
+                      <p className="text-sm mb-4 whitespace-pre-wrap leading-relaxed text-gray-700">{post.description}</p>
                       {post.media && post.media.length > 0 && (
                         <div className="grid gap-2">
                           {post.media.slice(0, 1).map((media) => (
@@ -368,7 +397,7 @@ const Feed = () => {
                               key={media.id}
                               src={`http://localhost:3064${media.fileUrl}`}
                               alt={media.fileName}
-                              className="w-full rounded-lg object-cover max-h-96"
+                              className="w-full rounded-xl object-cover max-h-96 border border-green-100 shadow-sm"
                             />
                           ))}
                           {post.media.length > 1 && (
@@ -380,47 +409,56 @@ const Feed = () => {
                       )}
                     </CardContent>
 
-                    <CardFooter className="flex flex-col gap-3 pb-3">
+                    <CardFooter className="flex flex-col gap-3 pb-4 px-6">
                       {/* Stats Display */}
-                      <div className="flex items-center justify-between w-full text-sm text-muted-foreground">
-                        {isAdminOrVendor && (
-                          <>
-                            <span>{post.shareCount || 0} shares</span>
-                            <span>{post.comments?.length || 0} comments</span>
-                          </>
-                        )}
-                        {isCustomer && (
-                          <span>{post.comments?.length || 0} comments</span>
-                        )}
-                      </div>
-
-                      <Separator />
+                      {isAdminOrVendor && (
+                        <div className="flex items-center gap-2 pb-2 border-b border-green-100">
+                          <button 
+                            onClick={() => setSavesOpen(post.id)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-all hover:shadow-md border border-emerald-200"
+                          >
+                            <Bookmark className="h-4 w-4" />
+                            <span className="font-semibold text-sm">{post.saves?.length || 0}</span>
+                            <span className="text-xs">Saves</span>
+                          </button>
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-50 border border-teal-200">
+                            <Share2 className="h-4 w-4 text-teal-700" />
+                            <span className="font-semibold text-sm text-teal-700">{post.shareCount || 0}</span>
+                            <span className="text-xs text-teal-700">Shares</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200">
+                            <MessageCircle className="h-4 w-4 text-green-700" />
+                            <span className="font-semibold text-sm text-green-700">{post.comments?.length || 0}</span>
+                            <span className="text-xs text-green-700">Comments</span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Action Buttons */}
-                      <div className="flex items-center justify-around w-full">
+                      <div className="flex items-center gap-2 w-full">
                         {isCustomer && (
                           <>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={isSavedByUser(post) ? "text-blue-500" : ""}
+                              className={`flex-1 ${isSavedByUser(post) ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200" : "hover:bg-green-50 hover:text-green-700"}`}
                               onClick={() => handleSave(post.id)}
                             >
-                              <Bookmark className={`h-4 w-4 mr-2 ${isSavedByUser(post) ? "fill-blue-500" : ""}`} />
+                              <Bookmark className={`h-4 w-4 mr-2 ${isSavedByUser(post) ? "fill-emerald-600" : ""}`} />
                               {isSavedByUser(post) ? "Saved" : "Save"}
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="flex-1 hover:bg-green-50 hover:text-green-700">
                               <MessageCircle className="h-4 w-4 mr-2" />
                               Comment
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleShare(post.id)}>
+                            <Button variant="ghost" size="sm" className="flex-1 hover:bg-teal-50 hover:text-teal-700" onClick={() => handleShare(post.id)}>
                               <Share2 className="h-4 w-4 mr-2" />
                               Share
                             </Button>
                           </>
                         )}
                         {isAdminOrVendor && (
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="w-full hover:bg-green-50 hover:text-green-700">
                             <MessageCircle className="h-4 w-4 mr-2" />
                             View Comments
                           </Button>
@@ -431,28 +469,26 @@ const Feed = () => {
 
                       {/* Comments Section */}
                       {post.comments && post.comments.length > 0 && (
-                        <div className="w-full space-y-2">
-                          <p className="text-sm font-semibold">Comments:</p>
+                        <div className="w-full space-y-3 pt-3 border-t border-green-100">
+                          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Comments:</p>
                           {post.comments.slice(0, 3).map((comment) => (
-                            <div key={comment.id} className="flex gap-2 items-start">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="bg-muted text-xs">
+                            <div key={comment.id} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg hover:bg-green-50 transition-colors">
+                              <Avatar className="h-8 w-8 ring-1 ring-gray-200">
+                                <AvatarFallback className="bg-gradient-to-br from-gray-400 to-gray-500 text-white text-xs">
                                   {getAuthorInitials(`User ${comment.userId}`)}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1">
-                                <p className="text-xs font-medium">{comment.userType} #{comment.userId}</p>
-                                <p className="text-sm">{comment.text}</p>
+                                <p className="text-xs font-semibold text-gray-700">{comment.userType} #{comment.userId}</p>
+                                <p className="text-sm text-gray-600 mt-0.5">{comment.text}</p>
                               </div>
                               {isAdminOrVendor && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
+                                <button
+                                  className="h-7 w-7 rounded-full flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-all"
                                   onClick={() => handleDeleteComment(comment.id)}
                                 >
-                                  <Trash2 className="h-3 w-3 text-red-600" />
-                                </Button>
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
                               )}
                             </div>
                           ))}
@@ -467,9 +503,9 @@ const Feed = () => {
 
                       {/* Comment Input - Only for customers */}
                       {isCustomer && (
-                        <div className="flex items-center gap-2 w-full">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-muted text-xs">
+                        <div className="flex items-center gap-2 w-full pt-2 border-t border-green-100">
+                          <Avatar className="h-8 w-8 ring-2 ring-green-100">
+                            <AvatarFallback className="bg-gradient-to-br from-green-100 to-emerald-100 text-green-700 text-xs font-semibold">
                               {getAuthorInitials("You")}
                             </AvatarFallback>
                           </Avatar>
@@ -488,6 +524,7 @@ const Feed = () => {
                             size="icon"
                             variant="ghost"
                             onClick={() => handleComment(post.id)}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                           >
                             <Send className="h-4 w-4" />
                           </Button>
@@ -501,7 +538,38 @@ const Feed = () => {
           </ScrollArea>
         </div>
       </div>
-    </div>
+      {/* SAVES DIALOG */}
+      <Dialog open={savesOpen !== null} onOpenChange={(o) => !o && setSavesOpen(null)}>
+        <DialogContent className="max-w-md border-green-200">
+          <DialogHeader>
+            <DialogTitle className="text-green-700">Saved By ({posts.find(p => p.id === savesOpen)?.saves?.length || 0})</DialogTitle>
+            <DialogDescription>Users who saved this post</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2 p-2">
+            {posts.find(p => p.id === savesOpen)?.saves?.map(s => (
+              <div key={s.id} className="flex items-center gap-3 p-3 border border-green-100 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors">
+                <div className="flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                    <Bookmark className="h-5 w-5 text-green-600 fill-green-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {s.user?.fullName || `${s.userType} #${s.userId}`}
+                  </p>
+                  <p className="text-xs text-gray-500">{s.userType}</p>
+                </div>
+              </div>
+            ))}
+            {posts.find(p => p.id === savesOpen)?.saves?.length === 0 && (
+              <div className="text-center py-12">
+                <Bookmark className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                <p className="text-gray-500 text-sm">No saves yet</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>    </div>
   );
 };
 

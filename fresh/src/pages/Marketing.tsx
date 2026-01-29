@@ -46,6 +46,7 @@ type MarketingItem = {
   product_name?: string;
   description: string;
   media_urls: string[];
+  createdAt?: string;
   likes: { id: number; user: { id: number; fullName: string } }[];
   comments: { id: number; text: string; userId: number; userType: string; user?: { id: number; fullName: string }; createdAt: string }[];
   saves?: { id: number; userId: number; userType: string; user?: { id: number; fullName: string } }[];
@@ -265,10 +266,15 @@ const Marketing = () => {
       return toast.error("Admins cannot share marketing content");
     }
     try {
+      // Generate the shareable deep link
+      const deepLink = `${window.location.origin}/post/${item.id}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(deepLink);
+      
+      // Call the backend API to increment share count
       await axios.post(`${API_BASE}/marketing/${item.id}/share`, { userId: Number(profileId) });
 
-      // Copy to clipboard
-      await navigator.clipboard.writeText(`${window.location.origin}/marketing/${item.id}`); // Conceptual link
       toast.success("Link copied to clipboard");
       fetchMarketingItems();
     } catch {
@@ -306,16 +312,19 @@ const Marketing = () => {
   /* ================= UI ================= */
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       <DashboardHeader />
 
       <div className="flex-1 space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold">Marketing</h2>
+        <div className="flex items-center justify-between bg-white rounded-xl shadow-sm p-6 border border-green-100">
+          <div>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Marketing</h2>
+            <p className="text-sm text-gray-600 mt-1">Manage your marketing content and campaigns</p>
+          </div>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200">
                 <Plus className="h-4 w-4 mr-2" /> Add Marketing
               </Button>
             </DialogTrigger>
@@ -418,9 +427,9 @@ const Marketing = () => {
         {/* LIST */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
+            <Card key={item.id} className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex flex-col bg-white border-2 border-gray-200 hover:border-green-300 shadow-sm">
               {/* Media Section */}
-              <div className="relative aspect-video bg-gray-100 dark:bg-gray-800">
+              <div className="relative aspect-video bg-gradient-to-br from-green-100 to-emerald-100">
                 {item.media_urls[0] ? (
                   item.media_urls[0].endsWith('.mp4') ? (
                     <video src={item.media_urls[0]} className="h-full w-full object-cover" controls />
@@ -437,7 +446,7 @@ const Marketing = () => {
                   </div>
                 )}
                 {/* Badge Overlay (Optional) */}
-                <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-0.5 rounded text-xs backdrop-blur-sm">
+                <div className="absolute top-3 left-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
                   {item.category_name || "Category"}
                 </div>
               </div>
@@ -445,34 +454,42 @@ const Marketing = () => {
               <CardContent className="flex-1 p-4 flex flex-col">
                 <div className="mb-2">
                   <CardTitle className="text-lg line-clamp-1" title={item.product_name}>{item.product_name}</CardTitle>
+                  {item.createdAt && (
+                    <p className="text-xs text-gray-500 mt-1">{new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  )}
                 </div>
                 <CardDescription className="line-clamp-3 text-sm flex-1">
                   {item.description}
                 </CardDescription>
 
                 {/* Social Stats */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <div className="flex gap-6 text-sm text-gray-600">
-                    <button 
-                      onClick={() => setCommentsOpen(item.id)} 
-                      className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      <span>{item.comments.length}</span>
-                    </button>
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-green-100">
+                  <button 
+                    onClick={() => setCommentsOpen(item.id)} 
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-all hover:shadow-md border border-green-200 hover:border-green-300"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="font-semibold text-sm">{item.comments.length}</span>
+                    <span className="text-xs">Comments</span>
+                  </button>
 
-                    <button 
-                      onClick={() => setSavesOpen(item.id)} 
-                      className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
-                    >
-                      <span>{item.saveCount || 0} saves</span>
-                    </button>
+                  <button 
+                    onClick={() => setSavesOpen(item.id)} 
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-800 transition-all hover:shadow-md border border-emerald-200 hover:border-emerald-300"
+                  >
+                    <Bookmark className="h-4 w-4" />
+                    <span className="font-semibold text-sm">{item.saves?.length || 0}</span>
+                    <span className="text-xs">Saves</span>
+                  </button>
 
-                    <div className="flex items-center gap-1.5">
-                      <Share2 className="h-4 w-4" />
-                      <span>{item.shareCount || 0}</span>
-                    </div>
-                  </div>
+                  <button 
+                    onClick={() => handleShare(item)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-800 transition-all hover:shadow-md border border-teal-200 hover:border-teal-300"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="font-semibold text-sm">{item.shareCount || 0}</span>
+                    <span className="text-xs">Shares</span>
+                  </button>
                 </div>
 
                 {/* Admin/Owner Actions */}
@@ -480,17 +497,18 @@ const Marketing = () => {
                   <div className="flex gap-2 ml-auto">
                     {(role === "Admin" || String(item.vendorId) === String(profileId)) && (
                       <>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-500 hover:text-blue-600" onClick={() => handleEdit(item)}>
+                        <button 
+                          onClick={() => handleEdit(item)}
+                          className="h-9 w-9 rounded-full flex items-center justify-center bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200 hover:border-green-300 transition-all hover:shadow-md"
+                        >
                           <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-gray-500 hover:text-red-600"
+                        </button>
+                        <button
                           onClick={() => handleDelete(item.id)}
+                          className="h-9 w-9 rounded-full flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 transition-all hover:shadow-md"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </button>
                       </>
                     )}
                   </div>
@@ -502,17 +520,17 @@ const Marketing = () => {
 
         {/* COMMENTS DIALOG */}
         <Dialog open={commentsOpen !== null} onOpenChange={(o) => !o && setCommentsOpen(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl border-green-200">
             <DialogHeader>
-              <DialogTitle>Comments ({items.find(i => i.id === commentsOpen)?.comments.length || 0})</DialogTitle>
+              <DialogTitle className="text-green-700">Comments ({items.find(i => i.id === commentsOpen)?.comments.length || 0})</DialogTitle>
               <DialogDescription>View and manage comments on this post</DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto space-y-4 p-2">
               {items.find(i => i.id === commentsOpen)?.comments.map(c => (
-                <div key={c.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <div key={c.id} className="flex items-start gap-3 p-3 border border-green-100 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                      <User className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                      <User className="h-5 w-5 text-green-600" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -565,22 +583,24 @@ const Marketing = () => {
 
         {/* SAVES DIALOG */}
         <Dialog open={savesOpen !== null} onOpenChange={(o) => !o && setSavesOpen(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md border-green-200">
             <DialogHeader>
-              <DialogTitle>Saved By ({items.find(i => i.id === savesOpen)?.saves?.length || 0})</DialogTitle>
+              <DialogTitle className="text-green-700">Saved By ({items.find(i => i.id === savesOpen)?.saves?.length || 0})</DialogTitle>
               <DialogDescription>Users who saved this post</DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto space-y-2 p-2">
               {items.find(i => i.id === savesOpen)?.saves?.map(s => (
-                <div key={s.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <div key={s.id} className="flex items-center gap-3 p-3 border border-green-100 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                      <Bookmark className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                      <Bookmark className="h-5 w-5 text-green-600 fill-green-600" />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{s.userType} #{s.userId}</p>
-                    <p className="text-xs text-gray-500">Saved this post</p>
+                    <p className="font-medium text-sm">
+                      {s.user?.fullName || `${s.userType} #${s.userId}`}
+                    </p>
+                    <p className="text-xs text-gray-500">{s.userType}</p>
                   </div>
                 </div>
               ))}
