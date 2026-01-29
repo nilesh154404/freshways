@@ -61,7 +61,7 @@ let MarketingContentService = class MarketingContentService {
     async findOne(id) {
         const content = await this.marketingRepo.findOne({
             where: { id },
-            relations: ['media'],
+            relations: ['media', 'comments'],
         });
         if (!content)
             throw new common_1.NotFoundException('Marketing content not found');

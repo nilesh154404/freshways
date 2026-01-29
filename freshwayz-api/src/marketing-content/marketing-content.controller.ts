@@ -109,6 +109,17 @@ export class MarketingContentController {
 
   // Add comment
   @Post(':id/comment')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', example: 'Great post!' },
+        userId: { type: 'number', example: 1 },
+        userType: { type: 'string', example: 'Customer' },
+      },
+      required: ['text', 'userId'],
+    },
+  })
   async addComment(
     @Param('id') id: number,
     @Body() body: { text: string; userId: number; userType?: string }

@@ -100,7 +100,7 @@ export class MarketingContentService {
   async findOne(id: number) {
     const content = await this.marketingRepo.findOne({
       where: { id },
-      relations: ['media'],
+      relations: ['media', 'comments'],
     });
     if (!content) throw new NotFoundException('Marketing content not found');
     return content;

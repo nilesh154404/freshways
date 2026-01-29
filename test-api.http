@@ -1,0 +1,59 @@
+### Freshways API - Marketing Comment Tests
+
+# Base URL
+@baseUrl = http://localhost:5000
+
+### Get All Marketing Content
+GET {{baseUrl}}/marketing
+
+###
+
+### Get Single Marketing Content
+GET {{baseUrl}}/marketing/1
+
+###
+
+### Add Comment to Marketing Content
+POST {{baseUrl}}/marketing/1/comment
+Content-Type: application/json
+
+{
+  "text": "Great post! This is very helpful.",
+  "userId": 1,
+  "userType": "Customer"
+}
+
+###
+
+### Add Another Comment
+POST {{baseUrl}}/marketing/1/comment
+Content-Type: application/json
+
+{
+  "text": "I really enjoyed reading this!",
+  "userId": 2,
+  "userType": "Customer"
+}
+
+###
+
+### Delete Comment
+DELETE {{baseUrl}}/marketing/comment/1
+
+###
+
+### Save/Unsave Marketing Content
+POST {{baseUrl}}/marketing/1/save
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "userType": "Customer"
+}
+
+###
+
+### Get Saved Posts by User
+GET {{baseUrl}}/marketing/user/1/saved
+
+###
