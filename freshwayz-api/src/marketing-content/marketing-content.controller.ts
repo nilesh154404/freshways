@@ -147,4 +147,10 @@ async sharePost(@Param('id') id: number) {
   async getSavedPosts(@Param('userId') userId: number) {
     return this.marketingService.getSavedPosts(userId);
   }
+
+  // Get all comments by a particular customer
+  @Get('user/:userId/comments')
+  async getCommentsByCustomer(@Param('userId') userId: number) {
+    return this.marketingService.getCommentsByCustomer(userId);
+  }
 }
