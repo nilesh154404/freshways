@@ -36,4 +36,5 @@ export declare class MarketingContentController {
         };
     }>;
     getSavedPosts(userId: number): Promise<import("./entities/marketing-content.entity").MarketingContent[]>;
+    getCommentsByCustomer(userId: number): Promise<import("./entities/marketing-comment.entity").MarketingComment[]>;
 }

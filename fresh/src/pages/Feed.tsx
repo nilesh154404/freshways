@@ -28,7 +28,7 @@ interface MarketingContent {
   shareCount: number;
   saveCount: number;
   createdAt?: string;
-  vendor?: { id: number; name: string; };
+  vendor?: { id: number; name?: string; businessName?: string; ownerName?: string; };
   category?: { id: number; name: string; };
   product?: { id: number; name: string; };
   media?: { id: number; fileUrl: string; fileName: string; }[];
@@ -291,8 +291,8 @@ const Feed = () => {
   };
 
   const getAuthorName = (post: MarketingContent) => {
-    if (post.vendor && post.vendor.name) {
-      return post.vendor.name;
+    if (post.vendor) {
+      return post.vendor.businessName || post.vendor.ownerName || post.vendor.name || "Vendor";
     }
     return "Admin";
   };

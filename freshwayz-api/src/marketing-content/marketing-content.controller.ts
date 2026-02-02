@@ -47,6 +47,23 @@ export class MarketingContentController {
   // }
 
   @Post()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        categoryId: { type: 'number', example: 1 },
+        productId: { type: 'number', example: 12 },
+        description: { type: 'string', example: 'Fresh deals from our store' },
+        vendorId: { type: 'number', example: 2 },
+        media_files: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+        },
+      },
+      required: ['categoryId', 'description'],
+    },
+  })
   @UseInterceptors(
     FileFieldsInterceptor(
       [{ name: 'media_files', maxCount: 10 }],

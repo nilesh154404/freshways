@@ -64,10 +64,30 @@ let MarketingContentController = class MarketingContentController {
     async getSavedPosts(userId) {
         return this.marketingService.getSavedPosts(userId);
     }
+    async getCommentsByCustomer(userId) {
+        return this.marketingService.getCommentsByCustomer(userId);
+    }
 };
 exports.MarketingContentController = MarketingContentController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                categoryId: { type: 'number', example: 1 },
+                productId: { type: 'number', example: 12 },
+                description: { type: 'string', example: 'Fresh deals from our store' },
+                vendorId: { type: 'number', example: 2 },
+                media_files: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                },
+            },
+            required: ['categoryId', 'description'],
+        },
+    }),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileFieldsInterceptor)([{ name: 'media_files', maxCount: 10 }], multer_config_1.multerConfig)),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.UploadedFiles)()),
@@ -157,6 +177,13 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], MarketingContentController.prototype, "getSavedPosts", null);
+__decorate([
+    (0, common_1.Get)('user/:userId/comments'),
+    __param(0, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "getCommentsByCustomer", null);
 exports.MarketingContentController = MarketingContentController = __decorate([
     (0, swagger_1.ApiTags)('Marketing Content'),
     (0, common_1.Controller)('marketing'),

@@ -36,4 +36,5 @@ export declare class MarketingContentService {
         deepLink: string;
     }>;
     getSavedPosts(userId: number): Promise<MarketingContent[]>;
+    getCommentsByCustomer(userId: number): Promise<MarketingComment[]>;
 }

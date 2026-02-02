@@ -288,4 +288,14 @@ export class MarketingContentService {
 
     return savedPosts.map(save => save.marketingContent);
   }
+
+  // Get all comments by a particular customer
+  async getCommentsByCustomer(userId: number) {
+    const comments = await this.commentRepo.find({
+      where: { userId },
+      relations: ['marketingContent'],
+      order: { createdAt: 'DESC' },
+    });
+    return comments;
+  }
 }

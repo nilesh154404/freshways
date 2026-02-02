@@ -167,6 +167,14 @@ let MarketingContentService = class MarketingContentService {
         });
         return savedPosts.map(save => save.marketingContent);
     }
+    async getCommentsByCustomer(userId) {
+        const comments = await this.commentRepo.find({
+            where: { userId },
+            relations: ['marketingContent'],
+            order: { createdAt: 'DESC' },
+        });
+        return comments;
+    }
 };
 exports.MarketingContentService = MarketingContentService;
 exports.MarketingContentService = MarketingContentService = __decorate([

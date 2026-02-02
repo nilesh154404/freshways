@@ -12,7 +12,7 @@ interface MarketingContent {
   description: string;
   shareCount: number;
   saveCount: number;
-  vendor?: { id: number; name: string; };
+  vendor?: { id: number; name?: string; businessName?: string; ownerName?: string; };
   category?: { id: number; name: string; };
   product?: { id: number; name: string; };
   media?: { id: number; fileUrl: string; fileName: string; }[];
@@ -81,8 +81,8 @@ const PostDetail = () => {
   };
 
   const getAuthorName = (post: MarketingContent) => {
-    if (post.vendor && post.vendor.name) {
-      return post.vendor.name;
+    if (post.vendor) {
+      return post.vendor.businessName || post.vendor.ownerName || post.vendor.name || "Vendor";
     }
     return "Admin";
   };
@@ -112,13 +112,13 @@ const PostDetail = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Open in App Banner */}
       {showBanner && (
-        <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+        <div className="sticky top-0 z-50 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
               <div className="flex-shrink-0">
                 <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
                   <rect width="24" height="24" rx="5" fill="white"/>
-                  <path d="M12 6L8 10H11V16H13V10H16L12 6Z" fill="#2563eb"/>
+                  <path d="M12 6L8 10H11V16H13V10H16L12 6Z" fill="#059669"/>
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
@@ -130,7 +130,7 @@ const PostDetail = () => {
               <Button
                 onClick={handleOpenInApp}
                 size="sm"
-                className="bg-white text-blue-600 hover:bg-blue-50 font-semibold"
+                className="bg-white text-emerald-600 hover:bg-emerald-50 font-semibold"
               >
                 Open in App
               </Button>
@@ -138,7 +138,7 @@ const PostDetail = () => {
                 onClick={() => setShowBanner(false)}
                 size="sm"
                 variant="ghost"
-                className="text-white hover:bg-blue-800"
+                className="text-white hover:bg-emerald-800"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -258,7 +258,7 @@ const PostDetail = () => {
           <Button
             onClick={handleOpenInApp}
             size="lg"
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800"
           >
             Open FreshWays App for More
           </Button>
