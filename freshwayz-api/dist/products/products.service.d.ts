@@ -15,6 +15,11 @@ export declare class ProductsService {
     constructor(productRepo: Repository<Product>, serviceOfferingRepo: Repository<ServiceOffering>, vendorPlanRepo: Repository<VendorSubscriptionPlan>, categoryRepo: Repository<Categories>, vendorRepo: Repository<Vendor>);
     create(createProductDto: CreateProductDto): Promise<Product>;
     findAll(dto: RangeDTO, categoryId?: number, vendorId?: number): Promise<import("../helpers/pagination/dto/pagination.dto").Pagination<Product>>;
+    getProductsCount(vendorId?: number): Promise<{
+        total: number;
+        growth: number;
+        newThisMonth: number;
+    }>;
     findOne(id: number): Promise<Product | null>;
     update(id: number, dto: any): string;
     remove(id: number): Promise<import("typeorm").DeleteResult>;

@@ -46,5 +46,15 @@ export declare class OrderService {
     remove(id: number): Promise<void>;
     getOrdersByCustomer(customerId: number): Promise<Order[]>;
     getOrdersByVendor(vendorId: number): Promise<Order[]>;
+    getWeeklyStats(vendorId?: number): Promise<{
+        revenueData: {
+            name: string;
+            revenue: number;
+        }[];
+        ordersData: {
+            name: string;
+            orders: number;
+        }[];
+    }>;
 }
 export {};

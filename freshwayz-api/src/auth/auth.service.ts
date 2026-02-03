@@ -126,7 +126,14 @@ export class AuthService {
         const userType = await this.userTypeRepo.findOne({ where: { typeName: 'Vendor' } });
         if (!userType) throw new BadRequestException('UserType "Vendor" not found');
 
-        const vendor = this.vendorRepo.create({ ...dto.vendor, userType });
+        const { categories, ...restVendorData } = dto.vendor;
+
+        const vendor = this.vendorRepo.create({ ...restVendorData, userType });
+
+        if (categories && categories.length > 0) {
+            vendor.categories = categories.map(id => ({ id } as any));
+        }
+
         await this.vendorRepo.save(vendor);
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);

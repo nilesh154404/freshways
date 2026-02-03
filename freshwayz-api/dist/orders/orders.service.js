@@ -273,6 +273,47 @@ let OrderService = class OrderService {
             relations: ['customer', 'community', 'listedOrders', 'payments'],
         });
     }
+    async getWeeklyStats(vendorId) {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 6);
+        const qb = this.orderRepo.createQueryBuilder('order')
+            .select("DATE(order.createdAt)", "date")
+            .addSelect("SUM(order.grandTotal)", "revenue")
+            .addSelect("COUNT(order.id)", "count")
+            .where("order.createdAt >= :startDate", { startDate: startDate.toISOString().split('T')[0] + ' 00:00:00' })
+            .andWhere("order.isDeleted = false")
+            .groupBy("date");
+        if (vendorId) {
+            qb.leftJoin('order.vendor', 'vendor')
+                .andWhere('vendor.id = :vendorId', { vendorId });
+        }
+        const rawData = await qb.getRawMany();
+        const days = [];
+        const revenueData = [];
+        const ordersData = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dayString = d.toISOString().split('T')[0];
+            const found = rawData.find(item => {
+                const itemDate = item.date instanceof Date
+                    ? item.date.toISOString().split('T')[0]
+                    : new Date(item.date).toISOString().split('T')[0];
+                return itemDate === dayString;
+            });
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+            revenueData.push({
+                name: dayName,
+                revenue: found ? parseFloat(found.revenue) : 0
+            });
+            ordersData.push({
+                name: dayName,
+                orders: found ? parseInt(found.count, 10) : 0
+            });
+        }
+        return { revenueData, ordersData };
+    }
 };
 exports.OrderService = OrderService;
 exports.OrderService = OrderService = __decorate([

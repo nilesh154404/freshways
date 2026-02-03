@@ -7,6 +7,11 @@ export declare class VendorService {
     private readonly userTypeRepo;
     constructor(vendorRepo: Repository<Vendor>, userTypeRepo: Repository<UserType>);
     findAll(): Promise<Vendor[]>;
+    getVendorsCount(): Promise<{
+        total: number;
+        growth: number;
+        newThisMonth: number;
+    }>;
     findOne(id: number): Promise<Vendor>;
     update(id: number, updateData: UpdateVendorDto): Promise<Vendor>;
     remove(id: number): Promise<{

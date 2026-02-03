@@ -22,6 +22,9 @@ let VendorController = class VendorController {
     constructor(vendorService) {
         this.vendorService = vendorService;
     }
+    async getVendorsCount() {
+        return this.vendorService.getVendorsCount();
+    }
     findAll() {
         return this.vendorService.findAll();
     }
@@ -36,6 +39,12 @@ let VendorController = class VendorController {
     }
 };
 exports.VendorController = VendorController;
+__decorate([
+    (0, common_1.Get)('count'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], VendorController.prototype, "getVendorsCount", null);
 __decorate([
     (0, common_1.Get)(),
     __metadata("design:type", Function),

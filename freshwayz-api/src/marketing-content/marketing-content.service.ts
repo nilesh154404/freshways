@@ -1,7 +1,7 @@
 // src/marketing-content/marketing-content.service.ts
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, Between } from 'typeorm';
 import { MarketingContent } from './entities/marketing-content.entity';
 import { CreateMarketingContentDto } from './dto/create-marketing-content.dto';
 import { UpdateMarketingContentDto } from './dto/update-marketing-content.dto';
@@ -45,11 +45,13 @@ export class MarketingContentService {
 
   async findAll(userId?: number, userRole?: string) {
     const contents = await this.marketingRepo.find({
-      relations: ['media', 'product'],
+      relations: ['media', 'product', 'vendor'],
       order: { id: 'DESC' }
     });
 
+
     return this.enrichContents(contents, userId, userRole);
+
   }
 
   async getSavedPosts(userId: number, userRole: string) {
@@ -90,7 +92,9 @@ export class MarketingContentService {
       const fullContents = await this.marketingRepo.createQueryBuilder('content')
         .leftJoinAndSelect('content.media', 'media')
         .leftJoinAndSelect('content.product', 'product')
+        .leftJoinAndSelect('content.vendor', 'vendor')
         .whereInIds(savedContentIds)
+
         .orderBy('content.id', 'DESC')
         .getMany();
 
@@ -110,14 +114,15 @@ export class MarketingContentService {
       if (userId && userRole) {
         let liked: any, saved: any;
         if (isCustomer) {
-          liked = await this.likeRepo.findOne({ where: { customer: { id: userId }, marketingContent: { id: content.id } } });
+          // liked = await this.likeRepo.findOne({ where: { customer: { id: userId }, marketingContent: { id: content.id } } });
           saved = await this.saveRepo.findOne({ where: { customer: { id: userId }, marketingContent: { id: content.id } } });
         } else {
-          liked = await this.likeRepo.findOne({ where: { user: { id: userId }, marketingContent: { id: content.id } } });
+          // liked = await this.likeRepo.findOne({ where: { user: { id: userId }, marketingContent: { id: content.id } } });
           saved = await this.saveRepo.findOne({ where: { user: { id: userId }, marketingContent: { id: content.id } } });
         }
-        (content as any).liked_by_me = !!liked;
+        (content as any).liked_by_me = false; // !!liked;
         (content as any).saved_by_me = !!saved;
+
       }
 
       // 2. Populate Comments
@@ -159,15 +164,16 @@ export class MarketingContentService {
       let liked: any, saved: any;
 
       if (isCustomer) {
-        liked = await this.likeRepo.findOne({ where: { customer: { id: userId }, marketingContent: { id: content.id } } });
+        // liked = await this.likeRepo.findOne({ where: { customer: { id: userId }, marketingContent: { id: content.id } } });
         saved = await this.saveRepo.findOne({ where: { customer: { id: userId }, marketingContent: { id: content.id } } });
       } else {
-        liked = await this.likeRepo.findOne({ where: { user: { id: userId }, marketingContent: { id: content.id } } });
+        // liked = await this.likeRepo.findOne({ where: { user: { id: userId }, marketingContent: { id: content.id } } });
         saved = await this.saveRepo.findOne({ where: { user: { id: userId }, marketingContent: { id: content.id } } });
       }
 
-      (content as any).liked_by_me = !!liked;
+      (content as any).liked_by_me = false; // !!liked;
       (content as any).saved_by_me = !!saved;
+
     }
 
     // Attach comments dynamically
@@ -231,52 +237,89 @@ export class MarketingContentService {
     return query.getMany();
   }
 
+  async count(filters: { vendorId?: number }) {
+    const where: any = {};
+    if (filters.vendorId) {
+      where.vendor = { id: filters.vendorId };
+    }
+    const total = await this.marketingRepo.count({ where });
+
+    const now = new Date();
+    const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const newThisMonth = await this.marketingRepo.count({
+      where: {
+        ...where,
+        created_at: MoreThanOrEqual(firstDayCurrentMonth),
+      }
+    });
+
+    const newLastMonth = await this.marketingRepo.count({
+      where: {
+        ...where,
+        created_at: Between(firstDayLastMonth, lastDayLastMonth),
+      }
+    });
+
+    let growth = 0;
+    if (newLastMonth > 0) {
+      growth = ((newThisMonth - newLastMonth) / newLastMonth) * 100;
+    } else if (newThisMonth > 0) {
+      growth = 100;
+    }
+
+    return { total, growth: Math.round(growth), newThisMonth };
+  }
+
   /* ================= INTERACTIONS ================= */
 
-  async toggleLike(userId: number, postId: number, userRole: string) {
-    console.log(`[ToggleLike] User: ${userId}, Role: ${userRole}, Post: ${postId}`);
-    try {
-      const normalizedRole = userRole?.trim().toLowerCase();
+  //   async toggleLike(userId: number, postId: number, userRole: string) {
+  //     console.log(`[ToggleLike] User: ${userId}, Role: ${userRole}, Post: ${postId}`);
+  //     try {
+  //       const normalizedRole = userRole?.trim().toLowerCase();
 
-      // Check if post exists
-      const post = await this.marketingRepo.findOne({ where: { id: postId } });
-      if (!post) throw new NotFoundException('Post not found');
+  //       // Check if post exists
+  //       const post = await this.marketingRepo.findOne({ where: { id: postId } });
+  //       if (!post) throw new NotFoundException('Post not found');
 
-      // Build query criteria
-      const criteria: any = { marketingContent: { id: postId } };
-      if (normalizedRole === 'customer') {
-        criteria.customer = { id: userId };
-      } else {
-        criteria.user = { id: userId };
-      }
+  //       // Build query criteria
+  //       const criteria: any = { marketingContent: { id: postId } };
+  //       if (normalizedRole === 'customer') {
+  //         criteria.customer = { id: userId };
+  //       } else {
+  //         criteria.user = { id: userId };
+  //       }
 
-      const existing = await this.likeRepo.findOne({ where: criteria });
+  //       const existing = await this.likeRepo.findOne({ where: criteria });
 
-      if (existing) {
-        await this.likeRepo.remove(existing);
-        post.likes_count = Math.max(0, post.likes_count - 1);
-        await this.marketingRepo.save(post);
-        return { liked: false, count: post.likes_count };
-      }
+  //       if (existing) {
+  //         await this.likeRepo.remove(existing);
+  //         post.likes_count = Math.max(0, post.likes_count - 1);
+  //         await this.marketingRepo.save(post);
+  //         return { liked: false, count: post.likes_count };
+  //       }
 
-      // Create new like
-      const newLike = this.likeRepo.create({ marketingContent: post });
-      if (normalizedRole === 'customer') {
-        newLike.customer = { id: userId } as any;
-      } else {
-        newLike.user = { id: userId } as any;
-      }
+  //       // Create new like
+  //       const newLike = this.likeRepo.create({ marketingContent: post });
+  //       if (normalizedRole === 'customer') {
+  //         newLike.customer = { id: userId } as any;
+  //       } else {
+  //         newLike.user = { id: userId } as any;
+  //       }
 
-      await this.likeRepo.save(newLike);
+  //       await this.likeRepo.save(newLike);
 
-      post.likes_count += 1;
-      await this.marketingRepo.save(post);
-      return { liked: true, count: post.likes_count };
-    } catch (error) {
-      console.error(`[ToggleLike] Error:`, error);
-      throw new ForbiddenException(`Like failed: ${error.message}`);
-    }
-  }
+  //       post.likes_count += 1;
+  //       await this.marketingRepo.save(post);
+  //       return { liked: true, count: post.likes_count };
+  //     } catch (error) {
+  //       console.error(`[ToggleLike] Error:`, error);
+  //       throw new ForbiddenException(`Like failed: ${error.message}`);
+  //     }
+  //   }
+
 
   async toggleSave(userId: number, postId: number, userRole: string) {
     const post = await this.marketingRepo.findOne({ where: { id: postId } });
@@ -381,30 +424,31 @@ export class MarketingContentService {
     return { success: true };
   }
 
-  async getLikes(postId: number) {
-    const likes = await this.likeRepo.find({
-      where: { marketingContent: { id: postId } },
-      relations: ['user', 'customer'],
-    });
+  //   async getLikes(postId: number) {
+  //     const likes = await this.likeRepo.find({
+  //       where: { marketingContent: { id: postId } },
+  //       relations: ['user', 'customer'],
+  //     });
 
-    return likes.map(like => {
-      if (like.user) {
-        return {
-          id: like.user.id,
-          firstName: like.user.fullName?.split(' ')[0] || 'User',
-          lastName: like.user.fullName?.split(' ')[1] || '',
-          role: like.user.userType?.typeName || 'Admin' // Assuming user is admin/vendor
-        };
-      } else if (like.customer) {
-        return {
-          id: like.customer.id,
-          firstName: like.customer.fullName?.split(' ')[0] || 'Customer',
-          lastName: like.customer.fullName?.split(' ')[1] || '',
-          role: 'Customer'
-        };
-      } else {
-        return { id: 0, firstName: 'Unknown', lastName: '', role: 'Unknown' };
-      }
-    });
-  }
+  //     return likes.map(like => {
+  //       if (like.user) {
+  //         return {
+  //           id: like.user.id,
+  //           firstName: like.user.fullName?.split(' ')[0] || 'User',
+  //           lastName: like.user.fullName?.split(' ')[1] || '',
+  //           role: like.user.userType?.typeName || 'Admin' // Assuming user is admin/vendor
+  //         };
+  //       } else if (like.customer) {
+  //         return {
+  //           id: like.customer.id,
+  //           firstName: like.customer.fullName?.split(' ')[0] || 'Customer',
+  //           lastName: like.customer.fullName?.split(' ')[1] || '',
+  //           role: 'Customer'
+  //         };
+  //       } else {
+  //         return { id: 0, firstName: 'Unknown', lastName: '', role: 'Unknown' };
+  //       }
+  //     });
+  //   }
+
 }

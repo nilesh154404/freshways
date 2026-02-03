@@ -27,6 +27,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 import { MarketingContentModule } from './marketing-content/marketing-content.module';
 import { DeliverySlotsModule } from './delivery-slot/delivery-slot.module';
 import { ProductDiscountModule } from './product-discount/product-discount.module';
+import { SeederModule } from './seeder/seeder.module';
 
 @Module({
   imports: [
@@ -70,7 +71,9 @@ import { ProductDiscountModule } from './product-discount/product-discount.modul
     FileUploadModule,
     MarketingContentModule,
     DeliverySlotsModule,
-    ProductDiscountModule
+    DeliverySlotsModule,
+    ProductDiscountModule,
+    SeederModule
   ],
 })
 export class AppModule implements OnModuleInit {

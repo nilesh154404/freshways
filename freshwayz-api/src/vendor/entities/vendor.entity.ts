@@ -5,7 +5,7 @@ import { Order } from "src/orders/entities/order.entity";
 import { Product } from "src/products/entities/product.entity";
 import { UserType } from "src/user-type/entities/user-type.entity";
 import { VendorSubscriptionPlan } from "src/vendor-subscription-plan/entities/vendor-subscription-plan.entity";
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, ManyToOne, OneToMany, ManyToMany, JoinTable } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, ManyToOne, OneToMany, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
 export class Vendor {
@@ -26,7 +26,34 @@ export class Vendor {
     address: string;
 
     @Column({ nullable: true })
+    website: string;
+
+    @Column({ nullable: true })
     ownerName: string;
+
+    @Column({ nullable: true })
+    nickname: string;
+
+    @Column({ type: 'text', nullable: true })
+    bio: string;
+
+    @Column({ nullable: true })
+    whatsapp: string;
+
+    @Column({ nullable: true })
+    telegram: string;
+
+    @Column({ nullable: true })
+    bankAccountNumber: string;
+
+    @Column({ nullable: true })
+    ifscCode: string;
+
+    @Column({ nullable: true })
+    bankName: string;
+
+    @Column({ nullable: true })
+    accountHolderName: string;
 
     @OneToOne(() => Auth, auth => auth.vendor, { nullable: true })
     // @JoinColumn()
@@ -47,7 +74,6 @@ export class Vendor {
     @OneToMany(() => DailyPrice, dailyPrice => dailyPrice.vendor)
     dailyPrice: DailyPrice;
 
-    // Many-to-Many relationship with Categories
     @ManyToMany(() => Categories, category => category.vendors)
     @JoinTable({
         name: 'vendor_categories', // custom join table name
@@ -55,4 +81,10 @@ export class Vendor {
         inverseJoinColumn: { name: 'category_id', referencedColumnName: 'id' }
     })
     categories: Categories[];
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }

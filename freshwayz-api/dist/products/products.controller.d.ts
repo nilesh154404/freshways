@@ -8,6 +8,11 @@ export declare class ProductsController {
     private readonly productsService;
     constructor(productsService: ProductsService);
     create(createProductDto: CreateProductDto): Promise<Product>;
+    getProductsCount(vendorId?: number): Promise<{
+        total: number;
+        growth: number;
+        newThisMonth: number;
+    }>;
     getAllProducts(dto: RangeDTO, categoryId?: number, vendorId?: number): Promise<Pagination<Product>>;
     findOne(id: string): Promise<Product | null>;
     update(id: string, updateProductDto: UpdateProductDto): string;

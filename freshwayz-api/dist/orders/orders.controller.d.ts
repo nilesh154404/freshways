@@ -7,6 +7,16 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 export declare class OrderController {
     private readonly orderService;
     constructor(orderService: OrderService);
+    getWeeklyStats(vendorId?: number): Promise<{
+        revenueData: {
+            name: string;
+            revenue: number;
+        }[];
+        ordersData: {
+            name: string;
+            orders: number;
+        }[];
+    }>;
     createNew(createDto: CreateNewOrderDto): Promise<Order>;
     updateStatus(id: number, dto: UpdateOrderStatusDto): Promise<Order>;
     getOrdersByCustomerId(customerId: number): Promise<Order[]>;

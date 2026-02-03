@@ -6,12 +6,13 @@ export declare class MarketingContentController {
         media_files?: Express.Multer.File[];
     }): Promise<import("./entities/marketing-content.entity").MarketingContent>;
     getSavedPosts(req: any): Promise<import("./entities/marketing-content.entity").MarketingContent[]>;
+    count(vendorId?: number): Promise<{
+        total: number;
+        growth: number;
+        newThisMonth: number;
+    }>;
     findAll(vendorId?: number, categoryId?: number, productId?: number, req?: any): Promise<import("./entities/marketing-content.entity").MarketingContent[]>;
     findOne(id: number, req?: any): Promise<import("./entities/marketing-content.entity").MarketingContent>;
-    toggleLike(id: number, req: any): Promise<{
-        liked: boolean;
-        count: number;
-    }>;
     toggleSave(id: number, req: any): Promise<{
         saved: boolean;
         count: number;
@@ -21,10 +22,4 @@ export declare class MarketingContentController {
     deleteComment(commentId: number, req: any): Promise<{
         success: boolean;
     }>;
-    getLikes(id: number, req: any): Promise<{
-        id: number;
-        firstName: string;
-        lastName: string;
-        role: string;
-    }[]>;
 }

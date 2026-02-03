@@ -39,6 +39,9 @@ let MarketingContentController = class MarketingContentController {
         const role = req.user.role;
         return this.marketingService.getSavedPosts(userId, role);
     }
+    async count(vendorId) {
+        return this.marketingService.count({ vendorId });
+    }
     async findAll(vendorId, categoryId, productId, req) {
         if (vendorId || categoryId || productId) {
             return this.marketingService.filter({ vendorId, categoryId, productId });
@@ -51,10 +54,6 @@ let MarketingContentController = class MarketingContentController {
         const userId = req?.user?.profileId || req?.user?.sub;
         const role = req?.user?.role;
         return this.marketingService.findOne(id, userId, role);
-    }
-    async toggleLike(id, req) {
-        const userId = req.user.profileId || req.user.sub;
-        return this.marketingService.toggleLike(userId, id, req.user.role);
     }
     async toggleSave(id, req) {
         const userId = req.user.profileId || req.user.sub;
@@ -74,9 +73,6 @@ let MarketingContentController = class MarketingContentController {
             throw new common_1.ForbiddenException('Only Admins and Vendors can delete comments');
         }
         return this.marketingService.deleteComment(commentId);
-    }
-    async getLikes(id, req) {
-        return this.marketingService.getLikes(id);
     }
 };
 exports.MarketingContentController = MarketingContentController;
@@ -100,6 +96,14 @@ __decorate([
 ], MarketingContentController.prototype, "getSavedPosts", null);
 __decorate([
     (0, common_1.UseGuards)(optional_jwt_auth_guard_1.OptionalJwtAuthGuard),
+    (0, common_1.Get)('count'),
+    __param(0, (0, common_1.Query)('vendorId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "count", null);
+__decorate([
+    (0, common_1.UseGuards)(optional_jwt_auth_guard_1.OptionalJwtAuthGuard),
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('vendorId')),
     __param(1, (0, common_1.Query)('categoryId')),
@@ -118,16 +122,6 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], MarketingContentController.prototype, "findOne", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)(),
-    (0, common_1.Post)(':id/like'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
-    __metadata("design:returntype", Promise)
-], MarketingContentController.prototype, "toggleLike", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
@@ -167,16 +161,6 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], MarketingContentController.prototype, "deleteComment", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)(),
-    (0, common_1.Get)(':id/likes'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
-    __metadata("design:returntype", Promise)
-], MarketingContentController.prototype, "getLikes", null);
 exports.MarketingContentController = MarketingContentController = __decorate([
     (0, swagger_1.ApiTags)('Marketing Content'),
     (0, common_1.Controller)('marketing'),

@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, Between } from 'typeorm';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from './entities/product.entity';
@@ -165,6 +165,44 @@ export class ProductsService {
       limit: dto.limit,
     });
   }
+
+  async getProductsCount(vendorId?: number) {
+    const where: any = {};
+    if (vendorId) {
+      where.vendor = { id: vendorId };
+    }
+
+    const total = await this.productRepo.count({ where });
+
+    const now = new Date();
+    const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const newThisMonth = await this.productRepo.count({
+      where: {
+        ...where,
+        createdAt: MoreThanOrEqual(firstDayCurrentMonth),
+      }
+    });
+
+    const newLastMonth = await this.productRepo.count({
+      where: {
+        ...where,
+        createdAt: Between(firstDayLastMonth, lastDayLastMonth),
+      }
+    });
+
+    let growth = 0;
+    if (newLastMonth > 0) {
+      growth = ((newThisMonth - newLastMonth) / newLastMonth) * 100;
+    } else if (newThisMonth > 0) {
+      growth = 100;
+    }
+
+    return { total, growth: Math.round(growth), newThisMonth };
+  }
+
 
   findOne(id: number) {
     return this.productRepo.findOne({

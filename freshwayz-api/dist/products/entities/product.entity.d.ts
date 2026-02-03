@@ -17,4 +17,6 @@ export declare class Product {
     vendorSubscriptionPlan: VendorSubscriptionPlan;
     category: Categories;
     discounts: ProductDiscount[];
+    createdAt: Date;
+    updatedAt: Date;
 }

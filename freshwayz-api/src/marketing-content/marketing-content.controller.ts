@@ -68,6 +68,12 @@ export class MarketingContentController {
   }
 
   @UseGuards(OptionalJwtAuthGuard)
+  @Get('count')
+  async count(@Query('vendorId') vendorId?: number) {
+    return this.marketingService.count({ vendorId });
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
   async findAll(@Query('vendorId') vendorId?: number,
     @Query('categoryId') categoryId?: number,
@@ -89,13 +95,14 @@ export class MarketingContentController {
     return this.marketingService.findOne(id, userId, role);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @Post(':id/like')
-  async toggleLike(@Param('id') id: number, @Req() req: any) {
-    const userId = req.user.profileId || req.user.sub;
-    return this.marketingService.toggleLike(userId, id, req.user.role);
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // @Post(':id/like')
+  // async toggleLike(@Param('id') id: number, @Req() req: any) {
+  //   const userId = req.user.profileId || req.user.sub;
+  //   return this.marketingService.toggleLike(userId, id, req.user.role);
+  // }
+
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -133,13 +140,14 @@ export class MarketingContentController {
     return this.marketingService.deleteComment(commentId);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @Get(':id/likes')
-  async getLikes(@Param('id') id: number, @Req() req: any) {
-    // User requested: "customer can only see who liked and commented"
-    // So we allow everyone logged in to see the likes list.
-    return this.marketingService.getLikes(id);
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // @Get(':id/likes')
+  // async getLikes(@Param('id') id: number, @Req() req: any) {
+  //   // User requested: "customer can only see who liked and commented"
+  //   // So we allow everyone logged in to see the likes list.
+  //   return this.marketingService.getLikes(id);
+  // }
+
 
 }

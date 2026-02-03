@@ -24,6 +24,7 @@ import Marketing from "./pages/Marketing";
 import VendorSignup from "./pages/VendorSignup";
 import MarketingPreview from "./pages/MarketingPreview";
 import SavedPosts from "./pages/SavedPosts";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -197,6 +198,17 @@ const App = () => {
             <Route path="/vendor/signup" 
             element={<VendorSignup />}
              />
+             
+            <Route path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Profile />
+                </Layout>
+              </ProtectedRoute>
+            }
+             />
+
      {/*       <Route path="/login"
             element={<Login />} /> */}
 

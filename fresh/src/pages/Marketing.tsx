@@ -138,7 +138,9 @@ const Marketing = () => {
         product_name: item.product?.label,
         description: item.description,
         media_urls: item.media?.map((m: any) => m.fileUrl) || [],
-        vendorId: profileId,
+        vendorId: item.vendor?.id,
+        vendor_name: item.vendor?.businessName || item.vendor?.ownerName || (item.vendor ? "Unnamed Vendor" : undefined),
+
 
         likes_count: item.likes_count || 0,
         comments_count: item.comments_count || 0,

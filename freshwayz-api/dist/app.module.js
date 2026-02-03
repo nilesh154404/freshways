@@ -39,6 +39,7 @@ const file_upload_module_1 = require("./file-upload/file-upload.module");
 const marketing_content_module_1 = require("./marketing-content/marketing-content.module");
 const delivery_slot_module_1 = require("./delivery-slot/delivery-slot.module");
 const product_discount_module_1 = require("./product-discount/product-discount.module");
+const seeder_module_1 = require("./seeder/seeder.module");
 let AppModule = class AppModule {
     dataSource;
     constructor(dataSource) {
@@ -92,7 +93,9 @@ exports.AppModule = AppModule = __decorate([
             file_upload_module_1.FileUploadModule,
             marketing_content_module_1.MarketingContentModule,
             delivery_slot_module_1.DeliverySlotsModule,
-            product_discount_module_1.ProductDiscountModule
+            delivery_slot_module_1.DeliverySlotsModule,
+            product_discount_module_1.ProductDiscountModule,
+            seeder_module_1.SeederModule
         ],
     }),
     __metadata("design:paramtypes", [typeorm_1.DataSource])

@@ -30,6 +30,8 @@ let Product = class Product {
     vendorSubscriptionPlan;
     category;
     discounts;
+    createdAt;
+    updatedAt;
 };
 exports.Product = Product;
 __decorate([
@@ -81,6 +83,14 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => product_discount_entity_1.ProductDiscount, discount => discount.product),
     __metadata("design:type", Array)
 ], Product.prototype, "discounts", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], Product.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], Product.prototype, "updatedAt", void 0);
 exports.Product = Product = __decorate([
     (0, typeorm_1.Entity)()
 ], Product);

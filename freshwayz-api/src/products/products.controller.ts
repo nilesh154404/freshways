@@ -43,6 +43,12 @@ export class ProductsController {
   // async getAllProducts(@Query() dto: RangeDTO) {
   //   return this.productsService.findAll(dto);
   // }
+  @Get('count')
+  @ApiOperation({ summary: 'Get total count of products' })
+  async getProductsCount(@Query('vendorId') vendorId?: number) {
+    return this.productsService.getProductsCount(vendorId);
+  }
+
   @Get()
   @ApiOkResponse({
     description: 'Get all products with pagination',
@@ -53,8 +59,9 @@ export class ProductsController {
     @Query('categoryId') categoryId?: number,
     @Query('vendorId') vendorId?: number,
   ) {
-    return this.productsService.findAll(dto, categoryId,vendorId);
+    return this.productsService.findAll(dto, categoryId, vendorId);
   }
+
 
   // @ApiOperation({ summary: 'Get all products' })
   // findAll() {

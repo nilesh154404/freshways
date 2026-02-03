@@ -14,6 +14,33 @@ export class CreateUserDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
+    @ApiProperty({ required: false })
+    @IsOptional()
     @IsString()
     phone?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    nickname?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    bio?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    whatsapp?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    telegram?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    website?: string;
 }

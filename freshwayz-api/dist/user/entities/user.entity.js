@@ -18,6 +18,11 @@ let User = class User {
     fullName;
     email;
     phone;
+    nickname;
+    bio;
+    whatsapp;
+    telegram;
+    website;
     userType;
     auth;
     createdAt;
@@ -40,6 +45,26 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "nickname", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "bio", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "whatsapp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "telegram", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "website", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_type_entity_1.UserType, userType => userType.users, { nullable: false }),
     __metadata("design:type", user_type_entity_1.UserType)

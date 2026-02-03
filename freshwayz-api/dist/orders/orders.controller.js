@@ -26,6 +26,9 @@ let OrderController = class OrderController {
     constructor(orderService) {
         this.orderService = orderService;
     }
+    getWeeklyStats(vendorId) {
+        return this.orderService.getWeeklyStats(vendorId);
+    }
     createNew(createDto) {
         return this.orderService.createNew(createDto);
     }
@@ -70,6 +73,15 @@ let OrderController = class OrderController {
     }
 };
 exports.OrderController = OrderController;
+__decorate([
+    (0, common_1.Get)('stats/weekly'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get weekly revenue and order stats' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Weekly stats retrieved successfully' }),
+    __param(0, (0, common_1.Query)('vendorId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], OrderController.prototype, "getWeeklyStats", null);
 __decorate([
     (0, common_1.Post)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create a new order with listed items' }),

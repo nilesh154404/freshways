@@ -28,6 +28,9 @@ let ProductsController = class ProductsController {
     create(createProductDto) {
         return this.productsService.create(createProductDto);
     }
+    async getProductsCount(vendorId) {
+        return this.productsService.getProductsCount(vendorId);
+    }
     async getAllProducts(dto, categoryId, vendorId) {
         return this.productsService.findAll(dto, categoryId, vendorId);
     }
@@ -50,6 +53,14 @@ __decorate([
     __metadata("design:paramtypes", [create_product_dto_1.CreateProductDto]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)('count'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get total count of products' }),
+    __param(0, (0, common_1.Query)('vendorId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "getProductsCount", null);
 __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiOkResponse)({

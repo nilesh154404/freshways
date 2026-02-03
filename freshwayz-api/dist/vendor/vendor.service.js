@@ -30,11 +30,35 @@ let VendorService = class VendorService {
             relations: ['userType', 'orders', 'dailyPrice', 'vendorSubscriptionPlan'],
         });
     }
+    async getVendorsCount() {
+        const total = await this.vendorRepo.count();
+        const now = new Date();
+        const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        const newThisMonth = await this.vendorRepo.count({
+            where: {
+                createdAt: (0, typeorm_2.MoreThanOrEqual)(firstDayCurrentMonth),
+            }
+        });
+        const newLastMonth = await this.vendorRepo.count({
+            where: {
+                createdAt: (0, typeorm_2.Between)(firstDayLastMonth, lastDayLastMonth),
+            }
+        });
+        let growth = 0;
+        if (newLastMonth > 0) {
+            growth = ((newThisMonth - newLastMonth) / newLastMonth) * 100;
+        }
+        else if (newThisMonth > 0) {
+            growth = 100;
+        }
+        return { total, growth: Math.round(growth), newThisMonth };
+    }
     async findOne(id) {
         const vendor = await this.vendorRepo.findOne({
             where: { id },
-            relations: ['userType', 'products',
-                'vendorSubscriptionPlan'],
+            relations: ['userType', 'products', 'categories', 'vendorSubscriptionPlan'],
         });
         if (!vendor)
             throw new common_1.NotFoundException('Vendor not found');
@@ -42,12 +66,16 @@ let VendorService = class VendorService {
     }
     async update(id, updateData) {
         const vendor = await this.findOne(id);
-        Object.assign(vendor, updateData);
+        const { categories, ...rest } = updateData;
+        Object.assign(vendor, rest);
         if (updateData.userTypeId) {
             const userType = await this.userTypeRepo.findOne({ where: { id: updateData.userTypeId } });
             if (!userType)
                 throw new common_1.NotFoundException('User Type not found');
             vendor.userType = userType;
+        }
+        if (categories) {
+            vendor.categories = categories.map(id => ({ id }));
         }
         return this.vendorRepo.save(vendor);
     }

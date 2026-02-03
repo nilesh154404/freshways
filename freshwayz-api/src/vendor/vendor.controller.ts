@@ -7,12 +7,17 @@ import { UpdateVendorDto } from './dto/update-vendor.dto';
 @ApiTags('vendors')
 @Controller('vendors')
 export class VendorController {
-  constructor(private readonly vendorService: VendorService) {}
+  constructor(private readonly vendorService: VendorService) { }
 
   // @Post()
   // create(@Body() dto: CreateVendorDto) {
   //   return this.vendorService.create(dto);
   // }
+
+  @Get('count')
+  async getVendorsCount() {
+    return this.vendorService.getVendorsCount();
+  }
 
   @Get()
   findAll() {

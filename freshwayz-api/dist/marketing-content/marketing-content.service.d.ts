@@ -24,9 +24,12 @@ export declare class MarketingContentService {
         categoryId?: number;
         productId?: number;
     }): Promise<MarketingContent[]>;
-    toggleLike(userId: number, postId: number, userRole: string): Promise<{
-        liked: boolean;
-        count: number;
+    count(filters: {
+        vendorId?: number;
+    }): Promise<{
+        total: number;
+        growth: number;
+        newThisMonth: number;
     }>;
     toggleSave(userId: number, postId: number, userRole: string): Promise<{
         saved: boolean;
@@ -37,10 +40,4 @@ export declare class MarketingContentService {
     deleteComment(commentId: number): Promise<{
         success: boolean;
     }>;
-    getLikes(postId: number): Promise<{
-        id: number;
-        firstName: string;
-        lastName: string;
-        role: string;
-    }[]>;
 }

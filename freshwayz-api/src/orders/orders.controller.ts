@@ -12,6 +12,13 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
+  @Get('stats/weekly')
+  @ApiOperation({ summary: 'Get weekly revenue and order stats' })
+  @ApiResponse({ status: 200, description: 'Weekly stats retrieved successfully' })
+  getWeeklyStats(@Query('vendorId') vendorId?: number) {
+    return this.orderService.getWeeklyStats(vendorId);
+  }
+
   // ----------------------------------------------------------
   // CREATE ORDER
   // ----------------------------------------------------------
@@ -93,7 +100,7 @@ export class OrderController {
     @Param('id', ParseIntPipe) id: number,
     @Query('customerId', ParseIntPipe) customerId: number,
   ) {
-    return this.orderService.findOneByVendorServicePlan(id,customerId);
+    return this.orderService.findOneByVendorServicePlan(id, customerId);
   }
 
   @Patch(':id')

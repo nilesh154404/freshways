@@ -6,6 +6,11 @@ export declare class CustomerController {
     private readonly customerService;
     constructor(customerService: CustomerService);
     create(createCustomerDto: CreateCustomerDto): string;
+    getCustomersCount(): Promise<{
+        total: number;
+        growth: number;
+        newThisMonth: number;
+    }>;
     findAll(): string;
     findOne(id: string): string;
     updateCustomer(id: number, updateCustomerDto: UpdateCustomerDto): Promise<Customer>;

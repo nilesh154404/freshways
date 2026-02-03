@@ -18,6 +18,16 @@ class CreateVendorDto {
     gstNumber;
     address;
     ownerName;
+    nickname;
+    bio;
+    whatsapp;
+    telegram;
+    website;
+    bankAccountNumber;
+    ifscCode;
+    bankName;
+    accountHolderName;
+    categories;
 }
 exports.CreateVendorDto = CreateVendorDto;
 __decorate([
@@ -50,4 +60,63 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateVendorDto.prototype, "ownerName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "nickname", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "bio", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "whatsapp", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "telegram", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "website", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "bankAccountNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "ifscCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "bankName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "accountHolderName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, type: [Number] }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Array)
+], CreateVendorDto.prototype, "categories", void 0);
 //# sourceMappingURL=create-vendor.dto.js.map

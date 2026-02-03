@@ -17,6 +17,21 @@ export class User {
     @Column({ nullable: true })
     phone: string;
 
+    @Column({ nullable: true })
+    nickname: string;
+
+    @Column({ type: 'text', nullable: true })
+    bio: string;
+
+    @Column({ nullable: true })
+    whatsapp: string;
+
+    @Column({ nullable: true })
+    telegram: string;
+
+    @Column({ nullable: true })
+    website: string;
+
     @ManyToOne(() => UserType, userType => userType.users, { nullable: false })
     userType: UserType;
 

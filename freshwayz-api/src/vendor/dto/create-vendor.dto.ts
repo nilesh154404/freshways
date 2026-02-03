@@ -27,4 +27,53 @@ export class CreateVendorDto {
     @IsOptional()
     @IsString()
     ownerName?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    nickname?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    bio?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    whatsapp?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    telegram?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    website?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    bankAccountNumber?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    ifscCode?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    bankName?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    accountHolderName?: string;
+
+    @ApiProperty({ required: false, type: [Number] })
+    @IsOptional()
+    categories?: number[];
 }

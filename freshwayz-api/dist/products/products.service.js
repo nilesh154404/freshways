@@ -96,6 +96,37 @@ let ProductsService = class ProductsService {
             limit: dto.limit,
         });
     }
+    async getProductsCount(vendorId) {
+        const where = {};
+        if (vendorId) {
+            where.vendor = { id: vendorId };
+        }
+        const total = await this.productRepo.count({ where });
+        const now = new Date();
+        const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        const newThisMonth = await this.productRepo.count({
+            where: {
+                ...where,
+                createdAt: (0, typeorm_2.MoreThanOrEqual)(firstDayCurrentMonth),
+            }
+        });
+        const newLastMonth = await this.productRepo.count({
+            where: {
+                ...where,
+                createdAt: (0, typeorm_2.Between)(firstDayLastMonth, lastDayLastMonth),
+            }
+        });
+        let growth = 0;
+        if (newLastMonth > 0) {
+            growth = ((newThisMonth - newLastMonth) / newLastMonth) * 100;
+        }
+        else if (newThisMonth > 0) {
+            growth = 100;
+        }
+        return { total, growth: Math.round(growth), newThisMonth };
+    }
     findOne(id) {
         return this.productRepo.findOne({
             where: { id },

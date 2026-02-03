@@ -43,7 +43,8 @@ export type MarketingItem = {
     liked_by_me: boolean;
     saved_by_me: boolean;
     comments: Comment[];
-    vendorId?: string; // Added optional vendorId
+    vendorId?: string;
+    vendor_name?: string;
 };
 
 type Liker = {
@@ -96,25 +97,25 @@ export const MarketingCard = ({
         headers: { Authorization: `Bearer ${token}` }
     };
 
-    const handleLike = async () => {
-        if (role?.toLowerCase() !== 'customer') {
-            toast.error("Only customers can like posts");
-            return;
-        }
+    // const handleLike = async () => {
+    //     if (role?.toLowerCase() !== 'customer') {
+    //         toast.error("Only customers can like posts");
+    //         return;
+    //     }
 
-        const newVal = !liked;
-        setLiked(newVal);
-        setLikesCount(prev => newVal ? prev + 1 : Math.max(0, prev - 1));
+    //     const newVal = !liked;
+    //     setLiked(newVal);
+    //     setLikesCount(prev => newVal ? prev + 1 : Math.max(0, prev - 1));
 
-        try {
-            await axios.post(`${API_BASE}/marketing/${item.id}/like`, {}, authConfig);
-        } catch (e: any) {
-            console.error("Like failed:", e);
-            toast.error(e.response?.data?.message || "Failed to like post");
-            setLiked(!newVal);
-            setLikesCount(prev => newVal ? Math.max(0, prev - 1) : prev + 1);
-        }
-    };
+    //     try {
+    //         await axios.post(`${API_BASE}/marketing/${item.id}/like`, {}, authConfig);
+    //     } catch (e: any) {
+    //         console.error("Like failed:", e);
+    //         toast.error(e.response?.data?.message || "Failed to like post");
+    //         setLiked(!newVal);
+    //         setLikesCount(prev => newVal ? Math.max(0, prev - 1) : prev + 1);
+    //     }
+    // };
 
     const handleSave = async () => {
         const newVal = !saved;
@@ -218,8 +219,9 @@ export const MarketingCard = ({
 
     return (
         <>
-            <Card className="flex flex-col h-[520px] overflow-hidden group border-0 shadow-sm ring-1 ring-slate-200">
-                <div className="relative h-72 w-full bg-muted">
+            <Card className="flex flex-col overflow-hidden border-0 shadow-sm ring-1 ring-slate-100 rounded-xl bg-white mb-6">
+                {/* 1. Image Section with Overlay Badge */}
+                <div className="relative h-64 w-full bg-slate-50">
                     {item.media_urls[0] ? (
                         <img
                             src={item.media_urls[0]}
@@ -227,66 +229,88 @@ export const MarketingCard = ({
                             alt="Post media"
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground">No Image</div>
+                        <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-400">No Image</div>
                     )}
-                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-white shadow-sm">
-                        {item.category_name}
+
+                    {/* Category Badge Overlay - Top Left */}
+                    <div className="absolute top-4 left-4">
+                        <span className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                            {item.category_name}
+                        </span>
                     </div>
+
+                    {/* Like Button Overlay - Floating (Commented out as per request) */}
+                    {/* 
+                    <div className="absolute top-1/2 right-4 -translate-y-1/2">
+                         <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full shadow-md bg-white hover:bg-white" onClick={handleLike}>
+                            <Heart className={`h-5 w-5 ${liked ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
+                        </Button>
+                    </div> 
+                    */}
                 </div>
 
-                <CardContent className="flex-1 flex flex-col p-4">
-                    <div className="flex items-center gap-4 mb-3 text-sm font-medium text-slate-600">
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 p-0 hover:bg-transparent" onClick={handleLike}>
-                                <Heart className={`h-6 w-6 transition-all ${liked ? "fill-red-500 text-red-500 scale-110" : "text-slate-800"}`} />
-                            </Button>
-                            <span className="cursor-pointer hover:underline" onClick={openLikesDialog}>{likesCount}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 p-0 hover:bg-transparent" onClick={() => setShowComments(!showComments)}>
-                                <MessageCircle className="h-6 w-6 text-slate-800" />
-                            </Button>
-                            <span>{item.comments_count}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 p-0 hover:bg-transparent" onClick={handleShare}>
-                                <Share2 className="h-6 w-6 text-slate-800" />
-                            </Button>
-                            <span>{sharesCount}</span>
-                        </div>
-
-                        <div className="flex-1"></div>
-
-                        <Button variant="ghost" size="icon" className="h-9 w-9 p-0 hover:bg-transparent" onClick={handleSave}>
-                            <Bookmark className={`h-6 w-6 transition-all ${saved ? "fill-slate-800 text-slate-800" : "text-slate-800"}`} />
-                        </Button>
-                    </div>
-
-                    <div className="flex-1 min-h-0">
-                        <p className="text-sm leading-relaxed text-slate-800 line-clamp-4">
-                            <span className="font-semibold mr-2">{item.product_name || "Freshways"}</span>
+                <CardContent className="flex-1 flex flex-col p-5 pb-3">
+                    {/* 2. Title & Description */}
+                    <div className="mb-4">
+                        <h3 className="font-bold text-lg text-slate-900 mb-1">
+                            {item.product_name || item.category_name}
+                        </h3>
+                        <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">
                             {item.description}
                         </p>
                     </div>
 
-                    {item.comments_count > 0 && (
-                        <div className="mt-1">
-                            <span
-                                className="text-muted-foreground text-sm cursor-pointer"
-                                onClick={() => setShowComments(true)}
-                            >
-                                View all {item.comments_count} comments
+                    {/* 3. Author Row */}
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <div className="h-9 w-9 bg-slate-200 rounded-full flex items-center justify-center text-slate-500">
+                                {/* Placeholder Avatar Icon */}
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <span className="text-sm text-slate-500 font-medium">
+                                Posted by {item.vendor_name || "Freshways"}
                             </span>
                         </div>
-                    )}
+                        <span className="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-md font-medium">
+                            Marketing
+                        </span>
+                    </div>
 
+                    {/* 4. Footer Actions */}
+                    <div className="flex items-center justify-between text-slate-500">
+                        <div className="flex items-center gap-6">
+                            <button
+                                className="flex items-center gap-2 hover:text-slate-800 transition-colors text-sm font-medium"
+                                onClick={() => setShowComments(true)}
+                            >
+                                <MessageCircle className="h-5 w-5" />
+                                Comment
+                            </button>
+
+                            <button
+                                className="flex items-center gap-2 hover:text-slate-800 transition-colors text-sm font-medium"
+                                onClick={handleShare}
+                            >
+                                <Share2 className="h-5 w-5" />
+                                Share
+                            </button>
+                        </div>
+
+                        <button
+                            className="hover:text-slate-800 transition-colors"
+                            onClick={handleSave}
+                        >
+                            <Bookmark className={`h-6 w-6 ${saved ? "fill-slate-800 text-slate-800" : ""}`} />
+                        </button>
+                    </div>
+
+                    {/* Admin Actions */}
                     {isAdminOrVendor && (
-                        <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-                            <div className="flex-1"></div>
-                            <Button size="sm" variant="outline" onClick={() => onEdit(item)}>Edit</Button>
-                            <Button size="sm" variant="destructive" onClick={() => onDelete(item.id)}>Delete</Button>
+                        <div className="flex items-center justify-end gap-2 mt-4 pt-2 border-t border-slate-100">
+                            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => onEdit(item)}>Edit</Button>
+                            <Button size="sm" variant="ghost" className="h-8 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(item.id)}>Delete</Button>
                         </div>
                     )}
                 </CardContent>

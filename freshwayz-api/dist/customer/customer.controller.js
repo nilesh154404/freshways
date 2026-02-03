@@ -27,6 +27,9 @@ let CustomerController = class CustomerController {
     create(createCustomerDto) {
         return this.customerService.create(createCustomerDto);
     }
+    async getCustomersCount() {
+        return this.customerService.getCustomersCount();
+    }
     findAll() {
         return this.customerService.findAll();
     }
@@ -48,6 +51,12 @@ __decorate([
     __metadata("design:paramtypes", [create_customer_dto_1.CreateCustomerDto]),
     __metadata("design:returntype", void 0)
 ], CustomerController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)('count'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "getCustomersCount", null);
 __decorate([
     (0, common_1.Get)(),
     __metadata("design:type", Function),

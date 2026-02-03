@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ interface MarketingItem {
 
 export default function MarketingPreview() {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const [item, setItem] = useState<MarketingItem | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
@@ -43,9 +42,7 @@ export default function MarketingPreview() {
         window.location.href = deepLink;
     };
 
-    const handleLogin = () => {
-        navigate("/login");
-    };
+
 
     if (loading) {
         return (
@@ -96,17 +93,9 @@ export default function MarketingPreview() {
                     <div className="px-4 py-3 border-b flex items-center justify-between bg-white z-20 shrink-0">
                         <div className="flex items-center gap-2">
                             <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm">
-                                FW
+                                {vendorName?.charAt(0) || "F"}
                             </div>
-                            <span className="font-bold text-lg text-primary tracking-tight hidden sm:inline">Freshways</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" onClick={handleLogin}>
-                                Log In
-                            </Button>
-                            <Button size="sm" onClick={handleOpenApp}>
-                                Open App
-                            </Button>
+                            <span className="font-bold text-lg text-primary tracking-tight hidden sm:inline">{vendorName}</span>
                         </div>
                     </div>
 

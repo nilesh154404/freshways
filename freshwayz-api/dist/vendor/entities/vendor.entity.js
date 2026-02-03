@@ -24,7 +24,16 @@ let Vendor = class Vendor {
     email;
     gstNumber;
     address;
+    website;
     ownerName;
+    nickname;
+    bio;
+    whatsapp;
+    telegram;
+    bankAccountNumber;
+    ifscCode;
+    bankName;
+    accountHolderName;
     auth;
     userType;
     orders;
@@ -32,6 +41,8 @@ let Vendor = class Vendor {
     products;
     dailyPrice;
     categories;
+    createdAt;
+    updatedAt;
 };
 exports.Vendor = Vendor;
 __decorate([
@@ -57,7 +68,43 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
+], Vendor.prototype, "website", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], Vendor.prototype, "ownerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "nickname", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "bio", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "whatsapp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "telegram", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "bankAccountNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "ifscCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "bankName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "accountHolderName", void 0);
 __decorate([
     (0, typeorm_1.OneToOne)(() => auth_entity_1.Auth, auth => auth.vendor, { nullable: true }),
     __metadata("design:type", auth_entity_1.Auth)
@@ -91,6 +138,14 @@ __decorate([
     }),
     __metadata("design:type", Array)
 ], Vendor.prototype, "categories", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], Vendor.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], Vendor.prototype, "updatedAt", void 0);
 exports.Vendor = Vendor = __decorate([
     (0, typeorm_1.Entity)()
 ], Vendor);

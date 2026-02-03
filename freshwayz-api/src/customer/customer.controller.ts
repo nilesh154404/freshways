@@ -14,6 +14,11 @@ export class CustomerController {
     return this.customerService.create(createCustomerDto);
   }
 
+  @Get('count')
+  async getCustomersCount() {
+    return this.customerService.getCustomersCount();
+  }
+
   @Get()
   findAll() {
     return this.customerService.findAll();

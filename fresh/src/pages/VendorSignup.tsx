@@ -30,6 +30,13 @@ export default function VendorSignup() {
   const [website, setWebsite] = useState("");
   const [gstError, setGstError] = useState("");
 
+  // Bank Details
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [ifscCode, setIfscCode] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountHolderName, setAccountHolderName] = useState("");
+
+
   const [loading, setLoading] = useState(false);
   const validateGstNumber = () => {
     const regex = /^[A-Za-z0-9]{16}$/; // exactly 16 alphanumeric characters
@@ -93,6 +100,11 @@ export default function VendorSignup() {
           gstNumber,
           address,
           website,
+          // Bank Details
+          bankAccountNumber,
+          ifscCode,
+          bankName,
+          accountHolderName,
           categories: selectedCategories,
         },
         username: email, // username = email
@@ -196,6 +208,44 @@ export default function VendorSignup() {
           </div>
         </div>
 
+        {/* BANK DETAILS */}
+        <div className="mt-8 pt-6 border-t">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Bank Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label>Account Holder Name</Label>
+              <Input
+                value={accountHolderName}
+                onChange={(e) => setAccountHolderName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Bank Account Number</Label>
+              <Input
+                value={bankAccountNumber}
+                onChange={(e) => setBankAccountNumber(e.target.value)}
+                type="number" // restrict to numbers
+              />
+            </div>
+            <div>
+              <Label>Bank Name</Label>
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>IFSC Code</Label>
+              <Input
+                value={ifscCode}
+                onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                maxLength={11}
+                placeholder="ABCD0123456"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* CATEGORIES */}
         <div className="mt-6">
           <Label>Categories *</Label>
@@ -263,7 +313,6 @@ export default function VendorSignup() {
         >
           {loading ? "Creating account..." : "Create Vendor Account"}
         </Button>
-
         <p className="text-center text-sm mt-4 text-gray-500">
           Already have an account?{" "}
           <span

@@ -11,7 +11,16 @@ export declare class Vendor {
     email: string;
     gstNumber: string;
     address: string;
+    website: string;
     ownerName: string;
+    nickname: string;
+    bio: string;
+    whatsapp: string;
+    telegram: string;
+    bankAccountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    accountHolderName: string;
     auth?: Auth;
     userType: UserType;
     orders: Order[];
@@ -19,4 +28,6 @@ export declare class Vendor {
     products?: Product;
     dailyPrice: DailyPrice;
     categories: Categories[];
+    createdAt: Date;
+    updatedAt: Date;
 }

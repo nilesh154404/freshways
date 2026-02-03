@@ -4,7 +4,7 @@ import { ProductDiscount } from "src/product-discount/entities/product-discount.
 import { ServiceOffering } from "src/service-offering/entities/service-offering.entity";
 import { VendorSubscriptionPlan } from "src/vendor-subscription-plan/entities/vendor-subscription-plan.entity";
 import { Vendor } from "src/vendor/entities/vendor.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
 export class Product {
@@ -44,4 +44,10 @@ export class Product {
 
     @OneToMany(() => ProductDiscount, discount => discount.product)
     discounts: ProductDiscount[];
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }
