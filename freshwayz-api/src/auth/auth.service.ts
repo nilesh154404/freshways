@@ -139,10 +139,18 @@ export class AuthService {
 
     // ---------------------- LOGIN ----------------------
     async login(dto: AuthDto) {
-        const auth = await this.authRepo.findOne({
-            where: { username: dto.username },
-            relations: ['user', 'vendor', 'user.userType', 'vendor.userType']
-        });
+        const auth = await this.authRepo.createQueryBuilder('auth')
+            .leftJoinAndSelect('auth.user', 'user')
+            .leftJoinAndSelect('auth.vendor', 'vendor')
+            .leftJoinAndSelect('auth.customer', 'customer')
+            .leftJoinAndSelect('user.userType', 'userType')
+            .leftJoinAndSelect('vendor.userType', 'vendorType')
+            .leftJoinAndSelect('customer.userType', 'customerType')
+            .where('auth.username = :input', { input: dto.username })
+            .orWhere('user.email = :input', { input: dto.username })
+            .orWhere('vendor.email = :input', { input: dto.username })
+            .orWhere('customer.email = :input', { input: dto.username })
+            .getOne();
 
         if (!auth) throw new UnauthorizedException('Invalid credentials');
 
@@ -158,6 +166,9 @@ export class AuthService {
         } else if (auth.vendor) {
             role = auth.vendor.userType.typeName;
             profileId = auth.vendor.id;
+        } else if (auth.customer) {
+            role = auth.customer.userType.typeName;
+            profileId = auth.customer.id;
         }
 
         const payload = { username: auth.username, sub: auth.id, role, profileId };

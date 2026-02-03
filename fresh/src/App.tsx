@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 
 import { Layout } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -21,6 +22,8 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Marketing from "./pages/Marketing";
 import VendorSignup from "./pages/VendorSignup";
+import MarketingPreview from "./pages/MarketingPreview";
+import SavedPosts from "./pages/SavedPosts";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,7 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -48,6 +52,9 @@ const App = () => {
           <Routes>
             {/* LOGIN */}
             <Route path="/login" element={<Login setToken={setToken} />} />
+            
+            {/* PUBLIC PREVIEW - DEEP LINKING */}
+            <Route path="/share/marketing/:id" element={<MarketingPreview />} />
 
             {/* PROTECTED ROUTES */}
             <Route
@@ -168,6 +175,24 @@ const App = () => {
                 </Layout>
               </ProtectedRoute>
             }/>
+
+            <Route path="/posts" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Marketing/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/saved-posts" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SavedPosts/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
             
             <Route path="/vendor/signup" 
             element={<VendorSignup />}
@@ -179,6 +204,7 @@ const App = () => {
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </HelmetProvider>
     </QueryClientProvider>
   );
 };

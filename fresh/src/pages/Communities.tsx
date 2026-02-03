@@ -69,7 +69,7 @@ const Communities = () => {
   const fetchCommunities = async () => {
     try {
       const response = await axios.get<APICommunity[]>(
-        "http://192.168.1.36:3064/community/"
+        "http://localhost:3064/community/"
       );
       const mapped = response.data.map((item) => ({
         id: item.id.toString(),
@@ -108,7 +108,7 @@ const Communities = () => {
       if (editingCommunity) {
         // UPDATE COMMUNITY (PATCH)
         await axios.patch<APICommunity>(
-          `http://192.168.1.36:3064/community/${editingCommunity.id}`,
+          `http://localhost:3064/community/${editingCommunity.id}`,
           {
             name: formData.name,
             slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
@@ -128,7 +128,7 @@ const Communities = () => {
       } else {
         // CREATE COMMUNITY (POST)
         const response = await axios.post<APICommunity>(
-          "http://192.168.1.36:3064/community/",
+          "http://localhost:3064/community/",
           {
             name: formData.name,
             slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
@@ -173,7 +173,7 @@ const Communities = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete<void>(`http://192.168.1.36:3064/community/${id}`);
+      await axios.delete<void>(`http://localhost:3064/community/${id}`);
       setCommunities(communities.filter((c) => c.id !== id));
       toast.success("Community deleted successfully");
     } catch (error) {
@@ -354,9 +354,9 @@ const Communities = () => {
               <div className="text-2xl font-bold">
                 {communities.length > 0
                   ? (
-                      communities.reduce((sum, c) => sum + c.discount, 0) /
-                      communities.length
-                    ).toFixed(1)
+                    communities.reduce((sum, c) => sum + c.discount, 0) /
+                    communities.length
+                  ).toFixed(1)
                   : 0}
                 %
               </div>

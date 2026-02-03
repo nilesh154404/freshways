@@ -27,7 +27,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
 
-const API_BASE = "http://192.168.1.36:3064";
+const API_BASE = "http://localhost:3064";
 
 type Product = {
   id: number;
@@ -102,7 +102,7 @@ const Products = () => {
         productId: discountProduct.id,
       };
 
-      await axios.post(`http://192.168.1.36:3064/product-discount`, payload);
+      await axios.post(`http://localhost:3064/product-discount`, payload);
       toast.success("Discount configured successfully");
       setIsDiscountDialogOpen(false);
       getProducts(); // refresh products to reflect discount

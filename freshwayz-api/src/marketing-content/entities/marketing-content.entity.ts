@@ -13,6 +13,7 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
 } from 'typeorm';
+import { MarketingComment } from '../interactions/interactions.entity';
 
 @Entity('marketing_contents')
 export class MarketingContent {
@@ -36,4 +37,26 @@ export class MarketingContent {
 
     @OneToMany(() => FileUpload, (file) => file.marketingContent)
     media: FileUpload[];
+
+    // Interactions
+    @OneToMany(() => MarketingComment, (comment) => comment.marketingContent)
+    comments: MarketingComment[];
+
+    @Column({ default: 0 })
+    likes_count: number;
+
+    @Column({ default: 0 })
+    shares_count: number;
+
+    @Column({ default: 0 })
+    saves_count: number;
+
+    @Column({ default: 0 })
+    comments_count: number;
+
+    @CreateDateColumn()
+    created_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
 }

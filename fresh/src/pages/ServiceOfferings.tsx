@@ -65,7 +65,7 @@ const ServiceOfferings = () => {
   const fetchServices = async () => {
     try {
       const response = await axios.get<ServiceOffering[]>(
-        "http://192.168.1.36:3064/service-offerings"
+        "http://localhost:3064/service-offerings"
       );
       setServices(response.data);
     } catch (err) {
@@ -87,14 +87,14 @@ const ServiceOfferings = () => {
       if (editingService) {
         // Update service
         await axios.patch(
-          `http://192.168.1.36:3064/service-offerings/${editingService.serviceCode}`,
+          `http://localhost:3064/service-offerings/${editingService.serviceCode}`,
           formData
         );
         toast.success("Service updated successfully");
       } else {
         // Create service
         await axios.post(
-          `http://192.168.1.36:3064/service-offerings`,
+          `http://localhost:3064/service-offerings`,
           formData
         );
         toast.success("Service created successfully");
@@ -122,7 +122,7 @@ const ServiceOfferings = () => {
     if (!confirm("Are you sure you want to delete this service?")) return;
     try {
       await axios.delete(
-        `http://192.168.1.36:3064/service-offerings/${serviceCode}`
+        `http://localhost:3064/service-offerings/${serviceCode}`
       );
       setServices(services.filter((s) => s.serviceCode !== serviceCode));
       toast.success("Service deleted successfully");

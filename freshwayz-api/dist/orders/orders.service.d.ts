@@ -41,6 +41,7 @@ export declare class OrderService {
     create(createOrderDto: CreateOrderDto): Promise<Order>;
     findAll(filters: OrderFilter): Promise<Order[]>;
     findOne(id: number): Promise<Order>;
+    findOneByVendorServicePlan(id: number, customerId: number): Promise<ListedOrder[]>;
     update(id: number, updateOrderDto: UpdateOrderDto): Promise<Order>;
     remove(id: number): Promise<void>;
     getOrdersByCustomer(customerId: number): Promise<Order[]>;

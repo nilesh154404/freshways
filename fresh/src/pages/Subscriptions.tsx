@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
-const API_BASE = "http://192.168.1.36:3064";
+const API_BASE = "http://localhost:3064";
 
 type Customer = {
   id: number;

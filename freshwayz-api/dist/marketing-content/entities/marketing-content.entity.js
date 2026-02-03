@@ -15,6 +15,7 @@ const file_upload_entity_1 = require("../../file-upload/entities/file-upload.ent
 const product_entity_1 = require("../../products/entities/product.entity");
 const vendor_entity_1 = require("../../vendor/entities/vendor.entity");
 const typeorm_1 = require("typeorm");
+const interactions_entity_1 = require("../interactions/interactions.entity");
 let MarketingContent = class MarketingContent {
     id;
     category;
@@ -22,6 +23,13 @@ let MarketingContent = class MarketingContent {
     vendor;
     description;
     media;
+    comments;
+    likes_count;
+    shares_count;
+    saves_count;
+    comments_count;
+    created_at;
+    updated_at;
 };
 exports.MarketingContent = MarketingContent;
 __decorate([
@@ -51,6 +59,34 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => file_upload_entity_1.FileUpload, (file) => file.marketingContent),
     __metadata("design:type", Array)
 ], MarketingContent.prototype, "media", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => interactions_entity_1.MarketingComment, (comment) => comment.marketingContent),
+    __metadata("design:type", Array)
+], MarketingContent.prototype, "comments", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], MarketingContent.prototype, "likes_count", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], MarketingContent.prototype, "shares_count", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], MarketingContent.prototype, "saves_count", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], MarketingContent.prototype, "comments_count", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], MarketingContent.prototype, "created_at", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], MarketingContent.prototype, "updated_at", void 0);
 exports.MarketingContent = MarketingContent = __decorate([
     (0, typeorm_1.Entity)('marketing_contents')
 ], MarketingContent);

@@ -143,7 +143,7 @@ export default function PathologyOrderReport() {
     const fetchOrders = async () => {
         try {
             const response = await axios.get<APIOrder[]>(
-                "https://192.168.1.36:3064/orders?vendorId=3"
+                "http://localhost:3064/orders?vendorId=3"
             );
             setOrders(response.data);
         } catch (error) {
@@ -155,7 +155,7 @@ export default function PathologyOrderReport() {
     const fetchFiles = async (orderID) => {
         try {
             const response = await axios.get<APIOrder[]>(
-                `http://192.168.1.36:3064/files/order/${orderID}`
+                `http://localhost:3064/files/order/${orderID}`
             );
             setFiles(response.data);
         } catch (error) {
@@ -168,7 +168,7 @@ export default function PathologyOrderReport() {
     const fetchCommunities = async () => {
         try {
             const response = await axios.get<Community[]>(
-                "http://192.168.1.36:3064/community"
+                "http://localhost:3064/community"
             );
             setCommunities(response.data);
         } catch { }
@@ -223,7 +223,7 @@ export default function PathologyOrderReport() {
 
     const handleStatusUpdate = async (orderId: number, newStatus: string) => {
         try {
-            await axios.patch(`http://192.168.1.36:3064/orders/${orderId}/status`, {
+            await axios.patch(`http://localhost:3064/orders/${orderId}/status`, {
                 status: newStatus,
             });
             toast.success(`Order ${newStatus.toLowerCase()} successfully`);
@@ -251,7 +251,7 @@ export default function PathologyOrderReport() {
         try {
             setUploading(true);
             const response = await axios.post<{ fileUrl: string }>(
-                "http://192.168.1.36:3064/files/upload",
+                "http://localhost:3064/files/upload",
                 data,
                 { headers: { "Content-Type": "multipart/form-data" } }
             );

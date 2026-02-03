@@ -46,7 +46,7 @@ export default function VendorSignup() {
   useEffect(() => {
     axios
       .get<Category[]>(
-        "http://192.168.1.36:3064/categories/get-categories"
+        "http://localhost:3064/categories/get-categories"
       )
       .then((res) => setCategories(res.data))
       .catch((err) => {
@@ -74,7 +74,7 @@ export default function VendorSignup() {
       !ownerName ||
       !email ||
       !password ||
-      !gstNumber || gstNumber.length < 16 ||   
+      !gstNumber || gstNumber.length < 16 ||
       !address ||
       selectedCategories.length === 0
     ) {
@@ -100,7 +100,7 @@ export default function VendorSignup() {
       };
 
       await axios.post(
-        "http://192.168.1.36:3064/auth/register/vendor",
+        "http://localhost:3064/auth/register/vendor",
         payload
       );
 

@@ -22,7 +22,7 @@ export declare class AuthController {
         role: string;
         profileId: number | null;
     }>;
-    findOne(username: string): Promise<import("../customer/entities/customer.entity").Customer | undefined>;
+    findOne(username: string): Promise<import("../customer/entities/customer.entity").Customer>;
     findCustomes(): Promise<import("../customer/entities/customer.entity").Customer[]>;
     googleAuth(): Promise<void>;
     googleAuthRedirect(req: any, res: any): Promise<string | {

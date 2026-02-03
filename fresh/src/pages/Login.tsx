@@ -25,7 +25,7 @@ export default function Login({ setToken }: LoginProps) {
     try {
       setLoading(true);
       const res = await axios.post<LoginResponse>(
-        "http://192.168.1.36:3064/auth/login",
+        "http://localhost:3064/auth/login",
         { username, password }
       );
 
@@ -70,6 +70,23 @@ export default function Login({ setToken }: LoginProps) {
           <Button className="w-full" onClick={handleLogin} disabled={loading}>
             {loading ? "Signing in..." : "Login"}
           </Button>
+
+          {/* Test Credentials Helper */}
+          <div className="bg-muted/50 p-3 rounded text-xs text-muted-foreground space-y-1 border">
+            <p className="font-semibold">Test Credentials:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="font-medium">Customer:</span>
+                <div className="select-all">test_customer@freshways.com</div>
+                <div>123456</div>
+              </div>
+              <div>
+                <span className="font-medium">Vendor:</span>
+                <div className="select-all">test_vendor@freshways.com</div>
+                <div>123456</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="mt-6 text-center text-sm">

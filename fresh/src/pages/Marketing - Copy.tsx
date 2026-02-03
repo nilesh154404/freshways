@@ -51,7 +51,7 @@ type ProductsResponse = {
   total: number;
 };
 
-const API_BASE = "http://192.168.1.36:3064";
+const API_BASE = "http://localhost:3064";
 
 /* ================= COMPONENT ================= */
 
