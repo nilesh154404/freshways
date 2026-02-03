@@ -7,6 +7,8 @@ export declare class VendorSubscriptionPlan {
     id: number;
     label: string;
     description: string;
+    price: number;
+    duration: string;
     products?: Product;
     order?: Order;
     subscriptions?: Subscription[];

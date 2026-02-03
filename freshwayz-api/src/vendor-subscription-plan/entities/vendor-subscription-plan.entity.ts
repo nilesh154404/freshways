@@ -17,6 +17,12 @@ export class VendorSubscriptionPlan {
     @Column({ length: 100 })
     description: string;
 
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    price: number;
+
+    @Column({ length: 50, nullable: true })
+    duration: string;
+
     @OneToMany(() => Product, product => product.vendorSubscriptionPlan)
     products?: Product;
 

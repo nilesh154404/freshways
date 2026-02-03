@@ -11,7 +11,11 @@ export declare class Vendor {
     email: string;
     gstNumber: string;
     address: string;
+    website?: string;
     ownerName: string;
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
     auth?: Auth;
     userType: UserType;
     orders: Order[];

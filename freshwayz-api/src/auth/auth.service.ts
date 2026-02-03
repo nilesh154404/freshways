@@ -1,11 +1,12 @@
 import { Injectable, BadRequestException, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 
 import { User } from 'src/user/entities/user.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
+import { Categories } from 'src/categories/categories.entity';
 import { Auth } from './entities/auth.entity';
 import { UserType } from 'src/user-type/entities/user-type.entity';
 import { RegisterUserDto } from 'src/user/dto/register-user.dto';
@@ -19,6 +20,7 @@ export class AuthService {
     constructor(
         @InjectRepository(User) private readonly userRepo: Repository<User>,
         @InjectRepository(Vendor) private readonly vendorRepo: Repository<Vendor>,
+        @InjectRepository(Categories) private readonly categoriesRepo: Repository<Categories>,
         @InjectRepository(Auth) private readonly authRepo: Repository<Auth>,
         @InjectRepository(UserType) private readonly userTypeRepo: Repository<UserType>,
         @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
@@ -131,7 +133,16 @@ export class AuthService {
         const userType = await this.userTypeRepo.findOne({ where: { typeName: 'Vendor' } });
         if (!userType) throw new BadRequestException('UserType "Vendor" not found');
 
-        const vendor = this.vendorRepo.create({ ...dto.vendor, userType });
+        // Exclude categories from the create call as it expects Category entities, not IDs
+        const { categories: categoryIds, ...vendorData } = dto.vendor;
+        const vendor = this.vendorRepo.create({ ...vendorData, userType });
+        
+        // Fetch and assign categories separately if provided
+        if (categoryIds && categoryIds.length > 0) {
+            const categories = await this.categoriesRepo.findBy({ id: In(categoryIds) });
+            vendor.categories = categories;
+        }
+        
         await this.vendorRepo.save(vendor);
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);

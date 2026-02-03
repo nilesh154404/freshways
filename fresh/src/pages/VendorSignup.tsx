@@ -28,6 +28,9 @@ export default function VendorSignup() {
   const [gstNumber, setGstNumber] = useState("");
   const [address, setAddress] = useState("");
   const [website, setWebsite] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [ifscCode, setIfscCode] = useState("");
   const [gstError, setGstError] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -76,6 +79,9 @@ export default function VendorSignup() {
       !password ||
       !gstNumber || gstNumber.length < 16 ||   
       !address ||
+      !bankName ||
+      !accountNumber ||
+      !ifscCode ||
       selectedCategories.length === 0
     ) {
       toast.error("Please fill all required fields");
@@ -93,6 +99,9 @@ export default function VendorSignup() {
           gstNumber,
           address,
           website,
+          bankName,
+          accountNumber,
+          ifscCode,
           categories: selectedCategories,
         },
         username: email, // username = email
@@ -193,6 +202,34 @@ export default function VendorSignup() {
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
             />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label>Bank Details *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+              <div>
+                <Label>Bank Name *</Label>
+                <Input
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Account Number *</Label>
+                <Input
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>IFSC Code *</Label>
+                <Input
+                  value={ifscCode}
+                  onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                  maxLength={11}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

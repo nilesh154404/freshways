@@ -26,7 +26,19 @@ export class Vendor {
     address: string;
 
     @Column({ nullable: true })
+    website?: string;
+
+    @Column({ nullable: true })
     ownerName: string;
+
+    @Column({ nullable: true })
+    bankName?: string;
+
+    @Column({ nullable: true })
+    accountNumber?: string;
+
+    @Column({ nullable: true })
+    ifscCode?: string;
 
     @OneToOne(() => Auth, auth => auth.vendor, { nullable: true })
     // @JoinColumn()

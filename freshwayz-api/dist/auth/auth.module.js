@@ -18,6 +18,7 @@ const vendor_entity_1 = require("../vendor/entities/vendor.entity");
 const user_type_entity_1 = require("../user-type/entities/user-type.entity");
 const jwt_strategy_1 = require("./jwt.strategy");
 const customer_entity_1 = require("../customer/entities/customer.entity");
+const categories_entity_1 = require("../categories/categories.entity");
 const google_strategy_1 = require("./strategies/google.strategy");
 let AuthModule = class AuthModule {
 };
@@ -25,7 +26,7 @@ exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([auth_entity_1.Auth, user_entity_1.User, vendor_entity_1.Vendor, customer_entity_1.Customer, user_type_entity_1.UserType]),
+            typeorm_1.TypeOrmModule.forFeature([auth_entity_1.Auth, user_entity_1.User, vendor_entity_1.Vendor, customer_entity_1.Customer, user_type_entity_1.UserType, categories_entity_1.Categories]),
             jwt_1.JwtModule.register({
                 secret: process.env.JWT_SECRET || "SECRET123",
                 signOptions: { expiresIn: "7d" }

@@ -191,10 +191,10 @@ const PostDetail = () => {
             <div className="px-6">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div className="flex items-center space-x-4">
-                  <span className="flex items-center">
+                  {/* <span className="flex items-center">
                     <Heart className="h-4 w-4 mr-1" />
                     Likes
-                  </span>
+                  </span> */}
                   <span className="flex items-center">
                     <MessageCircle className="h-4 w-4 mr-1" />
                     {post.comments?.length || 0} comments
@@ -210,10 +210,10 @@ const PostDetail = () => {
             {/* Action Buttons */}
             <div className="px-6 pb-6">
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="ghost" size="sm" className="w-full">
+                {/* <Button variant="ghost" size="sm" className="w-full">
                   <Heart className="h-4 w-4 mr-2" />
                   Like
-                </Button>
+                </Button> */}
                 <Button variant="ghost" size="sm" className="w-full">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Comment
@@ -221,6 +221,10 @@ const PostDetail = () => {
                 <Button variant="ghost" size="sm" className="w-full">
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Save
                 </Button>
               </div>
             </div>

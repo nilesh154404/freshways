@@ -56,6 +56,7 @@ const bcrypt = __importStar(require("bcrypt"));
 const jwt_1 = require("@nestjs/jwt");
 const user_entity_1 = require("../user/entities/user.entity");
 const vendor_entity_1 = require("../vendor/entities/vendor.entity");
+const categories_entity_1 = require("../categories/categories.entity");
 const auth_entity_1 = require("./entities/auth.entity");
 const user_type_entity_1 = require("../user-type/entities/user-type.entity");
 const customer_entity_1 = require("../customer/entities/customer.entity");
@@ -63,13 +64,15 @@ const axios_1 = __importDefault(require("axios"));
 let AuthService = class AuthService {
     userRepo;
     vendorRepo;
+    categoriesRepo;
     authRepo;
     userTypeRepo;
     customerRepo;
     jwtService;
-    constructor(userRepo, vendorRepo, authRepo, userTypeRepo, customerRepo, jwtService) {
+    constructor(userRepo, vendorRepo, categoriesRepo, authRepo, userTypeRepo, customerRepo, jwtService) {
         this.userRepo = userRepo;
         this.vendorRepo = vendorRepo;
+        this.categoriesRepo = categoriesRepo;
         this.authRepo = authRepo;
         this.userTypeRepo = userTypeRepo;
         this.customerRepo = customerRepo;
@@ -152,7 +155,12 @@ let AuthService = class AuthService {
         const userType = await this.userTypeRepo.findOne({ where: { typeName: 'Vendor' } });
         if (!userType)
             throw new common_1.BadRequestException('UserType "Vendor" not found');
-        const vendor = this.vendorRepo.create({ ...dto.vendor, userType });
+        const { categories: categoryIds, ...vendorData } = dto.vendor;
+        const vendor = this.vendorRepo.create({ ...vendorData, userType });
+        if (categoryIds && categoryIds.length > 0) {
+            const categories = await this.categoriesRepo.findBy({ id: (0, typeorm_2.In)(categoryIds) });
+            vendor.categories = categories;
+        }
         await this.vendorRepo.save(vendor);
         const hashedPassword = await bcrypt.hash(dto.password, 10);
         const auth = this.authRepo.create({ username: dto.username, password: hashedPassword, vendor });
@@ -224,10 +232,12 @@ exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __param(1, (0, typeorm_1.InjectRepository)(vendor_entity_1.Vendor)),
-    __param(2, (0, typeorm_1.InjectRepository)(auth_entity_1.Auth)),
-    __param(3, (0, typeorm_1.InjectRepository)(user_type_entity_1.UserType)),
-    __param(4, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
+    __param(2, (0, typeorm_1.InjectRepository)(categories_entity_1.Categories)),
+    __param(3, (0, typeorm_1.InjectRepository)(auth_entity_1.Auth)),
+    __param(4, (0, typeorm_1.InjectRepository)(user_type_entity_1.UserType)),
+    __param(5, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

@@ -4,6 +4,10 @@ export declare class VendorResponseDto {
     email: string;
     gstNumber?: string;
     ownerName?: string;
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
     address?: string;
+    website?: string;
     userType: string;
 }

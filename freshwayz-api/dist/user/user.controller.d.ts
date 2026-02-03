@@ -6,6 +6,7 @@ export declare class UserController {
     constructor(userService: UserService);
     create(createUserDto: CreateUserDto): string;
     findAll(): string;
+    getAdminDashboardStats(): Promise<import("./dto/admin-dashboard-stats.dto").AdminDashboardStatsDto>;
     findOne(id: string): string;
     update(id: string, updateUserDto: UpdateUserDto): string;
     remove(id: string): string;

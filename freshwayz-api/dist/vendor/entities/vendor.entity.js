@@ -24,7 +24,11 @@ let Vendor = class Vendor {
     email;
     gstNumber;
     address;
+    website;
     ownerName;
+    bankName;
+    accountNumber;
+    ifscCode;
     auth;
     userType;
     orders;
@@ -57,7 +61,23 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
+], Vendor.prototype, "website", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], Vendor.prototype, "ownerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "bankName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "accountNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vendor.prototype, "ifscCode", void 0);
 __decorate([
     (0, typeorm_1.OneToOne)(() => auth_entity_1.Auth, auth => auth.vendor, { nullable: true }),
     __metadata("design:type", auth_entity_1.Auth)

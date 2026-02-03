@@ -20,6 +20,8 @@ let VendorSubscriptionPlan = class VendorSubscriptionPlan {
     id;
     label;
     description;
+    price;
+    duration;
     products;
     order;
     subscriptions;
@@ -39,6 +41,14 @@ __decorate([
     (0, typeorm_1.Column)({ length: 100 }),
     __metadata("design:type", String)
 ], VendorSubscriptionPlan.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], VendorSubscriptionPlan.prototype, "price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 50, nullable: true }),
+    __metadata("design:type", String)
+], VendorSubscriptionPlan.prototype, "duration", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => product_entity_1.Product, product => product.vendorSubscriptionPlan),
     __metadata("design:type", product_entity_1.Product)

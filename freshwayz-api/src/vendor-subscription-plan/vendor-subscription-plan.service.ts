@@ -12,18 +12,34 @@ export class VendorSubscriptionPlanService {
     private readonly repo: Repository<VendorSubscriptionPlan>,
   ) {}
 
+  private transformToResponse(plan: VendorSubscriptionPlan): any {
+    return {
+      id: plan.id,
+      label: plan.label,
+      planName: plan.label, // Alias for frontend compatibility
+      description: plan.description,
+      price: plan.price,
+      duration: plan.duration,
+      vendorId: plan.vendor?.id,
+    };
+  }
+
   async create(dto: CreateVendorSubscriptionPlanDto) {
     const plan = this.repo.create({
       label: dto.label,
       description: dto.description,
+      price: dto.price || 0,
+      duration: dto.duration,
       vendor: { id: dto.vendorId } as any,
     });
 
-    return this.repo.save(plan);
+    const saved = await this.repo.save(plan);
+    return this.transformToResponse(saved);
   }
 
   async findAll() {
-    return this.repo.find({ relations: ['vendor'] });
+    const plans = await this.repo.find({ relations: ['vendor'] });
+    return plans.map(plan => this.transformToResponse(plan));
   }
 
   async findOne(id: number) {
@@ -32,7 +48,7 @@ export class VendorSubscriptionPlanService {
       relations: ['vendor'],
     });
     if (!plan) throw new NotFoundException('Plan not found');
-    return plan;
+    return this.transformToResponse(plan);
   }
 
   async update(id: number, dto: UpdateVendorSubscriptionPlanDto) {
@@ -51,12 +67,14 @@ export class VendorSubscriptionPlanService {
 
   // ⭐ EXTRA: Get plan by vendor
   async findByVendor(vendorId: number) {
-    const plan = await this.repo.find({
+    const plans = await this.repo.find({
       where: { vendor: { id: vendorId } },
       relations: ['vendor'],
     });
 
-    if (!plan) throw new NotFoundException(`No subscription plan found for vendor ${vendorId}`);
-    return plan;
+    if (!plans || plans.length === 0) {
+      return []; // Return empty array instead of throwing error
+    }
+    return plans.map(plan => this.transformToResponse(plan));
   }
 }

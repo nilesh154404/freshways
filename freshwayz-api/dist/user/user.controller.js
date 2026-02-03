@@ -28,6 +28,9 @@ let UserController = class UserController {
     findAll() {
         return this.userService.findAll();
     }
+    getAdminDashboardStats() {
+        return this.userService.getAdminDashboardStats();
+    }
     findOne(id) {
         return this.userService.findOne(+id);
     }
@@ -52,6 +55,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], UserController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('admin/dashboard-stats'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], UserController.prototype, "getAdminDashboardStats", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

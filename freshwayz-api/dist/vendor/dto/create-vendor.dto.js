@@ -17,7 +17,12 @@ class CreateVendorDto {
     email;
     gstNumber;
     address;
+    website;
     ownerName;
+    bankName;
+    accountNumber;
+    ifscCode;
+    categories;
 }
 exports.CreateVendorDto = CreateVendorDto;
 __decorate([
@@ -49,5 +54,35 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
+], CreateVendorDto.prototype, "website", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
 ], CreateVendorDto.prototype, "ownerName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "bankName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "accountNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateVendorDto.prototype, "ifscCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, type: [Number] }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    __metadata("design:type", Array)
+], CreateVendorDto.prototype, "categories", void 0);
 //# sourceMappingURL=create-vendor.dto.js.map

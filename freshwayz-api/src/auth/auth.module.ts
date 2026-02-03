@@ -9,10 +9,11 @@ import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { UserType } from 'src/user-type/entities/user-type.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { Categories } from 'src/categories/categories.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType]),
+    TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || "SECRET123",
       signOptions: { expiresIn: "7d" }

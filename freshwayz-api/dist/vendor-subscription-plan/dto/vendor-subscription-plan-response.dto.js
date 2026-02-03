@@ -14,7 +14,10 @@ const swagger_1 = require("@nestjs/swagger");
 class VendorSubscriptionPlanResponseDto {
     id;
     label;
+    planName;
     description;
+    price;
+    duration;
     vendorId;
 }
 exports.VendorSubscriptionPlanResponseDto = VendorSubscriptionPlanResponseDto;
@@ -29,7 +32,19 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", String)
+], VendorSubscriptionPlanResponseDto.prototype, "planName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
 ], VendorSubscriptionPlanResponseDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", Number)
+], VendorSubscriptionPlanResponseDto.prototype, "price", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], VendorSubscriptionPlanResponseDto.prototype, "duration", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Number)

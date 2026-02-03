@@ -22,16 +22,31 @@ let VendorSubscriptionPlanService = class VendorSubscriptionPlanService {
     constructor(repo) {
         this.repo = repo;
     }
+    transformToResponse(plan) {
+        return {
+            id: plan.id,
+            label: plan.label,
+            planName: plan.label,
+            description: plan.description,
+            price: plan.price,
+            duration: plan.duration,
+            vendorId: plan.vendor?.id,
+        };
+    }
     async create(dto) {
         const plan = this.repo.create({
             label: dto.label,
             description: dto.description,
+            price: dto.price || 0,
+            duration: dto.duration,
             vendor: { id: dto.vendorId },
         });
-        return this.repo.save(plan);
+        const saved = await this.repo.save(plan);
+        return this.transformToResponse(saved);
     }
     async findAll() {
-        return this.repo.find({ relations: ['vendor'] });
+        const plans = await this.repo.find({ relations: ['vendor'] });
+        return plans.map(plan => this.transformToResponse(plan));
     }
     async findOne(id) {
         const plan = await this.repo.findOne({
@@ -40,7 +55,7 @@ let VendorSubscriptionPlanService = class VendorSubscriptionPlanService {
         });
         if (!plan)
             throw new common_1.NotFoundException('Plan not found');
-        return plan;
+        return this.transformToResponse(plan);
     }
     async update(id, dto) {
         const plan = await this.findOne(id);
@@ -54,13 +69,14 @@ let VendorSubscriptionPlanService = class VendorSubscriptionPlanService {
         return this.repo.remove(plan);
     }
     async findByVendor(vendorId) {
-        const plan = await this.repo.find({
+        const plans = await this.repo.find({
             where: { vendor: { id: vendorId } },
             relations: ['vendor'],
         });
-        if (!plan)
-            throw new common_1.NotFoundException(`No subscription plan found for vendor ${vendorId}`);
-        return plan;
+        if (!plans || plans.length === 0) {
+            return [];
+        }
+        return plans.map(plan => this.transformToResponse(plan));
     }
 };
 exports.VendorSubscriptionPlanService = VendorSubscriptionPlanService;

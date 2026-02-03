@@ -3,5 +3,10 @@ export declare class CreateVendorDto {
     email: string;
     gstNumber?: string;
     address?: string;
+    website?: string;
     ownerName?: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+    categories?: number[];
 }

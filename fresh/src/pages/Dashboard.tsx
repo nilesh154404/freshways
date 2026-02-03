@@ -1,30 +1,103 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { StatCard } from "@/components/StatCard";
 import { Package, ShoppingBag, Users, Calendar } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-const revenueData = [
-  { name: "Mon", revenue: 4200 },
-  { name: "Tue", revenue: 3800 },
-  { name: "Wed", revenue: 5100 },
-  { name: "Thu", revenue: 4600 },
-  { name: "Fri", revenue: 6200 },
-  { name: "Sat", revenue: 7800 },
-  { name: "Sun", revenue: 5900 },
-];
+type WeeklyData = { name: string; revenue?: number; orders?: number };
 
-const ordersData = [
-  { name: "Mon", orders: 42 },
-  { name: "Tue", orders: 38 },
-  { name: "Wed", orders: 51 },
-  { name: "Thu", orders: 46 },
-  { name: "Fri", orders: 62 },
-  { name: "Sat", orders: 78 },
-  { name: "Sun", orders: 59 },
-];
+type VendorStats = {
+  totalProducts: number;
+  totalOrders: number;
+  activeProducts: number;
+  totalRevenue: number;
+  weeklyRevenue: WeeklyData[];
+  weeklyOrders: WeeklyData[];
+};
+
+type AdminStats = {
+  totalProducts: number;
+  totalVendors: number;
+  activeUsers: number;
+  totalSubscriptions: number;
+  weeklyRevenue: WeeklyData[];
+  weeklyOrders: WeeklyData[];
+};
 
 const Dashboard = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<VendorStats | AdminStats | null>(null);
+  const [revenueData, setRevenueData] = useState<WeeklyData[]>([]);
+  const [ordersData, setOrdersData] = useState<WeeklyData[]>([]);
+
+  const role = localStorage.getItem("role");
+  const profileId = localStorage.getItem("profileId");
+  const isVendor = role?.toLowerCase() === "vendor";
+  const isAdmin = role?.toLowerCase() === "admin";
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("accessToken");
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+        let response;
+        if (isVendor && profileId) {
+          response = await axios.get<VendorStats>(
+            `http://localhost:3064/vendors/${profileId}/dashboard-stats`,
+            { headers }
+          );
+        } else if (isAdmin) {
+          response = await axios.get<AdminStats>(
+            `http://localhost:3064/user/admin/dashboard-stats`,
+            { headers }
+          );
+        } else {
+          setLoading(false);
+          return;
+        }
+
+        setStats(response.data);
+        setRevenueData(response.data.weeklyRevenue);
+        setOrdersData(response.data.weeklyOrders);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [isVendor, isAdmin, profileId]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <DashboardHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <DashboardHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">No dashboard data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const vendorStats = isVendor ? (stats as VendorStats) : null;
+  const adminStats = isAdmin ? (stats as AdminStats) : null;
+
   return (
     <div className="flex flex-col min-h-screen">
       <DashboardHeader />
@@ -32,42 +105,85 @@ const Dashboard = () => {
       <div className="flex-1 space-y-6 p-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h2>
-          <p className="text-muted-foreground">Welcome back! Here's your business overview.</p>
+          <p className="text-muted-foreground">
+            Welcome back! Here's your {isVendor ? "business" : "platform"} overview.
+          </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Products"
-            value="1,284"
-            change="+12% from last month"
-            changeType="positive"
-            icon={Package}
-            iconColor="text-primary"
-          />
-          <StatCard
-            title="Total Vendors"
-            value="48"
-            change="+3 new this month"
-            changeType="positive"
-            icon={ShoppingBag}
-            iconColor="text-accent"
-          />
-          <StatCard
-            title="Active Users"
-            value="2,845"
-            change="+18% from last month"
-            changeType="positive"
-            icon={Users}
-            iconColor="text-chart-2"
-          />
-          <StatCard
-            title="Subscriptions"
-            value="892"
-            change="+8% from last month"
-            changeType="positive"
-            icon={Calendar}
-            iconColor="text-chart-3"
-          />
+          {isVendor && vendorStats && (
+            <>
+              <StatCard
+                title="Total Products"
+                value={vendorStats.totalProducts.toString()}
+                change={`${vendorStats.activeProducts} active`}
+                changeType="positive"
+                icon={Package}
+                iconColor="text-primary"
+              />
+              <StatCard
+                title="Total Orders"
+                value={vendorStats.totalOrders.toString()}
+                change="All time"
+                changeType="positive"
+                icon={ShoppingBag}
+                iconColor="text-accent"
+              />
+              <StatCard
+                title="Active Products"
+                value={vendorStats.activeProducts.toString()}
+                change="Currently listed"
+                changeType="positive"
+                icon={Package}
+                iconColor="text-chart-2"
+              />
+              <StatCard
+                title="Total Revenue"
+                value={`₹${vendorStats.totalRevenue.toLocaleString()}`}
+                change="All time earnings"
+                changeType="positive"
+                icon={Calendar}
+                iconColor="text-chart-3"
+              />
+            </>
+          )}
+
+          {isAdmin && adminStats && (
+            <>
+              <StatCard
+                title="Total Products"
+                value={adminStats.totalProducts.toLocaleString()}
+                change="Platform wide"
+                changeType="positive"
+                icon={Package}
+                iconColor="text-primary"
+              />
+              <StatCard
+                title="Total Vendors"
+                value={adminStats.totalVendors.toString()}
+                change="Registered sellers"
+                changeType="positive"
+                icon={ShoppingBag}
+                iconColor="text-accent"
+              />
+              <StatCard
+                title="Active Users"
+                value={adminStats.activeUsers.toLocaleString()}
+                change="Total customers"
+                changeType="positive"
+                icon={Users}
+                iconColor="text-chart-2"
+              />
+              <StatCard
+                title="Subscriptions"
+                value={adminStats.totalSubscriptions.toString()}
+                change="Active subscriptions"
+                changeType="positive"
+                icon={Calendar}
+                iconColor="text-chart-3"
+              />
+            </>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">

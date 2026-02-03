@@ -26,7 +26,7 @@ const allMenuItems = [
   { title: "Products", url: "/products", icon: Package, roles: ["Admin", "Vendor","PathalogyVendor"] },
   { title: "Vendors", url: "/vendors", icon: ShoppingBag, roles: ["Admin"] },
   { title: "Users", url: "/users", icon: Users, roles: ["Admin"] },
-  { title: "Subscriptions", url: "/subscriptions", icon: Calendar, roles: ["Admin", "Vendor","PathalogyVendor"] },
+  { title: "Subscriptions", url: "/subscriptions", icon: Calendar, roles: ["Vendor","PathalogyVendor"] },
   { title: "Communities", url: "/communities", icon: MapPin, roles: ["Admin",] },
   { title: "Reports", url: "/reports", icon: FileText, roles: ["Admin"] },
   { title: "Pathology", url: "/pathology-order-report", icon: FileText, roles: ["PathalogyVendor"] },

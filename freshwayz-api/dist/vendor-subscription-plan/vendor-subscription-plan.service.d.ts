@@ -5,10 +5,11 @@ import { UpdateVendorSubscriptionPlanDto } from './dto/update-vendor-subscriptio
 export declare class VendorSubscriptionPlanService {
     private readonly repo;
     constructor(repo: Repository<VendorSubscriptionPlan>);
-    create(dto: CreateVendorSubscriptionPlanDto): Promise<VendorSubscriptionPlan>;
-    findAll(): Promise<VendorSubscriptionPlan[]>;
-    findOne(id: number): Promise<VendorSubscriptionPlan>;
-    update(id: number, dto: UpdateVendorSubscriptionPlanDto): Promise<VendorSubscriptionPlan>;
-    remove(id: number): Promise<VendorSubscriptionPlan>;
-    findByVendor(vendorId: number): Promise<VendorSubscriptionPlan[]>;
+    private transformToResponse;
+    create(dto: CreateVendorSubscriptionPlanDto): Promise<any>;
+    findAll(): Promise<any[]>;
+    findOne(id: number): Promise<any>;
+    update(id: number, dto: UpdateVendorSubscriptionPlanDto): Promise<any>;
+    remove(id: number): Promise<VendorSubscriptionPlan[]>;
+    findByVendor(vendorId: number): Promise<any[]>;
 }

@@ -17,7 +17,11 @@ class VendorResponseDto {
     email;
     gstNumber;
     ownerName;
+    bankName;
+    accountNumber;
+    ifscCode;
     address;
+    website;
     userType;
 }
 exports.VendorResponseDto = VendorResponseDto;
@@ -44,7 +48,23 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", String)
+], VendorResponseDto.prototype, "bankName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], VendorResponseDto.prototype, "accountNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], VendorResponseDto.prototype, "ifscCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
 ], VendorResponseDto.prototype, "address", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], VendorResponseDto.prototype, "website", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", String)

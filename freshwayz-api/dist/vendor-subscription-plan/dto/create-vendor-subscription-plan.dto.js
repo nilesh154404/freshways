@@ -15,6 +15,8 @@ const class_validator_1 = require("class-validator");
 class CreateVendorSubscriptionPlanDto {
     label;
     description;
+    price;
+    duration;
     vendorId;
 }
 exports.CreateVendorSubscriptionPlanDto = CreateVendorSubscriptionPlanDto;
@@ -38,6 +40,26 @@ __decorate([
     (0, class_validator_1.MaxLength)(100),
     __metadata("design:type", String)
 ], CreateVendorSubscriptionPlanDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Price of the plan',
+        example: 999,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateVendorSubscriptionPlanDto.prototype, "price", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Duration of the plan (e.g., 1 month, 3 months, 1 year)',
+        example: '1 month',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    __metadata("design:type", String)
+], CreateVendorSubscriptionPlanDto.prototype, "duration", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Vendor ID to which this plan belongs',

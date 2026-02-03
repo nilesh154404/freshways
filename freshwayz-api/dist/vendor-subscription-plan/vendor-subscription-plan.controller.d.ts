@@ -4,10 +4,10 @@ import { UpdateVendorSubscriptionPlanDto } from './dto/update-vendor-subscriptio
 export declare class VendorSubscriptionPlanController {
     private readonly service;
     constructor(service: VendorSubscriptionPlanService);
-    create(dto: CreateVendorSubscriptionPlanDto): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan>;
-    findAll(): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan[]>;
-    findOne(id: number): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan>;
-    update(id: number, dto: UpdateVendorSubscriptionPlanDto): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan>;
-    remove(id: number): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan>;
-    getPlanByVendor(vendorId: number): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan[]>;
+    create(dto: CreateVendorSubscriptionPlanDto): Promise<any>;
+    findAll(): Promise<any[]>;
+    findOne(id: number): Promise<any>;
+    update(id: number, dto: UpdateVendorSubscriptionPlanDto): Promise<any>;
+    remove(id: number): Promise<import("./entities/vendor-subscription-plan.entity").VendorSubscriptionPlan[]>;
+    getPlanByVendor(vendorId: number): Promise<any[]>;
 }

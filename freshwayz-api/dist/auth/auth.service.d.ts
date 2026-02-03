@@ -2,6 +2,7 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/user/entities/user.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
+import { Categories } from 'src/categories/categories.entity';
 import { Auth } from './entities/auth.entity';
 import { UserType } from 'src/user-type/entities/user-type.entity';
 import { RegisterUserDto } from 'src/user/dto/register-user.dto';
@@ -12,11 +13,12 @@ import { Customer } from 'src/customer/entities/customer.entity';
 export declare class AuthService {
     private readonly userRepo;
     private readonly vendorRepo;
+    private readonly categoriesRepo;
     private readonly authRepo;
     private readonly userTypeRepo;
     private readonly customerRepo;
     private readonly jwtService;
-    constructor(userRepo: Repository<User>, vendorRepo: Repository<Vendor>, authRepo: Repository<Auth>, userTypeRepo: Repository<UserType>, customerRepo: Repository<Customer>, jwtService: JwtService);
+    constructor(userRepo: Repository<User>, vendorRepo: Repository<Vendor>, categoriesRepo: Repository<Categories>, authRepo: Repository<Auth>, userTypeRepo: Repository<UserType>, customerRepo: Repository<Customer>, jwtService: JwtService);
     registerUser(dto: RegisterUserDto): Promise<{
         message: string;
     }>;

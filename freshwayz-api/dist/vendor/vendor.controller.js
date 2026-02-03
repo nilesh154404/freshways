@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const vendor_service_1 = require("./vendor.service");
 const update_vendor_dto_1 = require("./dto/update-vendor.dto");
+const update_vendor_profile_dto_1 = require("./dto/update-vendor-profile.dto");
 let VendorController = class VendorController {
     vendorService;
     constructor(vendorService) {
@@ -30,6 +31,12 @@ let VendorController = class VendorController {
     }
     update(id, dto) {
         return this.vendorService.update(+id, dto);
+    }
+    updateProfile(id, dto) {
+        return this.vendorService.updateProfile(+id, dto);
+    }
+    getDashboardStats(id) {
+        return this.vendorService.getDashboardStats(+id);
     }
     remove(id) {
         return this.vendorService.remove(+id);
@@ -57,6 +64,21 @@ __decorate([
     __metadata("design:paramtypes", [String, update_vendor_dto_1.UpdateVendorDto]),
     __metadata("design:returntype", void 0)
 ], VendorController.prototype, "update", null);
+__decorate([
+    (0, common_1.Patch)(':id/profile'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_vendor_profile_dto_1.UpdateVendorProfileDto]),
+    __metadata("design:returntype", void 0)
+], VendorController.prototype, "updateProfile", null);
+__decorate([
+    (0, common_1.Get)(':id/dashboard-stats'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], VendorController.prototype, "getDashboardStats", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
