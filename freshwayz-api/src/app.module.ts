@@ -1,4 +1,5 @@
 import { Module, OnModuleInit } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -28,10 +29,13 @@ import { MarketingContentModule } from './marketing-content/marketing-content.mo
 import { DeliverySlotsModule } from './delivery-slot/delivery-slot.module';
 import { ProductDiscountModule } from './product-discount/product-discount.module';
 import { CustomerProductListModule } from './customer-product-list/customer-product-list.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    DiscoveryModule,
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

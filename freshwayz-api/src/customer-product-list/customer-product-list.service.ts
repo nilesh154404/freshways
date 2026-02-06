@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { CustomerProduct } from './entities/customer-product.entity';
 import { CreateCustomerProductDto } from './dto/create-customer-product.dto';
 
-import { User } from '../user/entities/user.entity';
+import { Customer } from '../customer/entities/customer.entity';
 import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 import { Product } from '../products/entities/product.entity';
 
@@ -15,8 +15,8 @@ export class CustomerProductListService {
     @InjectRepository(CustomerProduct)
     private readonly customerProductRepo: Repository<CustomerProduct>,
 
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    @InjectRepository(Customer)
+    private readonly customerRepo: Repository<Customer>,
 
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
@@ -27,7 +27,7 @@ export class CustomerProductListService {
 
   // CREATE
   async create(dto: CreateCustomerProductDto) {
-    const customer = await this.userRepo.findOneBy({ id: dto.customerId });
+    const customer = await this.customerRepo.findOneBy({ id: dto.customerId });
     if (!customer) throw new NotFoundException('Customer not found');
 
     const plan = await this.planRepo.findOneBy({

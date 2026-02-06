@@ -13,6 +13,12 @@ export class VendorDashboardStatsDto {
   @ApiProperty()
   totalRevenue: number;
 
+  @ApiProperty()
+  totalPosts: number;
+
+  @ApiProperty()
+  activeUsers: number;
+
   @ApiProperty({ type: [Object] })
   weeklyRevenue: { name: string; revenue: number }[];
 

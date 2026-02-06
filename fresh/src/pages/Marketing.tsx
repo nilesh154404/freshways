@@ -52,7 +52,8 @@ type MarketingItem = {
   saves?: { id: number; userId: number; userType: string; user?: { id: number; fullName: string } }[];
   shareCount: number;
   saveCount: number;
-  vendorId?: number | string; // Added vendorId
+  vendorId?: number | string;
+  vendor_name?: string;
 };
 
 type ProductsResponse = {
@@ -123,24 +124,34 @@ const Marketing = () => {
   const fetchMarketingItems = async () => {
     try {
       let url = `${API_BASE}/marketing?page=1&limit=500`;
-      if (role !== "Admin") url += `&vendorId=${profileId}`;
+      // Only filter by vendorId for Vendor roles, not for Customer
+      if (role === "Vendor" || role === "PathalogyVendor") {
+        url += `&vendorId=${profileId}`;
+      }
       const res = await axios.get(url);
 
-      const normalized: MarketingItem[] = res.data.map((item: any) => ({
-        id: item.id,
-        category_id: item.category?.id,
-        category_name: item.category?.name,
-        product_id: item.product?.id,
-        product_name: item.product?.label,
-        description: item.description,
-        media_urls: item.media?.map((m: any) => m.fileUrl) || [],
-        vendorId: profileId,
-        likes: item.likes || [],
-        comments: item.comments || [],
-        saves: item.saves || [],
-        shareCount: item.shareCount || 0,
-        saveCount: item.saveCount || 0,
-      }));
+      const normalized: MarketingItem[] = res.data.map((item: any) => {
+        // Get vendorId and vendor name from the API response
+        const vendorId = item.vendor?.id || item.vendorId;
+        const vendorName = item.vendor?.businessName || item.vendor?.ownerName || 'Unknown Vendor';
+        
+        return {
+          id: item.id,
+          category_id: item.category?.id,
+          category_name: item.category?.name,
+          product_id: item.product?.id,
+          product_name: item.product?.label,
+          description: item.description,
+          media_urls: item.media?.map((m: any) => m.fileUrl) || [],
+          vendorId: vendorId,
+          vendor_name: vendorName,
+          likes: item.likes || [],
+          comments: item.comments || [],
+          saves: item.saves || [],
+          shareCount: item.shareCount || 0,
+          saveCount: item.saveCount || 0,
+        };
+      });
 
       setItems(normalized);
     } catch {
@@ -190,11 +201,17 @@ const Marketing = () => {
         data.append("media_files", file)
       );
 
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+
       if (editingItem) {
-        await axios.patch(`${API_BASE}/marketing/${editingItem.id}`, data);
+        await axios.patch(`${API_BASE}/marketing/${editingItem.id}`, data, config);
         toast.success("Marketing updated");
       } else {
-        await axios.post(`${API_BASE}/marketing`, data);
+        await axios.post(`${API_BASE}/marketing`, data, config);
         toast.success("Marketing created");
       }
 
@@ -265,6 +282,12 @@ const Marketing = () => {
     if (role === "Admin") {
       return toast.error("Admins cannot share marketing content");
     }
+    
+    // Prevent vendors from sharing their own posts
+    if (String(item.vendorId) === String(profileId)) {
+      return toast.error("You cannot share your own marketing content");
+    }
+    
     try {
       // Generate the shareable deep link
       const deepLink = `${window.location.origin}/post/${item.id}`;
@@ -454,9 +477,14 @@ const Marketing = () => {
               <CardContent className="flex-1 p-4 flex flex-col">
                 <div className="mb-2">
                   <CardTitle className="text-lg line-clamp-1" title={item.product_name}>{item.product_name}</CardTitle>
-                  {item.createdAt && (
-                    <p className="text-xs text-gray-500 mt-1">{new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                  )}
+                  <div className="flex items-center justify-between mt-1">
+                    {item.createdAt && (
+                      <p className="text-xs text-gray-500">{new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    )}
+                    {role === "Admin" && item.vendor_name && (
+                      <p className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-200">By: {item.vendor_name}</p>
+                    )}
+                  </div>
                 </div>
                 <CardDescription className="line-clamp-3 text-sm flex-1">
                   {item.description}
@@ -484,7 +512,12 @@ const Marketing = () => {
 
                   <button 
                     onClick={() => handleShare(item)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-800 transition-all hover:shadow-md border border-teal-200 hover:border-teal-300"
+                    disabled={String(item.vendorId) === String(profileId)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all border ${
+                      String(item.vendorId) === String(profileId)
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                        : "bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-800 hover:shadow-md border-teal-200 hover:border-teal-300"
+                    }`}
                   >
                     <Share2 className="h-4 w-4" />
                     <span className="font-semibold text-sm">{item.shareCount || 0}</span>
@@ -526,34 +559,40 @@ const Marketing = () => {
               <DialogDescription>View and manage comments on this post</DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto space-y-4 p-2">
-              {items.find(i => i.id === commentsOpen)?.comments.map(c => (
-                <div key={c.id} className="flex items-start gap-3 p-3 border border-green-100 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-green-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <div>
-                        <span className="font-semibold text-sm">{c.userType} #{c.userId}</span>
-                        <span className="text-xs text-gray-500 ml-2">{new Date(c.createdAt).toLocaleDateString()}</span>
+              {items.find(i => i.id === commentsOpen)?.comments.map(c => {
+                const currentItem = items.find(i => i.id === commentsOpen);
+                const isOwner = String(currentItem?.vendorId) === String(profileId);
+                const canDelete = role === "Admin" || isOwner;
+                
+                return (
+                  <div key={c.id} className="flex items-start gap-3 p-3 border border-green-100 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors">
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                        <User className="h-5 w-5 text-green-600" />
                       </div>
-                      {role === "Admin" && (
-                        <Button 
-                          onClick={() => handleDeleteComment(c.id)} 
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{c.text}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <span className="font-semibold text-sm">{c.user?.fullName || `${c.userType} #${c.userId}`}</span>
+                          <span className="text-xs text-gray-500 ml-2">{new Date(c.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        {canDelete && (
+                          <Button 
+                            onClick={() => handleDeleteComment(c.id)} 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{c.text}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {items.find(i => i.id === commentsOpen)?.comments.length === 0 && (
                 <div className="text-center py-12">
                   <MessageSquare className="h-12 w-12 mx-auto text-gray-400 mb-3" />

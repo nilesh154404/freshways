@@ -53,6 +53,7 @@ interface VendorSubscriptionPlan {
   planName: string;
   price: number;
   duration: string;
+  vendorId?: number;
 }
 
 interface Product {
@@ -68,6 +69,7 @@ const CustomerProductList = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Form state
@@ -103,8 +105,15 @@ const CustomerProductList = () => {
   useEffect(() => {
     fetchProductList();
     fetchSubscriptionPlans();
-    fetchProducts();
   }, []);
+
+  // Fetch vendor products when a vendor is selected
+  useEffect(() => {
+    if (selectedVendorId) {
+      console.log('Vendor ID selected:', selectedVendorId);
+      fetchProducts(selectedVendorId);
+    }
+  }, [selectedVendorId]);
 
   const fetchProductList = async () => {
     try {
@@ -137,7 +146,19 @@ const CustomerProductList = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setSubscriptionPlans(Array.isArray(data) ? data : []);
+        console.log('Raw subscription data:', data);
+        
+        // Transform the subscription data to extract plan details
+        const transformedPlans = Array.isArray(data) ? data.map((subscription: any) => ({
+          id: subscription.plan?.id,
+          planName: `${subscription.plan?.vendor?.name || 'Unknown'} - ${subscription.plan?.label || 'Unknown Plan'}`,
+          price: subscription.plan?.price,
+          duration: subscription.plan?.duration,
+          vendorId: subscription.plan?.vendor?.id,
+        })) : [];
+        
+        console.log('Transformed plans:', transformedPlans);
+        setSubscriptionPlans(transformedPlans);
       } else {
         setSubscriptionPlans([]);
       }
@@ -147,14 +168,35 @@ const CustomerProductList = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (vendorId?: number) => {
     try {
-      const response = await fetch(`${API_URL}/products`);
+      const url = vendorId 
+        ? `${API_URL}/products?vendorId=${vendorId}`
+        : `${API_URL}/products`;
+      
+      console.log('Fetching products from URL:', url);
+      const response = await fetch(url);
+      
+      console.log('Products response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        setProducts(Array.isArray(data) ? data : []);
+        console.log('Products fetched:', data);
+        
+        // Handle paginated response (items property) or direct array
+        let productsArray: Product[] = [];
+        if (Array.isArray(data)) {
+          productsArray = data;
+        } else if (data.items && Array.isArray(data.items)) {
+          productsArray = data.items;
+        } else if (data.data && Array.isArray(data.data)) {
+          productsArray = data.data;
+        }
+        
+        console.log('Products array:', productsArray);
+        setProducts(productsArray);
       } else {
+        console.log('Failed to fetch products, setting empty array');
         setProducts([]);
       }
     } catch (error) {
@@ -186,6 +228,10 @@ const CustomerProductList = () => {
         notes: formData.notes || undefined,
       };
 
+      console.log('Adding product with payload:', payload);
+      console.log('Customer ID:', customerId);
+      console.log('Posting to:', `${API_URL}/customer-product-list`);
+
       const response = await fetch(`${API_URL}/customer-product-list`, {
         method: 'POST',
         headers: {
@@ -193,6 +239,11 @@ const CustomerProductList = () => {
         },
         body: JSON.stringify(payload),
       });
+
+      console.log('Response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Response body:', responseText);
 
       if (response.ok) {
         toast({
@@ -210,9 +261,11 @@ const CustomerProductList = () => {
         });
         fetchProductList();
       } else {
-        throw new Error('Failed to add product');
+        console.error('Failed to add product, status:', response.status);
+        throw new Error(`Failed to add product: ${response.status}`);
       }
     } catch (error) {
+      console.error('Error adding product:', error);
       toast({
         title: 'Error',
         description: 'Failed to add product to list',
@@ -245,16 +298,70 @@ const CustomerProductList = () => {
     }
   };
 
-  const handleProductSelect = (productId: string) => {
-    setFormData({ ...formData, productId });
-    const selectedProduct = products.find((p) => p.id === parseInt(productId));
-    if (selectedProduct) {
-      setFormData({
-        ...formData,
-        productId,
-        productName: selectedProduct.name,
-        amount: selectedProduct.price.toString(),
+  const handlePlaceOrder = async (vendorSubscriptionPlanId: number) => {
+    try {
+      const communityId = 1; // Default to main community (Geras)
+
+      const payload = {
+        customerId,
+        vendorSubscriptionPlanId,
+        communityId,
+      };
+
+      console.log('Placing order with payload:', payload);
+
+      const response = await fetch(`${API_URL}/orders/place-from-product-list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
+
+      console.log('Order response status:', response.status);
+
+      if (response.ok) {
+        const orderData = await response.json();
+        console.log('Order created:', orderData);
+        toast({
+          title: 'Success',
+          description: `Order #${orderData.id} placed successfully!`,
+        });
+        // Refresh the product list
+        fetchProductList();
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to place order:', errorText);
+        throw new Error(`Failed to place order: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to place order',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleProductSelect = (productId: string) => {
+    try {
+      const selectedProduct = products.find((p) => p.id.toString() === productId);
+      if (selectedProduct) {
+        console.log('Selected product:', selectedProduct);
+        setFormData({
+          ...formData,
+          productId,
+          productName: selectedProduct.name || '',
+          amount: (selectedProduct.price || 0).toString(),
+        });
+      } else {
+        console.log('Product not found for ID:', productId);
+        setFormData({ ...formData, productId });
+      }
+    } catch (error) {
+      console.error('Error selecting product:', error);
+      setFormData({ ...formData, productId });
     }
   };
 
@@ -279,13 +386,14 @@ const CustomerProductList = () => {
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Product
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add Product to List</DialogTitle>
@@ -309,9 +417,17 @@ const CustomerProductList = () => {
                   <Label htmlFor="subscription">Subscription Plan *</Label>
                   <Select
                     value={formData.vendorSubscriptionPlanId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, vendorSubscriptionPlanId: value })
-                    }
+                    onValueChange={(value) => {
+                      console.log('Plan selected, value:', value);
+                      const selectedPlan = subscriptionPlans.find(p => p.id.toString() === value);
+                      console.log('Selected plan object:', selectedPlan);
+                      console.log('Vendor ID from plan:', selectedPlan?.vendorId);
+                      setFormData({ ...formData, vendorSubscriptionPlanId: value, productId: '', productName: '' });
+                      if (selectedPlan?.vendorId) {
+                        console.log('Setting vendor ID to:', selectedPlan.vendorId);
+                        setSelectedVendorId(selectedPlan.vendorId);
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a subscription plan" />
@@ -338,7 +454,7 @@ const CustomerProductList = () => {
                       ) : (
                         products.map((product) => (
                           <SelectItem key={product.id} value={product.id.toString()}>
-                            {product.name} - ₹{product.price}
+                            {product.name || 'Unknown'} - ₹{product.price || '0'}
                           </SelectItem>
                         ))
                       )}
@@ -410,6 +526,7 @@ const CustomerProductList = () => {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {productList.length === 0 ? (
@@ -467,6 +584,15 @@ const CustomerProductList = () => {
                     <p className="text-gray-800 mt-1">{item.notes}</p>
                   </div>
                 )}
+                <div className="pt-4 flex gap-2">
+                  <Button
+                    onClick={() => handlePlaceOrder(item.vendorSubscriptionPlan.id)}
+                    className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Place Order
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

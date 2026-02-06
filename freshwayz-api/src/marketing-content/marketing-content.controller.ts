@@ -101,13 +101,24 @@ export class MarketingContentController {
 
   @Patch(':id')
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'media_files', maxCount: 10 }]))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [{ name: 'media_files', maxCount: 10 }],
+      multerConfig
+    )
+  )
   async update(
     @Param('id') id: number,
-    @Body() dto: UpdateMarketingContentDto,
+    @Body() dto: any,
     @UploadedFiles() files?: { media_files?: Express.Multer.File[] },
   ) {
-    return this.marketingService.update(id, dto, files?.media_files);
+    const data = {
+      ...dto,
+      categoryId: dto.categoryId ? Number(dto.categoryId) : undefined,
+      productId: dto.productId ? Number(dto.productId) : undefined,
+      vendorId: dto.vendorId ? Number(dto.vendorId) : undefined,
+    };
+    return this.marketingService.update(id, data, files?.media_files);
   }
 
   @Delete(':id')

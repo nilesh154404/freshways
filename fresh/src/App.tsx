@@ -26,6 +26,8 @@ import SavedPosts from "./pages/SavedPosts";
 import CustomerProductList from "./pages/CustomerProductList";
 import BrowseVendors from "./pages/BrowseVendors";
 import PostDetail from "./pages/PostDetail";
+import ProductPriceLog from "./pages/ProductPriceLog";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,16 @@ const App = () => {
                 <ProtectedRoute>
                   <Layout>
                     <Products />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product-price-log"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProductPriceLog />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -174,6 +186,8 @@ const App = () => {
               </ProtectedRoute>
             }/>
 
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
             {/* CUSTOMER ROUTES */}
             <Route path="/feed" 
             element={
@@ -250,6 +264,7 @@ export default App;
 // import Categories from "./pages/Categories";
 // import ServiceOfferings from "./pages/ServiceOfferings";
 // import PathologyOrderReport from "./pages/PathologyOrderReport";
+// import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // const queryClient = new QueryClient();
 

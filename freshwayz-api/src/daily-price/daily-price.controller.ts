@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Query } from '@nestjs/common';
 import { DailyPriceService } from './daily-price.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateDailyPriceDto } from './dto/create-daily-price.dto';
@@ -18,8 +18,8 @@ export class DailyPriceController {
 
   @Get()
   @ApiOperation({ summary: 'Get all daily prices' })
-  findAll() {
-    return this.dailyPriceService.findAll();
+  findAll(@Query('vendorId') vendorId?: string, @Query('productId') productId?: string) {
+    return this.dailyPriceService.findAll(vendorId ? Number(vendorId) : undefined, productId ? Number(productId) : undefined);
   }
 
   @Get(':id')
@@ -38,5 +38,18 @@ export class DailyPriceController {
   @ApiOperation({ summary: 'Delete daily price' })
   remove(@Param('id') id: string) {
     return this.dailyPriceService.remove(+id);
+  }
+
+  @Get('product/:productId/history')
+  @ApiOperation({ summary: 'Get price history for a product' })
+  @ApiResponse({ status: 200, description: 'Returns complete price change history' })
+  getPriceHistory(
+    @Param('productId') productId: string,
+    @Query('vendorId') vendorId?: string
+  ) {
+    return this.dailyPriceService.getPriceHistory(
+      +productId,
+      vendorId ? +vendorId : undefined
+    );
   }
 }

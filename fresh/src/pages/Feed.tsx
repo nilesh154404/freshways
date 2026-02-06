@@ -395,7 +395,7 @@ const Feed = () => {
                           {post.media.slice(0, 1).map((media) => (
                             <img
                               key={media.id}
-                              src={`http://localhost:3064${media.fileUrl}`}
+                              src={media.fileUrl}
                               alt={media.fileName}
                               className="w-full rounded-xl object-cover max-h-96 border border-green-100 shadow-sm"
                             />

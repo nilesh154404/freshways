@@ -146,9 +146,14 @@ export class MarketingContentService {
     const query = this.marketingRepo
       .createQueryBuilder('content')
       .leftJoinAndSelect('content.media', 'media')
-      .leftJoin('content.vendor', 'vendor')
-      // .leftJoin('content.category', 'category')
-      .leftJoin('content.product', 'product');
+      .leftJoinAndSelect('content.vendor', 'vendor')
+      .leftJoinAndSelect('content.category', 'category')
+      .leftJoinAndSelect('content.product', 'product')
+      .leftJoinAndSelect('content.comments', 'comments')
+      .leftJoinAndSelect('content.likes', 'likes')
+      .leftJoinAndSelect('content.saves', 'saves')
+      .leftJoinAndSelect('likes.user', 'likeUser')
+      .orderBy('content.id', 'DESC');
 
     if (filters.vendorId) {
       query.andWhere('vendor.id = :vendorId', {

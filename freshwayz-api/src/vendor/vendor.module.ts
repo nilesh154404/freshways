@@ -7,9 +7,11 @@ import { UserType } from 'src/user-type/entities/user-type.entity';
 import { Categories } from 'src/categories/categories.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { MarketingContent } from 'src/marketing-content/entities/marketing-content.entity';
+import { Customer } from 'src/customer/entities/customer.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Vendor, UserType, Categories, Order, Product])],
+  imports: [TypeOrmModule.forFeature([Vendor, UserType, Categories, Order, Product, MarketingContent, Customer])],
   controllers: [VendorController],
   providers: [VendorService],
 })

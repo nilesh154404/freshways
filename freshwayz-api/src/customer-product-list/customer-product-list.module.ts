@@ -5,7 +5,7 @@ import { CustomerProduct } from './entities/customer-product.entity';
 import { CustomerProductListService } from './customer-product-list.service';
 import { CustomerProductListController } from './customer-product-list.controller';
 
-import { User } from '../user/entities/user.entity';
+import { Customer } from '../customer/entities/customer.entity';
 import { Product } from '../products/entities/product.entity';
 import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 
@@ -13,7 +13,7 @@ import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/ven
   imports: [
     TypeOrmModule.forFeature([
       CustomerProduct,
-      User,
+      Customer,
       Product,
       VendorSubscriptionPlan,
     ]),

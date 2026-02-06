@@ -10,6 +10,8 @@ import { VendorDashboardStatsDto } from './dto/vendor-dashboard-stats.dto';
 import { UserType } from 'src/user-type/entities/user-type.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { MarketingContent } from 'src/marketing-content/entities/marketing-content.entity';
+import { Customer } from 'src/customer/entities/customer.entity';
 
 @Injectable()
 export class VendorService {
@@ -19,6 +21,8 @@ export class VendorService {
     @InjectRepository(UserType) private readonly userTypeRepo: Repository<UserType>,
     @InjectRepository(Order) private readonly orderRepo: Repository<Order>,
     @InjectRepository(Product) private readonly productRepo: Repository<Product>,
+    @InjectRepository(MarketingContent) private readonly marketingContentRepo: Repository<MarketingContent>,
+    @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
   ) { }
 
   // async create(data: CreateVendorDto) {
@@ -119,6 +123,20 @@ export class VendorService {
     });
     const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.grandTotal) || 0), 0);
 
+    // Get total posts (marketing content)
+    const totalPosts = await this.marketingContentRepo.count({ 
+      where: { vendor: { id: vendorId } } 
+    });
+
+    // Get active users (customers who have placed orders with this vendor)
+    const activeUsers = await this.orderRepo
+      .createQueryBuilder('order')
+      .leftJoin('order.customer', 'customer')
+      .select('COUNT(DISTINCT customer.id)', 'count')
+      .where('order.vendorId = :vendorId', { vendorId })
+      .getRawOne()
+      .then(result => parseInt(result.count) || 0);
+
     // Get weekly revenue (last 7 days)
     const weeklyRevenue = await this.getWeeklyRevenue(vendorId);
 
@@ -130,6 +148,8 @@ export class VendorService {
       activeProducts,
       totalOrders,
       totalRevenue,
+      totalPosts,
+      activeUsers,
       weeklyRevenue,
       weeklyOrders,
     };

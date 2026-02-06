@@ -1,6 +1,6 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
-import { User } from '../../user/entities/user.entity';
+import { Customer } from '../../customer/entities/customer.entity';
 import { VendorSubscriptionPlan } from '../../vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 
 @Entity('customer_product_list')
@@ -8,8 +8,8 @@ export class CustomerProduct {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, { eager: true })
-  customer: User;
+  @ManyToOne(() => Customer, { eager: true })
+  customer: Customer;
 
   @ManyToOne(() => VendorSubscriptionPlan, { eager: true })
   vendorSubscriptionPlan: VendorSubscriptionPlan;

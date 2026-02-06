@@ -13,9 +13,10 @@ import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/ve
 import { ProductDiscountService } from 'src/product-discount/product-discount.service';
 import { DailyPrice } from 'src/daily-price/entities/daily-price.entity';
 import { ProductDiscount } from 'src/product-discount/entities/product-discount.entity';
+import { CustomerProduct } from 'src/customer-product-list/entities/customer-product.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Customer, Vendor, Community, Product, ListedOrder, DeliverySlot, VendorSubscriptionPlan, DailyPrice, ProductDiscount])],
+  imports: [TypeOrmModule.forFeature([Order, Customer, Vendor, Community, Product, ListedOrder, DeliverySlot, VendorSubscriptionPlan, DailyPrice, ProductDiscount, CustomerProduct])],
   controllers: [OrderController],
   providers: [OrderService, ProductDiscountService],
 })

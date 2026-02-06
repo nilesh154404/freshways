@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { StatCard } from "@/components/StatCard";
-import { Package, ShoppingBag, Users, Calendar } from "lucide-react";
+import { Package, ShoppingBag, Users, Calendar, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -12,6 +12,8 @@ type VendorStats = {
   totalProducts: number;
   totalOrders: number;
   activeProducts: number;
+  totalPosts: number;
+  activeUsers: number;
   totalRevenue: number;
   weeklyRevenue: WeeklyData[];
   weeklyOrders: WeeklyData[];
@@ -130,19 +132,19 @@ const Dashboard = () => {
                 iconColor="text-accent"
               />
               <StatCard
-                title="Active Products"
-                value={vendorStats.activeProducts.toString()}
-                change="Currently listed"
+                title="Total Posts"
+                value={(vendorStats.totalPosts || 0).toString()}
+                change="Marketing posts"
                 changeType="positive"
-                icon={Package}
+                icon={FileText}
                 iconColor="text-chart-2"
               />
               <StatCard
-                title="Total Revenue"
-                value={`₹${vendorStats.totalRevenue.toLocaleString()}`}
-                change="All time earnings"
+                title="Active Users"
+                value={(vendorStats.activeUsers || 0).toString()}
+                change="Engaged customers"
                 changeType="positive"
-                icon={Calendar}
+                icon={Users}
                 iconColor="text-chart-3"
               />
             </>
@@ -173,14 +175,6 @@ const Dashboard = () => {
                 changeType="positive"
                 icon={Users}
                 iconColor="text-chart-2"
-              />
-              <StatCard
-                title="Subscriptions"
-                value={adminStats.totalSubscriptions.toString()}
-                change="Active subscriptions"
-                changeType="positive"
-                icon={Calendar}
-                iconColor="text-chart-3"
               />
             </>
           )}
