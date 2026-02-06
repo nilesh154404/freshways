@@ -13,6 +13,7 @@ export declare class MarketingContentController {
     }>;
     findAll(vendorId?: number, categoryId?: number, productId?: number, req?: any): Promise<import("./entities/marketing-content.entity").MarketingContent[]>;
     findOne(id: number, req?: any): Promise<import("./entities/marketing-content.entity").MarketingContent>;
+    remove(id: string, req: any): Promise<import("./entities/marketing-content.entity").MarketingContent>;
     toggleSave(id: number, req: any): Promise<{
         saved: boolean;
         count: number;

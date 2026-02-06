@@ -95,6 +95,18 @@ export class MarketingContentController {
     return this.marketingService.findOne(id, userId, role);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Delete(':id')
+  async remove(@Param('id') id: string, @Req() req: any) {
+    const role = req.user.role;
+    // Optional: Add stricter permission checks if needed (e.g., only Admin or Owner)
+    if (role !== 'Admin' && role !== 'Vendor') {
+      throw new ForbiddenException('Only Admins and Vendors can delete posts');
+    }
+    return this.marketingService.remove(+id);
+  }
+
   // @UseGuards(JwtAuthGuard)
   // @ApiBearerAuth()
   // @Post(':id/like')

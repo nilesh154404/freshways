@@ -137,7 +137,10 @@ const Marketing = () => {
         product_id: item.product?.id,
         product_name: item.product?.label,
         description: item.description,
-        media_urls: item.media?.map((m: any) => m.fileUrl) || [],
+        media_urls: item.media?.map((m: any) => {
+          // FIX: Replace hardcoded IP if present
+          return m.fileUrl ? m.fileUrl.replace('http://192.168.1.36:3064', API_BASE) : '';
+        }) || [],
         vendorId: item.vendor?.id,
         vendor_name: item.vendor?.businessName || item.vendor?.ownerName || (item.vendor ? "Unnamed Vendor" : undefined),
 

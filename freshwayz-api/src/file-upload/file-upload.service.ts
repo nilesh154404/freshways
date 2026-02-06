@@ -104,10 +104,13 @@ export class FileUploadService {
 
     if (!marketingContent) throw new NotFoundException('Marketing content not found');
 
+    // Use environment variable or fallback to localhost
+    const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3064}`;
+
     const fileEntities = files.map((file) =>
       this.fileRepo.create({
         fileName: file.filename,
-        fileUrl: `http://192.168.1.36:3064/uploads/${file.filename}`,
+        fileUrl: `${baseUrl}/uploads/${file.filename}`,
         marketingContent,
       }),
     );

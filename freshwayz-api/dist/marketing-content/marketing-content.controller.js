@@ -55,6 +55,13 @@ let MarketingContentController = class MarketingContentController {
         const role = req?.user?.role;
         return this.marketingService.findOne(id, userId, role);
     }
+    async remove(id, req) {
+        const role = req.user.role;
+        if (role !== 'Admin' && role !== 'Vendor') {
+            throw new common_1.ForbiddenException('Only Admins and Vendors can delete posts');
+        }
+        return this.marketingService.remove(+id);
+    }
     async toggleSave(id, req) {
         const userId = req.user.profileId || req.user.sub;
         return this.marketingService.toggleSave(userId, id, req.user.role);
@@ -122,6 +129,16 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], MarketingContentController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], MarketingContentController.prototype, "remove", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
