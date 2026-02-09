@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsArray, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateVendorDto {
 
@@ -26,5 +26,30 @@ export class CreateVendorDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @IsString()
+    website?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
     ownerName?: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    bankName: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    accountNumber: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    ifscCode: string;
+
+    @ApiProperty({ required: false, type: [Number] })
+    @IsOptional()
+    @IsArray()
+    categories?: number[];
 }

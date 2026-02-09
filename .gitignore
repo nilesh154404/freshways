@@ -38,3 +38,24 @@ jspm_packages/
 .idea/
 *.sublime-workspace
 *.sublime-project
+
+
+# =========================
+# Build outputs (DO NOT COMMIT)
+# =========================
+dist/
+**/dist/
+
+# Nest / TypeScript build cache
+*.tsbuildinfo
+
+# =========================
+# Runtime uploads (DO NOT COMMIT)
+# =========================
+uploads/
+**/uploads/
+
+# =========================
+# OS / temp
+# =========================
+Thumbs.db

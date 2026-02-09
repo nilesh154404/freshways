@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { VendorService } from './vendor.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
 import { UpdateVendorDto } from './dto/update-vendor.dto';
+import { UpdateVendorProfileDto } from './dto/update-vendor-profile.dto';
 
 @ApiTags('vendors')
 @Controller('vendors')
@@ -27,6 +28,16 @@ export class VendorController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateVendorDto) {
     return this.vendorService.update(+id, dto);
+  }
+
+  @Patch(':id/profile')
+  updateProfile(@Param('id') id: string, @Body() dto: UpdateVendorProfileDto) {
+    return this.vendorService.updateProfile(+id, dto);
+  }
+
+  @Get(':id/dashboard-stats')
+  getDashboardStats(@Param('id') id: string) {
+    return this.vendorService.getDashboardStats(+id);
   }
 
   @Delete(':id')

@@ -17,6 +17,11 @@ export class UserController {
     return this.userService.findAll();
   }
 
+  @Get('admin/dashboard-stats')
+  getAdminDashboardStats() {
+    return this.userService.getAdminDashboardStats();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);

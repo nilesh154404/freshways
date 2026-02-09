@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,9 @@ export default function VendorSignup() {
   const [gstNumber, setGstNumber] = useState("");
   const [address, setAddress] = useState("");
   const [website, setWebsite] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [ifscCode, setIfscCode] = useState("");
   const [gstError, setGstError] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -46,7 +50,7 @@ export default function VendorSignup() {
   useEffect(() => {
     axios
       .get<Category[]>(
-        "http://192.168.1.36:3064/categories/get-categories"
+        `${API_BASE_URL}/categories/get-categories`
       )
       .then((res) => setCategories(res.data))
       .catch((err) => {
@@ -76,6 +80,9 @@ export default function VendorSignup() {
       !password ||
       !gstNumber || gstNumber.length < 16 ||   
       !address ||
+      !bankName ||
+      !accountNumber ||
+      !ifscCode ||
       selectedCategories.length === 0
     ) {
       toast.error("Please fill all required fields");
@@ -93,6 +100,9 @@ export default function VendorSignup() {
           gstNumber,
           address,
           website,
+          bankName,
+          accountNumber,
+          ifscCode,
           categories: selectedCategories,
         },
         username: email, // username = email
@@ -100,7 +110,7 @@ export default function VendorSignup() {
       };
 
       await axios.post(
-        "http://192.168.1.36:3064/auth/register/vendor",
+        `${API_BASE_URL}/auth/register/vendor`,
         payload
       );
 
@@ -193,6 +203,34 @@ export default function VendorSignup() {
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
             />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label>Bank Details *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+              <div>
+                <Label>Bank Name *</Label>
+                <Input
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Account Number *</Label>
+                <Input
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>IFSC Code *</Label>
+                <Input
+                  value={ifscCode}
+                  onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                  maxLength={11}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -313,7 +351,7 @@ export default function VendorSignup() {
 //   // Fetch categories
 //   useEffect(() => {
 //     axios
-//       .get("http://192.168.1.36:3064/categories/get-categories")
+//       .get("http://localhost:3064/categories/get-categories")
 //       .then((res) => setCategories(res.data))
 //       .catch(() => toast.error("Failed to load categories"));
 //   }, []);
@@ -348,7 +386,7 @@ export default function VendorSignup() {
 
 //     try {
 //       await axios.post(
-//         "http://192.168.1.36:3064/vendors/signup",
+//         "http://localhost:3064/vendors/signup",
 //         {
 //           businessName,
 //           ownerName,
@@ -543,7 +581,7 @@ export default function VendorSignup() {
 
 //   useEffect(() => {
 //     axios
-//       .get("http://192.168.1.36:3064/categories/get-categories")
+//       .get("http://localhost:3064/categories/get-categories")
 //       .then((res) => setCategories(res.data))
 //       .catch(() => toast.error("Failed to load categories"));
 //   }, []);
@@ -570,7 +608,7 @@ export default function VendorSignup() {
 //     setLoading(true);
 
 //     try {
-//       await axios.post("http://192.168.1.36:3064/vendors/signup", {
+//       await axios.post("http://localhost:3064/vendors/signup", {
 //         businessName,
 //         ownerName,
 //         email,
@@ -708,7 +746,7 @@ export default function VendorSignup() {
 //   const fetchCategories = async () => {
 //     try {
 //       const res = await axios.get<Category[]>(
-//         "http://192.168.1.36:3064/categories/get-categories"
+//         "http://localhost:3064/categories/get-categories"
 //       );
 //       setCategories(res.data);
 //     } catch (err) {
@@ -771,7 +809,7 @@ export default function VendorSignup() {
 
 //     try {
 //       await axios.post(
-//         "http://192.168.1.36:3064/vendors/signup",
+//         "http://localhost:3064/vendors/signup",
 //         formData,
 //         { headers: { "Content-Type": "multipart/form-data" } }
 //       );

@@ -51,7 +51,7 @@ type ProductsResponse = {
   total: number;
 };
 
-const API_BASE = "http://192.168.1.36:3064";
+const API_BASE = API_BASE_URL;
 
 /* ================= COMPONENT ================= */
 
@@ -436,7 +436,7 @@ export default Marketing;
 //   total: number;
 // };
 
-// const API_BASE = "http://192.168.1.36:3064";
+// const API_BASE = "http://localhost:3064";
 
 // const Marketing = () => {
 //   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -850,7 +850,7 @@ export default Marketing;
 //   const fetchCategories = async () => {
 //     try {
 //       const response = await axios.get<CategoryOption[]>(
-//        "http://192.168.1.36:3064/categories/get-categories"
+//        "http://localhost:3064/categories/get-categories"
 //       );
 //       setCategories(response.data);
 //     } catch (err) {
@@ -862,7 +862,7 @@ export default Marketing;
 // /*   const fetchProducts = async () => {
 //     try {
 //       const response = await axios.get<ProductOption[]>(
-//         "http://192.168.1.36:3064/products?page=1&limit=10"
+//         "http://localhost:3064/products?page=1&limit=10"
 //       );
 //       setProducts(response.data);
 //     } catch (err) {
@@ -873,7 +873,7 @@ export default Marketing;
 //   const fetchProducts = async () => {
 //   try {
 //     const response = await axios.get(
-//       "http://192.168.1.36:3064/products?page=1&limit=50"
+//       "http://localhost:3064/products?page=1&limit=50"
 //     );
 
 //     const productOptions = response.data.items.map((p: any) => ({
@@ -892,7 +892,7 @@ export default Marketing;
 //   const fetchMarketingItems = async () => {
 //     try {
 //       const response = await axios.get<MarketingItem[]>(
-//         "http://192.168.1.36:3064/marketing/get-items"
+//         "http://localhost:3064/marketing/get-items"
 //       );
 //       setItems(response.data);
 //     } catch (err) {
@@ -936,7 +936,7 @@ export default Marketing;
 //         const data = new FormData();
 //         data.append("file", file);
 //         const res = await axios.post<{ fileUrl: string }>(
-//           "http://192.168.1.36:3064/files/upload",
+//           "http://localhost:3064/files/upload",
 //           data,
 //           { headers: { "Content-Type": "multipart/form-data" } }
 //         );
@@ -952,13 +952,13 @@ export default Marketing;
 
 //       if (editingItem) {
 //         await axios.patch(
-//           `http://192.168.1.36:3064/marketing/${editingItem.id}`,
+//           `http://localhost:3064/marketing/${editingItem.id}`,
 //           payload
 //         );
 //         toast.success("Marketing item updated");
 //       } else {
 //         await axios.post(
-//           "http://192.168.1.36:3064/marketing",
+//           "http://localhost:3064/marketing",
 //           payload
 //         );
 //         toast.success("Marketing item added");
@@ -990,7 +990,7 @@ export default Marketing;
 //   const handleDelete = async (id: number) => {
 //     if (!confirm("Are you sure you want to delete this item?")) return;
 //     try {
-//       await axios.delete(`http://192.168.1.36:3064/marketing/${id}`);
+//       await axios.delete(`http://localhost:3064/marketing/${id}`);
 //       setItems(items.filter((i) => i.id !== id));
 //       toast.success("Marketing item deleted");
 //     } catch (err) {

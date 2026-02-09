@@ -15,6 +15,7 @@ import { DeliverySlot } from 'src/delivery-slot/entities/delivery-slot.entity';
 import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 import { ProductDiscountService } from 'src/product-discount/product-discount.service';
 import { DailyPrice } from 'src/daily-price/entities/daily-price.entity';
+import { CustomerProduct } from 'src/customer-product-list/entities/customer-product.entity';
 
 interface OrderFilter {
   customerId?: number;
@@ -38,6 +39,7 @@ export class OrderService {
     @InjectRepository(DeliverySlot) private readonly deliverySlotRepo: Repository<DeliverySlot>,
     @InjectRepository(VendorSubscriptionPlan) private readonly vendorSubscriptionPlanRepo: Repository<VendorSubscriptionPlan>,
     @InjectRepository(DailyPrice) private readonly dailyPriceRepo: Repository<DailyPrice>,
+    @InjectRepository(CustomerProduct) private readonly customerProductRepo: Repository<CustomerProduct>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
 
@@ -175,6 +177,83 @@ export class OrderService {
   }
 
   // order.service.ts
+  // ----------------------------------------------------------
+  // PLACE ORDER FROM CUSTOMER PRODUCT LIST
+  // ----------------------------------------------------------
+  async placeOrderFromProductList(dto: { customerId: number; communityId: number; vendorSubscriptionPlanId: number }): Promise<Order> {
+    const { customerId, communityId, vendorSubscriptionPlanId } = dto;
+
+    // Fetch customer
+    const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    // Fetch community
+    const community = await this.communityRepo.findOne({ where: { id: communityId } });
+    if (!community) throw new NotFoundException('Community not found');
+
+    // Fetch vendor subscription plan with vendor info
+    const plan = await this.vendorSubscriptionPlanRepo.findOne({
+      where: { id: vendorSubscriptionPlanId },
+      relations: ['vendor'],
+    });
+    if (!plan) throw new NotFoundException('Subscription plan not found');
+
+    const vendor = plan.vendor;
+
+    // Fetch all product list items for this customer and plan
+    const productListItems = await this.customerProductRepo.find({
+      where: {
+        customer: { id: customerId },
+        vendorSubscriptionPlan: { id: vendorSubscriptionPlanId },
+      },
+      relations: ['product'],
+    });
+
+    if (!productListItems || productListItems.length === 0) {
+      throw new BadRequestException('No products in the list for this subscription plan');
+    }
+
+    // Create the order
+    const order = this.orderRepo.create({
+      customer,
+      vendor,
+      community,
+      vendorSubscriptionPlan: plan,
+      orderStatus: 'PENDING',
+      paymentStatus: 'PENDING',
+      grandTotal: 0,
+    });
+
+    const savedOrder = await this.orderRepo.save(order);
+
+    // Create listed orders from customer product list
+    let totalAmount = 0;
+    const listedOrders: ListedOrder[] = [];
+
+    for (const item of productListItems) {
+      const listedOrder = this.listedOrderRepo.create({
+        order: savedOrder,
+        product: item.product || null,
+        quantity: item.quantity,
+        amount: item.amount,
+      });
+      await this.listedOrderRepo.save(listedOrder);
+      listedOrders.push(listedOrder);
+      
+      if (item.amount) {
+        totalAmount += item.amount;
+      }
+    }
+
+    // Update order with total amount
+    savedOrder.grandTotal = totalAmount;
+    const finalOrder = await this.orderRepo.save(savedOrder);
+
+    console.log(`Order #${finalOrder.id} placed successfully from product list`);
+
+    return finalOrder;
+  }
+
   async findByCustomerId(customerId: number): Promise<Order[]> {
     const orders = await this.orderRepo.find({
       where: { customer: { id: customerId } },

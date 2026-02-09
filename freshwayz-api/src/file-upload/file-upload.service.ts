@@ -107,7 +107,7 @@ export class FileUploadService {
     const fileEntities = files.map((file) =>
       this.fileRepo.create({
         fileName: file.filename,
-        fileUrl: `http://192.168.1.36:3064/uploads/${file.filename}`,
+        fileUrl: `http://localhost:3064/uploads/${file.filename}`,
         marketingContent,
       }),
     );

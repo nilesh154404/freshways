@@ -8,6 +8,12 @@ export class UpdateDailyPriceDto {
   @IsPositive()
   amount?: number;
 
+  @ApiProperty({ example: 200.50, required: false })
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  mrp_amount?: number;
+
   @ApiProperty({ example: '2025-11-27', required: false })
   @IsOptional()
   @IsDateString()

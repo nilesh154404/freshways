@@ -24,8 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { API_BASE_URL } from "@/lib/api";
 
-const API_BASE = "http://192.168.1.36:3064";
+const API_BASE = API_BASE_URL;
 
 type Customer = {
   id: number;
@@ -548,9 +549,9 @@ export default Subscriptions;
 
 //   const fetchPlans = async () => {
 //     setIsLoading(true);
-//     let url = `http://192.168.1.36:3064/vendor-subscription-plans`;
+//     let url = `http://localhost:3064/vendor-subscription-plans`;
 //     if (role !== "Admin")
-//       url = `http://192.168.1.36:3064/vendor-subscription-plans/vendor/${profileId}`;
+//       url = `http://localhost:3064/vendor-subscription-plans/vendor/${profileId}`;
 
 //     try {
 //       const response = await axios.get<Plan[]>(url);
@@ -573,13 +574,13 @@ export default Subscriptions;
 //     try {
 //       if (editingPlan) {
 //         await axios.patch(
-//           `http://192.168.1.36:3064/vendor-subscription-plans/${editingPlan.id}`,
+//           `http://localhost:3064/vendor-subscription-plans/${editingPlan.id}`,
 //           { ...formData, vendorId: Number(profileId) }
 //         );
 //         toast.success("Plan updated successfully");
 //       } else {
 //         await axios.post(
-//           `http://192.168.1.36:3064/vendor-subscription-plans`,
+//           `http://localhost:3064/vendor-subscription-plans`,
 //           { ...formData, vendorId: Number(profileId) }
 //         );
 //         toast.success("Plan created successfully");
@@ -603,7 +604,7 @@ export default Subscriptions;
 //     if (!confirm("Are you sure you want to delete this plan?")) return;
 //     try {
 //       await axios.delete(
-//         `http://192.168.1.36:3064/vendor-subscription-plans/${planId}`
+//         `http://localhost:3064/vendor-subscription-plans/${planId}`
 //       );
 //       setPlans(plans.filter((p) => p.id !== planId));
 //       toast.success("Plan deleted successfully");
@@ -615,7 +616,7 @@ export default Subscriptions;
 
 //   const handleViewCustomers = async (planId: number) => {
 //     try {
-//       const response = await axios.get("http://192.168.1.36:3064/subscriptions");
+//       const response = await axios.get("http://localhost:3064/subscriptions");
 //       const data = Array.isArray(response.data) ? response.data : [];
 
 //       const planCustomers = data
@@ -642,7 +643,7 @@ export default Subscriptions;
 //       setSlotLoading(true);
 //       setSlotPlan(plan);
 //       const res = await axios.get(
-//         `http://192.168.1.36:3064/delivery-slots/vendor-subscription-plan/${plan.id}`
+//         `http://localhost:3064/delivery-slots/vendor-subscription-plan/${plan.id}`
 //       );
 //       setSlots(res.data || []);
 //       setSlotViewOpen(true);
@@ -982,9 +983,9 @@ export default Subscriptions;
 
 //   const fetchPlans = async () => {
 //     setIsLoading(true);
-//     let url = `http://192.168.1.36:3064/vendor-subscription-plans`;
+//     let url = `http://localhost:3064/vendor-subscription-plans`;
 //     if (role !== "Admin") {
-//       url = `http://192.168.1.36:3064/vendor-subscription-plans/vendor/${profileId}`;
+//       url = `http://localhost:3064/vendor-subscription-plans/vendor/${profileId}`;
 //     }
 
 //     try {
@@ -1010,13 +1011,13 @@ export default Subscriptions;
 //     try {
 //       if (editingPlan) {
 //         await axios.patch(
-//           `http://192.168.1.36:3064/vendor-subscription-plans/${editingPlan.id}`,
+//           `http://localhost:3064/vendor-subscription-plans/${editingPlan.id}`,
 //           { ...formData, vendorId: Number(profileId) }
 //         );
 //         toast.success("Plan updated");
 //       } else {
 //         await axios.post(
-//           `http://192.168.1.36:3064/vendor-subscription-plans`,
+//           `http://localhost:3064/vendor-subscription-plans`,
 //           { ...formData, vendorId: Number(profileId) }
 //         );
 //         toast.success("Plan created");
@@ -1041,7 +1042,7 @@ export default Subscriptions;
 
 //     try {
 //       await axios.delete(
-//         `http://192.168.1.36:3064/vendor-subscription-plans/${id}`
+//         `http://localhost:3064/vendor-subscription-plans/${id}`
 //       );
 //       setPlans((p) => p.filter((x) => x.id !== id));
 //       toast.success("Plan deleted");
@@ -1069,7 +1070,7 @@ export default Subscriptions;
 //     if (!slotPlan) return;
 
 //     try {
-//       await axios.post("http://192.168.1.36:3064/delivery-slots", {
+//       await axios.post("http://localhost:3064/delivery-slots", {
 //         ...slotForm,
 //         planId: slotPlan.id,
 //         vendorId: Number(profileId),
@@ -1324,8 +1325,8 @@ export default Subscriptions;
 
 //   const fetchPlans = async () => {
 //     setIsLoading(true);
-//     let url = `http://192.168.1.36:3064/vendor-subscription-plans`;
-//             if (role != "Admin") url = `http://192.168.1.36:3064/vendor-subscription-plans/vendor/${profileId}`;
+//     let url = `http://localhost:3064/vendor-subscription-plans`;
+//             if (role != "Admin") url = `http://localhost:3064/vendor-subscription-plans/vendor/${profileId}`;
 
 //     try {
 //       const response = await axios.get<Plan[]>(url
@@ -1349,13 +1350,13 @@ export default Subscriptions;
 //     try {
 //       if (editingPlan) {
 //         await axios.patch(
-//           `http://192.168.1.36:3064/vendor-subscription-plans/${editingPlan.id}`,
+//           `http://localhost:3064/vendor-subscription-plans/${editingPlan.id}`,
 //           {...formData,vendorId: Number(profileId)}
 //         );
 //         toast.success("Plan updated successfully");
 //       } else {
 //         await axios.post(
-//           `http://192.168.1.36:3064/vendor-subscription-plans`,
+//           `http://localhost:3064/vendor-subscription-plans`,
 //           {...formData,vendorId: Number(profileId)}
 //         );
 //         toast.success("Plan created successfully");
@@ -1378,7 +1379,7 @@ export default Subscriptions;
 //   const handleDelete = async (planId: number) => {
 //     if (!confirm("Are you sure you want to delete this plan?")) return;
 //     try {
-//       await axios.delete(`http://192.168.1.36:3064/vendor-subscription-plans/${planId}`);
+//       await axios.delete(`http://localhost:3064/vendor-subscription-plans/${planId}`);
 //       setPlans(plans.filter((p) => p.id !== planId));
 //       toast.success("Plan deleted successfully");
 //     } catch (err) {
@@ -1389,7 +1390,7 @@ export default Subscriptions;
 
 //   const handleViewCustomers = async (planId: number) => {
 //     try {
-//       const response = await axios.get("http://192.168.1.36:3064/subscriptions");
+//       const response = await axios.get("http://localhost:3064/subscriptions");
 //       const data = Array.isArray(response.data) ? response.data : [];
 
 //       const planCustomers = data

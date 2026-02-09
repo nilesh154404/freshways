@@ -1,4 +1,4 @@
-import { Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from "typeorm";
 import { Product } from "src/products/entities/product.entity";
 import { Vendor } from "src/vendor/entities/vendor.entity";
 
@@ -29,6 +29,12 @@ export class DailyPrice {
 
     @ManyToOne(() => Vendor, vendor => vendor.dailyPrice, { nullable: false })
     vendor: Vendor;
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }
 
 // import { Vendor } from "src/vendor/entities/vendor.entity";

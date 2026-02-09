@@ -18,7 +18,19 @@ export class VendorResponseDto {
     ownerName?: string;
 
     @ApiProperty()
+    bankName?: string;
+
+    @ApiProperty()
+    accountNumber?: string;
+
+    @ApiProperty()
+    ifscCode?: string;
+
+    @ApiProperty()
     address?: string;
+
+    @ApiProperty()
+    website?: string;
 
     @ApiProperty()
     userType: string;

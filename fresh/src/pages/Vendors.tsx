@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Users, Edit, Package, Calendar } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ const Vendors = () => {
 
   const fetchVendors = async () => {
     try {
-      const res = await axios.get<Vendor[]>("http://192.168.1.36:3064/vendors");
+      const res = await axios.get<Vendor[]>(`${API_BASE_URL}/vendors`);
       setVendors(res.data);
     } catch (err) {
       console.error(err);

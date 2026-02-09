@@ -3,6 +3,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MarketingContent } from './entities/marketing-content.entity';
+import { MarketingSave } from './entities/marketing-save.entity';
+import { MarketingComment } from './entities/marketing-comment.entity';
 import { CreateMarketingContentDto } from './dto/create-marketing-content.dto';
 import { UpdateMarketingContentDto } from './dto/update-marketing-content.dto';
 import { FileUploadService } from 'src/file-upload/file-upload.service';
@@ -16,6 +18,10 @@ export class MarketingContentService {
   constructor(
     @InjectRepository(MarketingContent)
     private readonly marketingRepo: Repository<MarketingContent>,
+    @InjectRepository(MarketingSave)
+    private readonly saveRepo: Repository<MarketingSave>,
+    @InjectRepository(MarketingComment)
+    private readonly commentRepo: Repository<MarketingComment>,
     private readonly fileUploadService: FileUploadService,
   ) { }
 
@@ -84,8 +90,9 @@ export class MarketingContentService {
 
   findAll() {
     return this.marketingRepo.find({
-      relations: ['media', 'product'], order: {
-        id: 'DESC', // <-- order by id descending
+      relations: ['media', 'product', 'vendor', 'category', 'saves', 'comments'],
+      order: {
+        id: 'DESC',
       }
     });
   }
@@ -93,7 +100,7 @@ export class MarketingContentService {
   async findOne(id: number) {
     const content = await this.marketingRepo.findOne({
       where: { id },
-      relations: ['media'],
+      relations: ['media', 'comments'],
     });
     if (!content) throw new NotFoundException('Marketing content not found');
     return content;
@@ -139,9 +146,14 @@ export class MarketingContentService {
     const query = this.marketingRepo
       .createQueryBuilder('content')
       .leftJoinAndSelect('content.media', 'media')
-      .leftJoin('content.vendor', 'vendor')
-      // .leftJoin('content.category', 'category')
-      .leftJoin('content.product', 'product');
+      .leftJoinAndSelect('content.vendor', 'vendor')
+      .leftJoinAndSelect('content.category', 'category')
+      .leftJoinAndSelect('content.product', 'product')
+      .leftJoinAndSelect('content.comments', 'comments')
+      .leftJoinAndSelect('content.likes', 'likes')
+      .leftJoinAndSelect('content.saves', 'saves')
+      .leftJoinAndSelect('likes.user', 'likeUser')
+      .orderBy('content.id', 'DESC');
 
     if (filters.vendorId) {
       query.andWhere('vendor.id = :vendorId', {
@@ -193,4 +205,102 @@ export class MarketingContentService {
   //   return query.getMany();
   // }
 
+  // Toggle save functionality
+  async toggleSave(contentId: number, userId: number, userType: string) {
+    const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+    if (!content) throw new NotFoundException('Marketing content not found');
+
+    const existingSave = await this.saveRepo.findOne({
+      where: {
+        marketingContent: { id: contentId },
+        userId,
+        userType,
+      },
+    });
+
+    if (existingSave) {
+      // Unsave
+      await this.saveRepo.remove(existingSave);
+      return { message: 'Post unsaved successfully', saved: false };
+    } else {
+      // Save
+      const newSave = this.saveRepo.create({
+        userId,
+        userType,
+        marketingContent: content,
+      });
+      await this.saveRepo.save(newSave);
+      return { message: 'Post saved successfully', saved: true };
+    }
+  }
+
+  // Add comment to a post
+  async addComment(contentId: number, text: string, userId: number, userType: string) {
+    const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+    if (!content) throw new NotFoundException('Marketing content not found');
+
+    const comment = this.commentRepo.create({
+      text,
+      userId,
+      userType,
+      marketingContent: content,
+    });
+
+    await this.commentRepo.save(comment);
+    return { message: 'Comment added successfully', comment };
+  }
+
+  // Delete comment
+  async deleteComment(commentId: number) {
+    const comment = await this.commentRepo.findOne({ where: { id: commentId } });
+    if (!comment) throw new NotFoundException('Comment not found');
+
+    await this.commentRepo.remove(comment);
+    return { message: 'Comment deleted successfully' };
+  }
+
+  // Increment share count
+  // async incrementShare(contentId: number) {
+  //   const content = await this.marketingRepo.findOne({ where: { id: contentId } });
+  //   if (!content) throw new NotFoundException('Marketing content not found');
+
+  //   content.shareCount = (content.shareCount || 0) + 1;
+  //   await this.marketingRepo.save(content);
+
+  //   return { message: 'Share count incremented', shareCount: content.shareCount };
+  // }
+
+  async incrementShare(id: number) {
+    const post = await this.marketingRepo.findOne({ where: { id } });
+    if (!post) throw new NotFoundException("Post not found");
+
+    post.shareCount += 1;
+    await this.marketingRepo.save(post);
+
+    return {
+      deepLink: `http://localhost:8080/post/${id}`, // ✅ WEB URL
+      // const deepLink = `freshwayz://marketing-content?id=${id}`;
+    };
+  }
+
+  // Get saved posts for a user
+  async getSavedPosts(userId: number) {
+    const savedPosts = await this.saveRepo.find({
+      where: { userId },
+      relations: ['marketingContent', 'marketingContent.media', 'marketingContent.vendor', 'marketingContent.category', 'marketingContent.comments', 'marketingContent.saves'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return savedPosts.map(save => save.marketingContent);
+  }
+
+  // Get all comments by a particular customer
+  async getCommentsByCustomer(userId: number) {
+    const comments = await this.commentRepo.find({
+      where: { userId },
+      relations: ['marketingContent'],
+      order: { createdAt: 'DESC' },
+    });
+    return comments;
+  }
 }

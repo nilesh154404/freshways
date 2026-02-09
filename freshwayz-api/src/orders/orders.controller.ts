@@ -12,9 +12,13 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
-  // ----------------------------------------------------------
-  // CREATE ORDER
-  // ----------------------------------------------------------
+  @Post('place-from-product-list')
+  @ApiOperation({ summary: 'Create order from customer product list' })
+  @ApiResponse({ status: 201, description: 'Order created from product list' })
+  placeOrderFromProductList(@Body() dto: { customerId: number; communityId: number; vendorSubscriptionPlanId: number }) {
+    return this.orderService.placeOrderFromProductList(dto);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new order with listed items' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })

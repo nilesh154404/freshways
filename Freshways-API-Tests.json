@@ -1,0 +1,55 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "Freshways API Tests",
+  "dateExport": "2026-01-29T13:01:00.000Z",
+  "version": "1.1",
+  "folders": [
+    {
+      "name": "Marketing Content",
+      "requests": [
+        {
+          "name": "Add Comment",
+          "method": "POST",
+          "url": "http://localhost:5000/marketing/1/comment",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "text": "Great post! This is very helpful.",
+            "userId": 1,
+            "userType": "Customer"
+          },
+          "tests": [],
+          "notes": "Add a comment to marketing content with ID 1"
+        },
+        {
+          "name": "Delete Comment",
+          "method": "DELETE",
+          "url": "http://localhost:5000/marketing/comment/1",
+          "headers": {},
+          "body": {},
+          "tests": [],
+          "notes": "Delete a comment by comment ID"
+        },
+        {
+          "name": "Get All Marketing Content",
+          "method": "GET",
+          "url": "http://localhost:5000/marketing",
+          "headers": {},
+          "body": {},
+          "tests": [],
+          "notes": "Retrieve all marketing content posts"
+        },
+        {
+          "name": "Get Single Marketing Content",
+          "method": "GET",
+          "url": "http://localhost:5000/marketing/1",
+          "headers": {},
+          "body": {},
+          "tests": [],
+          "notes": "Retrieve a single marketing content by ID"
+        }
+      ]
+    }
+  ]
+}

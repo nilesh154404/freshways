@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 interface LoginProps {
   setToken: (token: string) => void;
@@ -25,7 +26,7 @@ export default function Login({ setToken }: LoginProps) {
     try {
       setLoading(true);
       const res = await axios.post<LoginResponse>(
-        "http://192.168.1.36:3064/auth/login",
+        `${API_BASE_URL}/auth/login`,
         { username, password }
       );
 
@@ -113,7 +114,7 @@ export default function Login({ setToken }: LoginProps) {
 //             setLoading(true);
 
 //             const response = await axios.post<LoginResponse>(
-//                 "http://192.168.1.36:3064/auth/login",
+//                 "http://localhost:3064/auth/login",
 //                 {
 //                     username,
 //                     password,

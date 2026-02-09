@@ -2,6 +2,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Upload } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ const Categories = () => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get<Category[]>(
-        "http://192.168.1.36:3064/categories/get-categories"
+        `${API_BASE_URL}/categories/get-categories`
       );
       setCategories(response.data);
     } catch (err) {
@@ -81,7 +82,7 @@ const Categories = () => {
       setUploading(true);
       // Replace with your image upload API
       const response = await axios.post<{ fileUrl: string }>(
-        "http://192.168.1.36:3064/files/upload",
+        `${API_BASE_URL}/files/upload`,
         data,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -103,14 +104,14 @@ const Categories = () => {
       if (editingCategory) {
         // Update
         await axios.patch(
-          `http://192.168.1.36:3064/categories/${editingCategory.id}`,
+          `${API_BASE_URL}/categories/${editingCategory.id}`,
           formData
         );
         toast.success("Category updated successfully");
       } else {
         // Create
         await axios.post(
-          "http://192.168.1.36:3064/categories",
+          `${API_BASE_URL}/categories`,
           formData
         );
         toast.success("Category added successfully");
@@ -139,7 +140,7 @@ const Categories = () => {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
       await axios.delete(
-        `http://192.168.1.36:3064/categories/${id}`
+        `${API_BASE_URL}/categories/${id}`
       );
       setCategories(categories.filter((c) => c.id !== id));
       toast.success("Category deleted successfully");
@@ -369,7 +370,7 @@ export default Categories;
 //   const fetchCategories = async () => {
 //     try {
 //       const response = await axios.get<Category[]>(
-//         "http://192.168.1.36:3064/categories/get-categories"
+//         "http://localhost:3064/categories/get-categories"
 //       );
 //       setCategories(response.data);
 //     } catch (err) {
@@ -391,14 +392,14 @@ export default Categories;
 //       if (editingCategory) {
 //         // Update
 //         await axios.patch(
-//           `http://192.168.1.36:3064/categories/${editingCategory.id}`,
+//           `http://localhost:3064/categories/${editingCategory.id}`,
 //           formData
 //         );
 //         toast.success("Category updated successfully");
 //       } else {
 //         // Create
 //         await axios.post(
-//           "http://192.168.1.36:3064/categories",
+//           "http://localhost:3064/categories",
 //           formData
 //         );
 //         toast.success("Category added successfully");
@@ -427,7 +428,7 @@ export default Categories;
 //     if (!confirm("Are you sure you want to delete this category?")) return;
 //     try {
 //       await axios.delete(
-//         `http://192.168.1.36:3064/categories/${id}`
+//         `http://localhost:3064/categories/${id}`
 //       );
 //       setCategories(categories.filter((c) => c.id !== id));
 //       toast.success("Category deleted successfully");

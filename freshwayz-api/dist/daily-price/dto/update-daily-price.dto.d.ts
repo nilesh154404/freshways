@@ -1,7 +1,0 @@
-export declare class UpdateDailyPriceDto {
-    amount?: number;
-    date?: string;
-    isActive?: boolean;
-    productId?: number;
-    vendorId?: number;
-}

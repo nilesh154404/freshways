@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ const ServiceOfferings = () => {
   const fetchServices = async () => {
     try {
       const response = await axios.get<ServiceOffering[]>(
-        "http://192.168.1.36:3064/service-offerings"
+        `${API_BASE_URL}/service-offerings`
       );
       setServices(response.data);
     } catch (err) {
@@ -87,14 +88,14 @@ const ServiceOfferings = () => {
       if (editingService) {
         // Update service
         await axios.patch(
-          `http://192.168.1.36:3064/service-offerings/${editingService.serviceCode}`,
+          `${API_BASE_URL}/service-offerings/${editingService.serviceCode}`,
           formData
         );
         toast.success("Service updated successfully");
       } else {
         // Create service
         await axios.post(
-          `http://192.168.1.36:3064/service-offerings`,
+          `${API_BASE_URL}/service-offerings`,
           formData
         );
         toast.success("Service created successfully");
@@ -122,7 +123,7 @@ const ServiceOfferings = () => {
     if (!confirm("Are you sure you want to delete this service?")) return;
     try {
       await axios.delete(
-        `http://192.168.1.36:3064/service-offerings/${serviceCode}`
+        `${API_BASE_URL}/service-offerings/${serviceCode}`
       );
       setServices(services.filter((s) => s.serviceCode !== serviceCode));
       toast.success("Service deleted successfully");

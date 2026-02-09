@@ -34,6 +34,7 @@ import {
 
 import { Eye } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 //
 // TYPES
@@ -141,7 +142,7 @@ export default function OrdersReport() {
 
     const fetchOrders = async () => {
 
-        let url = `http://192.168.1.36:3064/orders?page=1&limit=500`;
+        let url = `${API_BASE_URL}/orders?page=1&limit=500`;
         if (role != "Admin") url += `&vendorId=` + profileId;
 
         try {
@@ -159,7 +160,7 @@ export default function OrdersReport() {
     const fetchCommunities = async () => {
         try {
             const response = await axios.get<Community[]>(
-                "http://192.168.1.36:3064/community"
+                `${API_BASE_URL}/community`
             );
             setCommunities(response.data);
         } catch { }
@@ -210,7 +211,7 @@ export default function OrdersReport() {
 
     const handleStatusUpdate = async (orderId: number, newStatus: string) => {
         try {
-            await axios.patch(`http://192.168.1.36:3064/orders/${orderId}/status`, {
+            await axios.patch(`${API_BASE_URL}/orders/${orderId}/status`, {
                 status: newStatus,
             });
             toast.success(`Order ${newStatus.toLowerCase()} successfully`);
@@ -591,7 +592,7 @@ export default function OrdersReport() {
 //   const fetchOrders = async () => {
 //     try {
 //       const response = await axios.get<APIOrder[]>(
-//         "http://192.168.1.36:3064/orders"
+//         "http://localhost:3064/orders"
 //       );
 //       setOrders(response.data);
 //     } catch (err) {
@@ -860,7 +861,7 @@ export default function OrdersReport() {
 //   const fetchOrders = async () => {
 //     try {
 //       const response = await axios.get<APIOrder[]>(
-//         "http://192.168.1.36:3064/orders"
+//         "http://localhost:3064/orders"
 //       );
 //       setOrders(response.data);
 //     } catch (err) {

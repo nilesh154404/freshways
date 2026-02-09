@@ -21,6 +21,13 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Marketing from "./pages/Marketing";
 import VendorSignup from "./pages/VendorSignup";
+import Feed from "./pages/Feed";
+import SavedPosts from "./pages/SavedPosts";
+import CustomerProductList from "./pages/CustomerProductList";
+import BrowseVendors from "./pages/BrowseVendors";
+import PostDetail from "./pages/PostDetail";
+import ProductPriceLog from "./pages/ProductPriceLog";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +73,16 @@ const App = () => {
                 <ProtectedRoute>
                   <Layout>
                     <Products />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product-price-log"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProductPriceLog />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -168,6 +185,50 @@ const App = () => {
                 </Layout>
               </ProtectedRoute>
             }/>
+
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+            {/* CUSTOMER ROUTES */}
+            <Route path="/feed" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Feed/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/saved-posts" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SavedPosts/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/my-product-list" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CustomerProductList/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/browse-vendors" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <BrowseVendors/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            {/* PUBLIC POST DETAIL ROUTE */}
+            <Route path="/post/:id" 
+            element={<PostDetail />}
+             />
             
             <Route path="/vendor/signup" 
             element={<VendorSignup />}
@@ -203,6 +264,7 @@ export default App;
 // import Categories from "./pages/Categories";
 // import ServiceOfferings from "./pages/ServiceOfferings";
 // import PathologyOrderReport from "./pages/PathologyOrderReport";
+// import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // const queryClient = new QueryClient();
 

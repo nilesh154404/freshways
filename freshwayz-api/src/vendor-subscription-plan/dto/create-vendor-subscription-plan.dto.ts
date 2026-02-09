@@ -6,6 +6,8 @@ import {
   IsInt,
   IsPositive,
   IsOptional,
+  IsNumber,
+  Min,
 } from 'class-validator';
 
 export class CreateVendorSubscriptionPlanDto {
@@ -26,6 +28,24 @@ export class CreateVendorSubscriptionPlanDto {
   @IsNotEmpty()
   @MaxLength(100)
   description: string;
+
+  @ApiPropertyOptional({
+    description: 'Price of the plan',
+    example: 999,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price?: number;
+
+  @ApiPropertyOptional({
+    description: 'Duration of the plan (e.g., 1 month, 3 months, 1 year)',
+    example: '1 month',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  duration?: string;
 
   @ApiProperty({
     description: 'Vendor ID to which this plan belongs',

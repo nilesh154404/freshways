@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Users, MapPin, Percent, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { API_BASE_URL } from "@/lib/api";
 
 // API type returned from backend
 type APICommunity = {
@@ -69,7 +70,7 @@ const Communities = () => {
   const fetchCommunities = async () => {
     try {
       const response = await axios.get<APICommunity[]>(
-        "http://192.168.1.36:3064/community/"
+        `${API_BASE_URL}/community/`
       );
       const mapped = response.data.map((item) => ({
         id: item.id.toString(),
@@ -108,7 +109,7 @@ const Communities = () => {
       if (editingCommunity) {
         // UPDATE COMMUNITY (PATCH)
         await axios.patch<APICommunity>(
-          `http://192.168.1.36:3064/community/${editingCommunity.id}`,
+          `${API_BASE_URL}/community/${editingCommunity.id}`,
           {
             name: formData.name,
             slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
@@ -128,7 +129,7 @@ const Communities = () => {
       } else {
         // CREATE COMMUNITY (POST)
         const response = await axios.post<APICommunity>(
-          "http://192.168.1.36:3064/community/",
+          `${API_BASE_URL}/community/`,
           {
             name: formData.name,
             slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
@@ -173,7 +174,7 @@ const Communities = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete<void>(`http://192.168.1.36:3064/community/${id}`);
+      await axios.delete<void>(`${API_BASE_URL}/community/${id}`);
       setCommunities(communities.filter((c) => c.id !== id));
       toast.success("Community deleted successfully");
     } catch (error) {

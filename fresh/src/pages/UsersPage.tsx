@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users as UsersIcon, Search } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 type User = {
   id: string;
@@ -29,7 +30,7 @@ const UsersPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://192.168.1.36:3064/auth/customer");
+        const res = await fetch(`${API_BASE_URL}/auth/customer`);
         const data = await res.json();
 
         // Map backend response to User type

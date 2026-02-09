@@ -26,8 +26,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
+import { API_BASE_URL } from "@/lib/api";
 
-const API_BASE = "http://192.168.1.36:3064";
+const API_BASE = API_BASE_URL;
 
 type Product = {
   id: number;
@@ -102,7 +103,7 @@ const Products = () => {
         productId: discountProduct.id,
       };
 
-      await axios.post(`http://192.168.1.36:3064/product-discount`, payload);
+      await axios.post(`${API_BASE}/product-discount`, payload);
       toast.success("Discount configured successfully");
       setIsDiscountDialogOpen(false);
       getProducts(); // refresh products to reflect discount
@@ -131,8 +132,8 @@ const Products = () => {
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [priceProduct, setPriceProduct] = useState<Product | null>(null);
   const [priceForm, setPriceForm] = useState({
-    amount: 0,
-    mrp_amount: 0,
+    amount: "",
+    mrp_amount: "",
     date: new Date().toISOString().split("T")[0],
     isActive: true,
     vendorId: "",
@@ -296,11 +297,11 @@ const Products = () => {
   const handleConfigurePrice = (product: Product) => {
     setPriceProduct(product);
     setPriceForm({
-      amount: product.dailyPrices?.[0]?.amount || 0,
-      mrp_amount: product.dailyPrices?.[0]?.mrp_amount || 0,
+      amount: product.dailyPrices?.[0]?.amount ? String(product.dailyPrices[0].amount) : "",
+      mrp_amount: product.dailyPrices?.[0]?.mrp_amount ? String(product.dailyPrices[0].mrp_amount) : "",
       date: product.dailyPrices?.[0]?.date?.split("T")[0] || new Date().toISOString().split("T")[0],
       isActive: product.dailyPrices?.[0]?.isActive ?? true,
-      vendorId: product.vendor?.id?.toString() || "",
+      vendorId: role === "Admin" ? (product.vendor?.id?.toString() || "") : (profileId || ""),
     });
     setIsPriceDialogOpen(true);
   };
@@ -311,8 +312,8 @@ const Products = () => {
 
     try {
       const payload = {
-        amount: Number(priceForm.amount),
-        mrp_amount: Number(priceForm.mrp_amount),
+        amount: priceForm.amount ? Number(priceForm.amount) : 0,
+        mrp_amount: priceForm.mrp_amount ? Number(priceForm.mrp_amount) : 0,
         date: priceForm.date,
         isActive: priceForm.isActive,
         productId: priceProduct.id,
@@ -320,7 +321,8 @@ const Products = () => {
       };
 
       await axios.post(`${API_BASE}/daily-price`, payload);
-      toast.success("Price configured successfully");
+      toast.success("Price saved successfully");
+      
       setIsPriceDialogOpen(false);
       getProducts();
     } catch (err) {
@@ -523,12 +525,12 @@ const Products = () => {
             <form onSubmit={handlePriceSubmit} className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Amount</Label>
-                <Input type="number" value={priceForm.amount} onChange={(e) => setPriceForm({ ...priceForm, amount: Number(e.target.value) })} required />
+                <Input type="number" value={priceForm.amount} onChange={(e) => setPriceForm({ ...priceForm, amount: e.target.value })} placeholder="Enter amount" required />
               </div>
 
               <div className="grid gap-2">
                 <Label>MRP Amount</Label>
-                <Input type="number" value={priceForm.mrp_amount} onChange={(e) => setPriceForm({ ...priceForm, mrp_amount: Number(e.target.value) })} required />
+                <Input type="number" step="0.01" value={priceForm.mrp_amount} onChange={(e) => setPriceForm({ ...priceForm, mrp_amount: e.target.value })} placeholder="Enter MRP amount" required />
               </div>
 
               <div className="grid gap-2">
@@ -549,7 +551,7 @@ const Products = () => {
 
               <div className="grid gap-2">
                 <Label>Vendor</Label>
-                <Select value={priceForm.vendorId} onValueChange={(v) => setPriceForm({ ...priceForm, vendorId: v })}>
+                <Select value={priceForm.vendorId} onValueChange={(v) => setPriceForm({ ...priceForm, vendorId: v })} disabled={role !== "Admin"}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {vendors.map((v) => <SelectItem key={v.id} value={v.id.toString()}>{v.businessName}</SelectItem>)}
@@ -704,7 +706,7 @@ export default Products;
 //   vendorSubscriptionPlan?: any;
 // };
 
-// const API_BASE = "http://192.168.1.36:3064";
+// const API_BASE = "http://localhost:3064";
 
 // const Products = () => {
 //   const [products, setProducts] = useState<Product[]>([]);
@@ -1113,7 +1115,7 @@ export default Products;
 //   vendorSubscriptionPlan?: any;
 // };
 
-// const API_BASE = "http://192.168.1.36:3064";
+// const API_BASE = "http://localhost:3064";
 
 // const Products = () => {
 //   const [products, setProducts] = useState<Product[]>([]);
