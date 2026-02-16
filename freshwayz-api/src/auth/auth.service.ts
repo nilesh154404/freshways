@@ -255,7 +255,7 @@ export class AuthService {
         const token = this.jwtService.sign(payload);
 
         // Build deep link for mobile
-        const deepLink = `freshwayz://google-register?email=${encodeURIComponent(customer.email)}&name=${encodeURIComponent(customer.fullName)}$id=${encodeURIComponent(customer.id)}&token=${token}`;
+        const deepLink = `freshwayz://google-register?email=${encodeURIComponent(customer.email)}&name=${encodeURIComponent(customer.fullName)}&id=${encodeURIComponent(customer.id)}&token=${token}`;
 
         return deepLink; // <-- string for redirect
     }
