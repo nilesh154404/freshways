@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-
+import { ILike } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { Categories } from 'src/categories/categories.entity';
@@ -136,13 +136,13 @@ export class AuthService {
         // Exclude categories from the create call as it expects Category entities, not IDs
         const { categories: categoryIds, ...vendorData } = dto.vendor;
         const vendor = this.vendorRepo.create({ ...vendorData, userType });
-        
+
         // Fetch and assign categories separately if provided
         if (categoryIds && categoryIds.length > 0) {
             const categories = await this.categoriesRepo.findBy({ id: In(categoryIds) });
             vendor.categories = categories;
         }
-        
+
         await this.vendorRepo.save(vendor);
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -262,14 +262,19 @@ export class AuthService {
 
     // (username:string){}
     async findOneCustomer(username: string) {
+        // const auth = await this.customerRepo.findOne({
+        //     where: { phone: username },
+        //     // relations: ['customer',],
+        //     // select: {
+        //     //     customer: true,
+        //     // },
+        // });
         const auth = await this.customerRepo.findOne({
-            where: { phone: username },
-            // relations: ['customer',],
-            // select: {
-            //     customer: true,
-            // },
+            where: [
+                { phone: username },
+                { email: ILike(username) },
+            ],
         });
-
         if (!auth) throw new NotFoundException('Customer not found');
         return auth;
     }
