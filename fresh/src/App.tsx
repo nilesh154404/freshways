@@ -186,7 +186,7 @@ const App = () => {
               </ProtectedRoute>
             }/>
 
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/new-privacy-policy" element={<PrivacyPolicy />} />
 
             {/* CUSTOMER ROUTES */}
             <Route path="/feed" 

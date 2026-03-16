@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         >
           ← Back
         </button>
-        <h1 className="text-3xl font-extrabold mb-4 text-green-700 text-center">Privacy Policy – Freshways App</h1>
+        <h1 className="text-3xl font-extrabold mb-4 text-green-700 text-center">Privacy Policy – Freshwayz App <small>Powered By MYAMIGO TECH SOLUTIONS PRIVATE LIMITED</small></h1>
         <p className="mb-6 text-green-900 text-center">At Freshways, we value your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, and safeguard your data when you use the Freshways mobile application.</p>
         <div className="space-y-8">
           <section>

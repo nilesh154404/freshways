@@ -61,8 +61,12 @@ async function bootstrap() {
   });
 
   // ✅ Static uploads folder
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-    prefix: '/uploads',
+  // app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  //   prefix: '/uploads',
+  // });
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
   });
 
   await app.listen(process.env.PORT ?? 5000);

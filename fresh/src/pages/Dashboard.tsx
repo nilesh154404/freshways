@@ -155,7 +155,7 @@ const Dashboard = () => {
             <>
               <StatCard
                 title="Total Products"
-                value={adminStats.totalProducts.toLocaleString()}
+                value={adminStats?.totalProducts?.toLocaleString()}
                 change="Platform wide"
                 changeType="positive"
                 icon={Package}
@@ -163,7 +163,7 @@ const Dashboard = () => {
               />
               <StatCard
                 title="Total Vendors"
-                value={adminStats.totalVendors.toString()}
+                value={adminStats?.totalVendors?.toLocaleString()}
                 change="Registered sellers"
                 changeType="positive"
                 icon={ShoppingBag}
@@ -171,7 +171,7 @@ const Dashboard = () => {
               />
               <StatCard
                 title="Active Users"
-                value={adminStats.activeUsers.toLocaleString()}
+                value={adminStats?.activeUsers?.toLocaleString()}
                 change="Total customers"
                 changeType="positive"
                 icon={Users}
