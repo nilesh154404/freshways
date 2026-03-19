@@ -1,12 +1,12 @@
 // Centralized API configuration
 // Uses environment variable for the API base URL
 
-// export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3064';
+// export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3064/api';
 // export const API_BASE_URL = 'https://freshwayz.dexpertsystems.com';
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://freshwayz.dexpertsystems.com';
 
 
-// Helper to construct full API URLs
+// Helper to construct full API URLss
 export const apiUrl = (path: string): string => {
   // Ensure path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

@@ -28,6 +28,9 @@ async function bootstrap() {
   // Class Serializer Interceptor
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
+  // Prefix all routes with /api so frontend can call /api/<route>
+  app.setGlobalPrefix('api');
+
   // Swagger Auth
   app.use(
     ['/api/docs'],

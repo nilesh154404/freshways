@@ -77,6 +77,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     DeliverySlotsModule,
     ProductDiscountModule,
     CustomerProductListModule
+    ,
+    // AI proxy module (provides /api/chat and /api/recommendations)
+    require('./ai/ai.module').AiModule
   ],
 })
 export class AppModule implements OnModuleInit {

@@ -449,18 +449,19 @@ const Marketing = () => {
         </div>
 
         {/* LIST */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <Card key={item.id} className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex flex-col bg-white border-2 border-gray-200 hover:border-green-300 shadow-sm">
+            <div key={item.id} className="h-[420px]">
+              <Card className="h-full overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex flex-col bg-white border-2 border-gray-100 hover:border-green-300 shadow-sm">
               {/* Media Section */}
-              <div className="relative aspect-video bg-gradient-to-br from-green-100 to-emerald-100">
+              <div className="relative w-full h-48 md:h-56 lg:h-44 overflow-hidden bg-gradient-to-br from-green-100 to-emerald-100">
                 {item.media_urls[0] ? (
                   item.media_urls[0].endsWith('.mp4') ? (
                     <video src={item.media_urls[0]} className="h-full w-full object-cover" controls />
                   ) : (
                     <img
                       src={item.media_urls[0]}
-                      alt={item.product_name}
+                      alt={item.product_name || item.vendor_name || 'Marketing image'}
                       className="h-full w-full object-cover"
                     />
                   )
@@ -469,15 +470,36 @@ const Marketing = () => {
                     <span className="text-sm">No Image</span>
                   </div>
                 )}
-                {/* Badge Overlay (Optional) */}
+
+                {/* Badge Overlay (Category) */}
                 <div className="absolute top-3 left-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
                   {item.category_name || "Category"}
                 </div>
+
+                {/* Admin/Owner Actions moved to overlay */}
+                {(role === "Admin" || String(item.vendorId) === String(profileId)) && (
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <button 
+                      onClick={() => handleEdit(item)}
+                      title="Edit"
+                      className="h-9 w-9 rounded-full flex items-center justify-center bg-white/90 hover:bg-white text-green-600 border border-green-100 shadow-sm"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      title="Delete"
+                      className="h-9 w-9 rounded-full flex items-center justify-center bg-white/90 hover:bg-white text-red-600 border border-red-100 shadow-sm"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <CardContent className="flex-1 p-4 flex flex-col">
+              <CardContent className="flex-1 p-4 flex flex-col min-h-[220px]">
                 <div className="mb-2">
-                  <CardTitle className="text-lg line-clamp-1" title={item.product_name}>{item.product_name}</CardTitle>
+                  <CardTitle className="text-lg font-semibold line-clamp-1" title={item.product_name || item.vendor_name}>{item.product_name || item.vendor_name || 'Untitled'}</CardTitle>
                   <div className="flex items-center justify-between mt-1">
                     {item.createdAt && (
                       <p className="text-xs text-gray-500">{new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
@@ -487,28 +509,28 @@ const Marketing = () => {
                     )}
                   </div>
                 </div>
-                <CardDescription className="line-clamp-3 text-sm flex-1">
+                <CardDescription className="line-clamp-3 text-sm">
                   {item.description}
                 </CardDescription>
 
                 {/* Social Stats */}
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-green-100">
+                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-green-100">
                   <button 
                     onClick={() => setCommentsOpen(item.id)} 
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-all hover:shadow-md border border-green-200 hover:border-green-300"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 transition-all hover:shadow-md border border-green-200"
+                    aria-label={`Comments (${item.comments.length})`}
                   >
                     <MessageSquare className="h-4 w-4" />
                     <span className="font-semibold text-sm">{item.comments.length}</span>
-                    <span className="text-xs">Comments</span>
                   </button>
 
                   <button 
                     onClick={() => setSavesOpen(item.id)} 
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-800 transition-all hover:shadow-md border border-emerald-200 hover:border-emerald-300"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-800 transition-all hover:shadow-md border border-emerald-200"
+                    aria-label={`Saves (${item.saves?.length || 0})`}
                   >
                     <Bookmark className="h-4 w-4" />
                     <span className="font-semibold text-sm">{item.saves?.length || 0}</span>
-                    <span className="text-xs">Saves</span>
                   </button>
 
                   <button 
@@ -519,36 +541,15 @@ const Marketing = () => {
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
                         : "bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-800 hover:shadow-md border-teal-200 hover:border-teal-300"
                     }`}
+                    aria-label={`Shares (${item.shareCount || 0})`}
                   >
                     <Share2 className="h-4 w-4" />
                     <span className="font-semibold text-sm">{item.shareCount || 0}</span>
-                    <span className="text-xs">Shares</span>
                   </button>
                 </div>
-
-                {/* Admin/Owner Actions */}
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex gap-2 ml-auto">
-                    {(role === "Admin" || String(item.vendorId) === String(profileId)) && (
-                      <>
-                        <button 
-                          onClick={() => handleEdit(item)}
-                          className="h-9 w-9 rounded-full flex items-center justify-center bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200 hover:border-green-300 transition-all hover:shadow-md"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="h-9 w-9 rounded-full flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 transition-all hover:shadow-md"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
               </CardContent>
-            </Card>
+              </Card>
+            </div>
           ))}
         </div>
 
