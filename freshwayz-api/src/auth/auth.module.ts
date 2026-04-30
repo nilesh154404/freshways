@@ -11,16 +11,18 @@ import { JwtStrategy } from './jwt.strategy';
 import { Customer } from 'src/customer/entities/customer.entity';
 import { Categories } from 'src/categories/categories.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { HealthProfile } from 'src/ai/entities/health-profile.entity';
+import { AiService } from 'src/ai/ai.service';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories]),
+    TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories, HealthProfile]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || "SECRET123",
       signOptions: { expiresIn: "7d" }
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, AiService],
   exports: [AuthService]
 })
 export class AuthModule { }

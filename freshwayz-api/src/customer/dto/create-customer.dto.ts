@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDateString, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateCustomerDto {
 
@@ -26,26 +26,6 @@ export class CreateCustomerDto {
     @IsOptional()
     @IsString()
     gender?: string;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsString()
-    bloodGroup?: string;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsNumber()
-    height?: number;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsNumber()
-    weight?: number;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsString()
-    medicalHistory?: string;
 
     @ApiProperty({ required: false })
     @IsOptional()

@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Redirect, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, Get, Param, UseGuards, Redirect, Res, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { ApiBody, ApiConsumes, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from 'src/user/dto/register-user.dto';
 import { RegisterVendorDto } from 'src/vendor/dto/register-vendor.dto';
@@ -7,6 +7,12 @@ import { AuthDto } from './dto/auth.dto';
 import { RegisterCustomerDto } from 'src/customer/dto/register-customer.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { Req } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+
+const multipartMemoryConfig = {
+    storage: memoryStorage(),
+};
 
 @ApiTags('Auth')
 @Controller('auth')

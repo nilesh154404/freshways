@@ -14,7 +14,14 @@ import { RegisterVendorDto } from 'src/vendor/dto/register-vendor.dto';
 import { AuthDto } from './dto/auth.dto';
 import { RegisterCustomerDto } from 'src/customer/dto/register-customer.dto';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { HealthProfile } from 'src/ai/entities/health-profile.entity';
+import { analyzeHealthProfile } from 'src/ai/helpers/rule-based-health-analysis';
+import { AiService } from 'src/ai/ai.service';
 import axios from 'axios';
+
+const DEFAULT_INTERNAL_ANALYSIS_PROMPT =
+    'Generate health score, risks, nutrition guidance, fitness suggestions, product recommendations, and preventive alerts based on profile metrics and uploaded reports.';
+
 @Injectable()
 export class AuthService {
     constructor(
@@ -24,7 +31,8 @@ export class AuthService {
         @InjectRepository(Auth) private readonly authRepo: Repository<Auth>,
         @InjectRepository(UserType) private readonly userTypeRepo: Repository<UserType>,
         @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
-
+        @InjectRepository(HealthProfile) private readonly healthProfileRepo: Repository<HealthProfile>,
+        private readonly aiService: AiService,
         private readonly jwtService: JwtService
     ) { }
 
@@ -48,7 +56,7 @@ export class AuthService {
     }
 
     // ---------------------- Customer REGISTRATION ----------------------
-    async registerCustomer(dto: RegisterCustomerDto) {
+    async registerCustomer(dto: RegisterCustomerDto, reportFiles: Express.Multer.File[] = []) {
         // Add validation check
         if (!dto.customer || !dto.customer.phone) {
             throw new BadRequestException('Customer data with phone is required');
@@ -70,13 +78,20 @@ export class AuthService {
         const userType = await this.userTypeRepo.findOne({ where: { typeName: 'Customer' } });
         if (!userType) throw new BadRequestException('UserType "Customer" not found');
 
-        const customer = this.customerRepo.create({ ...dto.customer, userType });
+        const customer = this.customerRepo.create({ 
+            ...dto.customer, 
+            userType
+        });
         await this.customerRepo.save(customer);
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
         const auth = this.authRepo.create({ username: dto.customer.phone, password: hashedPassword, customer });
         await this.authRepo.save(auth);
+
+        let healthProfile: HealthProfile | null = null;
+        let aiGeneratedInsights: any = null;
+
         // 3. Call external API using axios
         try {
             console.log({
@@ -103,7 +118,9 @@ export class AuthService {
 
             return {
                 message: 'Customer created successfully',
-                localUser: customer,
+                localUser: this.mapCustomerResponse(customer),
+                healthProfile: healthProfile ? analyzeHealthProfile(healthProfile) : null,
+                aiGeneratedInsights: aiGeneratedInsights,
                 externalResponse: externalResponse.data,
             };
         } catch (error) {
@@ -123,6 +140,182 @@ export class AuthService {
             );
         }
         // return { message: 'Customer registered successfully' };
+    }
+
+    private calculateBmi(heightCm?: number, weightKg?: number): number {
+        if (!heightCm || !weightKg || heightCm <= 0) {
+            return 0;
+        }
+
+        const heightM = heightCm / 100;
+        const bmi = weightKg / (heightM * heightM);
+        return Number.isFinite(bmi) ? Number(bmi.toFixed(2)) : 0;
+    }
+
+    private async generatePersonalizedHealthInsights(
+        healthData: any,
+        reportFiles: Express.Multer.File[] = [],
+        analysisPrompt?: string,
+    ): Promise<any> {
+        try {
+            const extractedReports: Array<{ fileName: string; markdown: string }> = [];
+
+            for (const file of reportFiles) {
+                try {
+                    const report = await this.aiService.extractPdfReportInsights(file, analysisPrompt);
+                    extractedReports.push({
+                        fileName: report.fileName,
+                        markdown: report.aiSummary || report.reportSummary?.markdown || '',
+                    });
+                } catch (fileError: any) {
+                    console.warn(`Skipping report file ${file.originalname}: ${fileError?.message || fileError}`);
+                }
+            }
+
+            // Build comprehensive prompt for Gemini API
+            const healthPrompt = `
+You are a health insights AI. Your task is to generate personalized health insights based on the provided data.
+
+IMPORTANT PRIORITY INSTRUCTION:
+1. FIRST, thoroughly analyze the "Uploaded Medical Reports Summary" (if provided). The medical reports contain the actual, clinical problems and are your primary source of truth.
+2. SECOND, review the "Manually Entered Health Profile Data" as secondary context to fill in lifestyle details (like sleep, diet, activity level) and general metrics (like height, weight, BMI).
+3. FINALLY, generate the insights by combining both, ensuring the clinical findings from the reports take precedence.
+
+Manually Entered Health Profile Data:
+- Name: ${healthData.name}
+- Age: ${healthData.age}
+- Gender: ${healthData.gender}
+- Height: ${healthData.heightCm} cm
+- Weight: ${healthData.weightKg} kg
+- BMI: ${healthData.bmi}
+- Blood Group: ${healthData.bloodGroup || 'Not provided'}
+- Medical History: ${healthData.medicalHistory || 'None'}
+- Allergies: ${healthData.allergies || 'None'}
+- Current Medications: ${healthData.currentMedications || 'None'}
+- Sleep Hours: ${healthData.sleepHours || 'Not provided'}
+- Activity Level: ${healthData.activityLevel || 'Not provided'}
+- Diet Preference: ${healthData.dietPreference || 'Not provided'}
+- Blood Reports: ${healthData.bloodReports || 'Not provided'}
+- Vitamin D: ${healthData.vitaminD || 'Not provided'}
+- Vitamin B12: ${healthData.vitaminB12 || 'Not provided'}
+- Cholesterol: ${healthData.cholesterol || 'Not provided'}
+- Fasting Sugar: ${healthData.fastingSugar || 'Not provided'}
+- HbA1c: ${healthData.hba1c || 'Not provided'}
+
+${extractedReports.length > 0 ? `Uploaded Medical Reports Summary (PRIMARY SOURCE OF TRUTH):\n${extractedReports.map((report, index) => `${index + 1}. ${report.fileName}\n${report.markdown}`).join('\n\n')}` : 'No medical reports were uploaded.'}
+
+Generate the following as JSON with these exact keys based on the priority instructions above:
+{
+  "personalizedHealthReports": ["insight1", "insight2", ...],
+  "nutritionInsights": ["insight1", "insight2", ...],
+  "customDietGuidance": ["guidance1", "guidance2", ...],
+  "fitnessSuggestions": ["suggestion1", "suggestion2", ...],
+  "productRecommendations": ["product1", "product2", ...],
+  "preventiveAlerts": ["alert1", "alert2", ...]
+}
+
+Provide concise, actionable insights specific to this person's combined health profile and report data.
+            `;
+
+            // Call Gemini API via AI service
+            const aiResponse = await this.aiService.generateGeminiHealthInsights(healthPrompt);
+            return aiResponse;
+        } catch (error) {
+            console.error('Error generating health insights:', error);
+            return this.buildFallbackPersonalizedInsights(healthData);
+        }
+    }
+
+    private buildFallbackPersonalizedInsights(healthData: any) {
+        const healthScore = this.calculateFallbackHealthScore(healthData);
+        const risks: string[] = [];
+        const insights: string[] = [];
+
+        if ((healthData.bmi ?? 0) >= 25) {
+            risks.push('Weight management needed');
+            insights.push('Improve diet quality, increase daily activity, and track weight trend over time.');
+        }
+
+        if ((healthData.fastingSugar ?? 0) >= 100 || (healthData.hba1c ?? 0) >= 5.7) {
+            risks.push('Blood sugar risk');
+            insights.push('Reduce added sugar and refined carbohydrates, and follow up with repeat glucose or HbA1c testing.');
+        }
+
+        if ((healthData.cholesterol ?? 0) >= 200) {
+            risks.push('Cholesterol risk');
+            insights.push('Focus on heart-healthy meals, regular exercise, and monitoring cholesterol trends.');
+        }
+
+        if ((healthData.vitaminD ?? 0) > 0 && (healthData.vitaminD ?? 0) < 30) {
+            risks.push('Vitamin D insufficiency');
+            insights.push('Increase vitamin D intake through food, sunlight, or supplementation as advised by a clinician.');
+        }
+
+        if ((healthData.sleepHours ?? 0) < 7) {
+            risks.push('Sleep deficit');
+            insights.push('Try to reach 7 to 9 hours of sleep with a consistent bedtime and wake-up schedule.');
+        }
+
+        return {
+            personalizedHealthReports: [`Estimated health score: ${healthScore}/100`, ...insights.slice(0, 4)],
+            nutritionInsights: [
+                'Prefer whole foods, lean protein, vegetables, and enough hydration.',
+                'Limit added sugar, fried food, and highly processed meals.',
+            ],
+            customDietGuidance: [
+                'Keep portions controlled and balance carbs with protein and fiber.',
+                'Use a consistent meal schedule to support blood sugar control.',
+            ],
+            fitnessSuggestions: [
+                'Aim for at least 150 minutes of moderate activity each week.',
+                'Include walking, strength training, and mobility work.',
+            ],
+            productRecommendations: [
+                'Sugar-free or low-sugar food options',
+                'Protein-rich snacks and fiber-rich foods',
+            ],
+            preventiveAlerts: risks.length > 0
+                ? risks.map((risk) => `Monitor: ${risk}`)
+                : ['Continue routine checkups and maintain your current healthy routine.'],
+        };
+    }
+
+    private calculateFallbackHealthScore(healthData: any) {
+        let score = 100;
+
+        if ((healthData.bmi ?? 0) >= 30) score -= 15;
+        else if ((healthData.bmi ?? 0) >= 25) score -= 10;
+
+        if ((healthData.fastingSugar ?? 0) >= 126 || (healthData.hba1c ?? 0) >= 6.5) score -= 15;
+        else if ((healthData.fastingSugar ?? 0) >= 100 || (healthData.hba1c ?? 0) >= 5.7) score -= 10;
+
+        if ((healthData.cholesterol ?? 0) >= 240) score -= 10;
+        else if ((healthData.cholesterol ?? 0) >= 200) score -= 5;
+
+        if ((healthData.vitaminD ?? 0) > 0 && (healthData.vitaminD ?? 0) < 20) score -= 10;
+        else if ((healthData.vitaminD ?? 0) >= 20 && (healthData.vitaminD ?? 0) < 30) score -= 5;
+
+        if ((healthData.sleepHours ?? 0) > 0 && (healthData.sleepHours ?? 0) < 7) score -= 5;
+
+        return Math.max(0, Math.min(100, score));
+    }
+
+    private mapCustomerResponse(customer: Customer) {
+        return {
+            id: customer.id,
+            fullName: customer.fullName,
+            email: customer.email,
+            phone: customer.phone,
+            dob: customer.dob,
+            gender: customer.gender,
+            goal: customer.goal,
+            community: customer.community,
+            landmark: customer.landmark,
+            locality: customer.locality,
+            userType: customer.userType,
+            createdAt: customer.createdAt,
+            updatedAt: customer.updatedAt,
+        };
     }
 
     // ---------------------- VENDOR REGISTRATION ----------------------

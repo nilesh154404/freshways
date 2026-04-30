@@ -100,22 +100,35 @@
 // }
 
 
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
-import { ApiBody, ApiTags, ApiQuery, ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  ParseIntPipe,
+  Post,
+  Query,
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
-
-
-// ✅ DTO OUTSIDE CONTROLLER (IMPORTANT)
-class ChatDto {
-  @ApiProperty({
-    example: 'Suggest fruits',
-    description: 'Message to send to AI',
-  })
-  @IsString()
-  @IsNotEmpty()
-  message: string;
-}
+import { ChatDto } from './chat.dto';
+import { UpsertHealthProfileDto } from './dto/upsert-health-profile.dto';
+import {
+  HealthAnalysisResponseDto,
+  HealthInsightsResponseDto,
+  HealthProfileResponseDto,
+} from './dto/health-response.dto';
 
 
 @ApiTags('AI')
@@ -123,14 +136,12 @@ class ChatDto {
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
-  // 💬 CHAT API
   @Post('chat')
   @ApiBody({ type: ChatDto })
   async chat(@Body() body: ChatDto) {
     return this.aiService.sendChat(body.message);
   }
 
-  // 🎯 RECOMMENDATIONS API
   @Get('recommendations')
   @ApiQuery({
     name: 'userId',
@@ -139,5 +150,143 @@ export class AiController {
   })
   async recommendations(@Query('userId') userId: string) {
     return this.aiService.getRecommendations(userId);
+  }
+
+  @Post('health/profile')
+  @ApiBody({ type: UpsertHealthProfileDto })
+  @ApiOkResponse({ type: HealthAnalysisResponseDto })
+  async upsertHealthProfile(@Body() body: UpsertHealthProfileDto) {
+    const result = await this.aiService.upsertHealthProfile(body);
+    return {
+      healthScore: result.healthScore,
+      risks: result.risks,
+      insights: result.insights,
+    };
+  }
+
+  @Get('health/profile')
+  @ApiQuery({
+    name: 'userId',
+    required: true,
+    example: 101,
+  })
+  @ApiOkResponse({ type: HealthProfileResponseDto })
+  async getHealthProfile(@Query('userId', ParseIntPipe) userId: number) {
+    return this.aiService.getHealthProfile(userId);
+  }
+
+  @Get('health/insights')
+  @ApiQuery({
+    name: 'userId',
+    required: true,
+    example: 101,
+  })
+  @ApiOkResponse({ type: HealthInsightsResponseDto })
+  async getHealthInsights(@Query('userId', ParseIntPipe) userId: number) {
+    return this.aiService.getHealthInsights(userId);
+  }
+
+  @Post('health/reports')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['files', 'userId'],
+      properties: {
+        userId: { type: 'number', example: 101 },
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ description: 'Reports processed and insights generated' })
+  @UseInterceptors(FilesInterceptor('files', 10))
+  async extractPdfReport(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body('userId', ParseIntPipe) userId: number,
+  ) {
+    if (!files || files.length === 0) {
+      throw new HttpException({ message: 'At least one file is required' }, HttpStatus.BAD_REQUEST);
+    }
+    return this.aiService.processReportsAndGenerateInsights(userId, files);
+  }
+
+  @Post('health/generate-insights')
+  @ApiQuery({
+    name: 'userId',
+    required: true,
+    example: 101,
+  })
+  @ApiOkResponse({ description: 'Insights generated and saved' })
+  async generateInsights(@Query('userId', ParseIntPipe) userId: number) {
+    return this.aiService.generateAndSaveInsights(userId);
+  }
+
+  @Get('health/insights/personalizedhealthreport')
+  @ApiQuery({ name: 'userId', required: true, example: 101 })
+  async getPersonalizedHealthReport(@Query('userId', ParseIntPipe) userId: number) {
+    const profile = await this.aiService.getHealthProfileEntity(userId);
+    return profile?.personalizedHealthReports || [];
+  }
+
+  @Get('health/insights/nutritioninsights')
+  @ApiQuery({ name: 'userId', required: true, example: 101 })
+  async getNutritionInsights(@Query('userId', ParseIntPipe) userId: number) {
+    const profile = await this.aiService.getHealthProfileEntity(userId);
+    return profile?.nutritionInsights || [];
+  }
+
+  @Get('health/insights/customerdietguidence')
+  @ApiQuery({ name: 'userId', required: true, example: 101 })
+  async getCustomerDietGuidance(@Query('userId', ParseIntPipe) userId: number) {
+    const profile = await this.aiService.getHealthProfileEntity(userId);
+    return profile?.customDietGuidance || [];
+  }
+
+  @Get('health/insights/fitnesssuggestion')
+  @ApiQuery({ name: 'userId', required: true, example: 101 })
+  async getFitnessSuggestions(@Query('userId', ParseIntPipe) userId: number) {
+    const profile = await this.aiService.getHealthProfileEntity(userId);
+    return profile?.fitnessSuggestions || [];
+  }
+
+  @Post('health/file-insights')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Health document file (PDF or text) to extract insights from',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        personalizedHealthReports: { type: 'array', items: { type: 'string' } },
+        nutritionInsights: { type: 'array', items: { type: 'string' } },
+        customDietGuidance: { type: 'array', items: { type: 'string' } },
+        fitnessSuggestions: { type: 'array', items: { type: 'string' } },
+        productRecommendations: { type: 'array', items: { type: 'string' } },
+        preventiveAlerts: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async getHealthInsightsFromFile(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.aiService.getHealthInsightsFromFile(file);
   }
 }
