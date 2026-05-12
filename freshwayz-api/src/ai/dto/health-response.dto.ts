@@ -109,10 +109,30 @@ export class HealthInsightsResponseDto {
   risks: HealthRiskDto[];
 
   @ApiProperty({
-    type: [String],
-    example: ['Low fiber intake detected', 'Low activity level detected'],
+    example: {
+      status: 'Attention Required',
+      summary: 'Your health score is 74. Some areas need attention.',
+      keyPoints: ['Low vitamin D level detected'],
+    },
   })
-  insights: string[];
+  personalizedHealthReports: any;
+
+  @ApiProperty({ type: [String], example: ['Include more leafy greens.'] })
+  nutritionInsights: string[];
+
+  @ApiProperty({
+    example: {
+      breakfast: 'Oats with flaxseeds',
+      lunch: 'Large salad with grilled tofu',
+      dinner: 'Vegetable soup',
+      snacks: 'A handful of walnuts',
+      foodsToAvoid: ['Refined sugar', 'Deep-fried snacks'],
+    },
+  })
+  customDietGuidance: any;
+
+  @ApiProperty({ type: [String], example: ['Daily 30 min walk.'] })
+  fitnessSuggestions: string[];
 }
 
 export class HealthAnalysisResponseDto {
@@ -128,11 +148,28 @@ export class HealthAnalysisResponseDto {
   risks: HealthRiskDto[];
 
   @ApiProperty({
-    type: [String],
-    example: [
-      'Maintain a balanced diet and reduce intake of saturated fats and sugar.',
-      'Increase physical activity to help manage weight and improve metabolism.',
-    ],
+    example: {
+      status: 'Attention Required',
+      summary: 'Your health score is 68. Some areas need attention.',
+      keyPoints: ['Obesity indicated'],
+    },
   })
-  insights: string[];
+  personalizedHealthReports: any;
+
+  @ApiProperty({ type: [String], example: ['Focus on high fiber foods.'] })
+  nutritionInsights: string[];
+
+  @ApiProperty({
+    example: {
+      breakfast: 'Multigrain toast with egg whites',
+      lunch: 'Balanced plate with 50% vegetables',
+      dinner: 'Light meal like dal-palak',
+      snacks: 'Fresh seasonal fruits',
+      foodsToAvoid: ['Processed snacks', 'Excess oil'],
+    },
+  })
+  customDietGuidance: any;
+
+  @ApiProperty({ type: [String], example: ['Incorporate light cardio.'] })
+  fitnessSuggestions: string[];
 }

@@ -160,7 +160,10 @@ export class AiController {
     return {
       healthScore: result.healthScore,
       risks: result.risks,
-      insights: result.insights,
+      personalizedHealthReports: result.personalizedHealthReports,
+      nutritionInsights: result.nutritionInsights,
+      customDietGuidance: result.customDietGuidance,
+      fitnessSuggestions: result.fitnessSuggestions,
     };
   }
 
@@ -231,7 +234,7 @@ export class AiController {
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getPersonalizedHealthReport(@Query('userId', ParseIntPipe) userId: number) {
     const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.personalizedHealthReports || [];
+    return profile?.personalizedHealthReports || {};
   }
 
   @Get('health/insights/nutritioninsights')
@@ -245,7 +248,7 @@ export class AiController {
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getCustomerDietGuidance(@Query('userId', ParseIntPipe) userId: number) {
     const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.customDietGuidance || [];
+    return profile?.customDietGuidance || {};
   }
 
   @Get('health/insights/fitnesssuggestion')
@@ -274,12 +277,18 @@ export class AiController {
     schema: {
       type: 'object',
       properties: {
-        personalizedHealthReports: { type: 'array', items: { type: 'string' } },
+        personalizedHealthReport: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            summary: { type: 'string' },
+            keyPoints: { type: 'array', items: { type: 'string' } },
+          },
+        },
         nutritionInsights: { type: 'array', items: { type: 'string' } },
-        customDietGuidance: { type: 'array', items: { type: 'string' } },
+        customDietGuide: { type: 'array', items: { type: 'string' } },
         fitnessSuggestions: { type: 'array', items: { type: 'string' } },
-        productRecommendations: { type: 'array', items: { type: 'string' } },
-        preventiveAlerts: { type: 'array', items: { type: 'string' } },
+        riskAlerts: { type: 'array', items: { type: 'string' } },
       },
     },
   })

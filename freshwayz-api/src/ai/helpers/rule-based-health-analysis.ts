@@ -20,17 +20,33 @@ export interface HealthAnalysisInput {
 export interface HealthAnalysisResult {
   healthScore: number;
   risks: HealthRisk[];
-  insights: string[];
+  personalizedHealthReports: {
+    status: string;
+    summary: string;
+    keyPoints: string[];
+  };
+  nutritionInsights: string[];
+  customDietGuidance: {
+    breakfast: string;
+    lunch: string;
+    dinner: string;
+    snacks: string;
+    foodsToAvoid: string[];
+  };
+  fitnessSuggestions: string[];
 }
 
 export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalysisResult {
   const risks: HealthRisk[] = [];
-  const insights = new Set<string>();
   let healthScore = 100;
 
   const bmi = isValidNumber(profile.bmi)
     ? Number(profile.bmi)
     : calculateBmi(profile.heightCm, profile.weightKg);
+
+  const nutritionInsights: string[] = [];
+  const customDietGuidance: string[] = [];
+  const fitnessSuggestions: string[] = [];
 
   if (bmi >= 30) {
     risks.push({
@@ -39,7 +55,9 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
       reason: `BMI of ${formatNumber(bmi)} indicates obesity`,
     });
     healthScore -= 10;
-    insights.add('Aim for gradual weight loss through portion control, more daily movement, and fewer ultra-processed foods.');
+    nutritionInsights.push('Focus on a calorie-deficit diet with high fiber.');
+    customDietGuidance.push('Reduce portion sizes and limit late-night snacking.');
+    fitnessSuggestions.push('Start with 30 mins of brisk walking daily.');
   } else if (bmi >= 25) {
     risks.push({
       type: 'overweight',
@@ -47,14 +65,18 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
       reason: `BMI of ${formatNumber(bmi)} indicates overweight range`,
     });
     healthScore -= 10;
-    insights.add('Improve diet quality, increase daily activity, and track weight trend over time.');
+    nutritionInsights.push('Maintain a balanced intake of proteins and vegetables.');
+    customDietGuidance.push('Minimize sugary drinks and processed snacks.');
+    fitnessSuggestions.push('Incorporate light cardio 3-4 times a week.');
   }
 
   const diabetesRisk = getDiabetesRisk(profile.hba1c, profile.fastingSugar);
   if (diabetesRisk) {
     risks.push(diabetesRisk.risk);
     healthScore -= 15;
-    insights.add('Reduce added sugar and refined carbohydrates, and follow up with repeat glucose or HbA1c testing.');
+    nutritionInsights.push('Prefer complex carbs over simple sugars.');
+    customDietGuidance.push('Follow a low-glycemic index meal plan.');
+    fitnessSuggestions.push('Consistent physical activity helps manage blood sugar.');
   }
 
   if (isValidNumber(profile.cholesterol)) {
@@ -66,14 +88,15 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
         reason: `Total cholesterol of ${formatNumber(cholesterol)} mg/dL is high`,
       });
       healthScore -= 10;
-      insights.add('Limit fried and processed foods, increase soluble fiber, and repeat a lipid profile with your clinician.');
+      nutritionInsights.push('Limit saturated and trans fats.');
+      customDietGuidance.push('Increase intake of oats, beans, and healthy nuts.');
     } else if (cholesterol >= 200) {
       risks.push({
         type: 'cholesterol',
         level: 'moderate',
         reason: `Total cholesterol of ${formatNumber(cholesterol)} mg/dL is borderline high`,
       });
-      insights.add('Focus on heart-healthy meals, regular exercise, and monitoring cholesterol trends.');
+      nutritionInsights.push('Choose heart-healthy unsaturated fats.');
     }
   }
 
@@ -86,15 +109,7 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
         reason: `Vitamin D of ${formatNumber(vitaminD)} ng/mL indicates deficiency`,
       });
       healthScore -= 5;
-      insights.add('Get safe sunlight exposure, include vitamin D-rich foods, and discuss supplementation with a doctor.');
-    } else if (vitaminD < 30) {
-      risks.push({
-        type: 'vitamin_d_insufficiency',
-        level: 'moderate',
-        reason: `Vitamin D of ${formatNumber(vitaminD)} ng/mL indicates insufficiency`,
-      });
-      healthScore -= 5;
-      insights.add('Increase vitamin D intake through food, sunlight, or supplementation as advised by a clinician.');
+      nutritionInsights.push('Include vitamin D fortified foods.');
     }
   }
 
@@ -105,16 +120,61 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
       reason: `Sleep duration of ${formatNumber(profile.sleepHours)} hours is below the recommended 7 hours`,
     });
     healthScore -= 5;
-    insights.add('Try to reach 7 to 9 hours of sleep with a consistent bedtime and wake-up schedule.');
+  }
+  
+  const customDietGuidanceObj = {
+    breakfast: 'Oats with nuts or sprouts.',
+    lunch: 'Brown rice with plenty of vegetables and lean protein.',
+    dinner: 'Light meal like soup or grilled vegetables.',
+    snacks: 'Fresh seasonal fruits or roasted seeds.',
+    foodsToAvoid: [] as string[],
+  };
+
+  if (bmi >= 30) {
+    customDietGuidanceObj.breakfast = 'Oats with flaxseeds or a protein-rich moong dal chilla.';
+    customDietGuidanceObj.lunch = 'Large portion of salad with a small portion of whole grains and lentils.';
+    customDietGuidanceObj.dinner = 'Vegetable soup or sautéed greens with grilled tofu/chicken.';
+    customDietGuidanceObj.foodsToAvoid.push('Refined carbs', 'Sugary beverages', 'Deep-fried items');
+  } else if (bmi >= 25) {
+    customDietGuidanceObj.breakfast = 'Multigrain toast with egg whites or poha with lots of veggies.';
+    customDietGuidanceObj.lunch = 'Balanced plate with 50% vegetables, 25% protein, and 25% complex carbs.';
+    customDietGuidanceObj.dinner = 'Light meal like dal-palak or a sprout salad.';
+    customDietGuidanceObj.foodsToAvoid.push('Excess oil', 'Butter', 'Processed snacks');
   }
 
-  const finalInsights = Array.from(insights);
-  finalInsights.unshift('These are the insights from the manually added fields.');
+  if (diabetesRisk) {
+    customDietGuidanceObj.lunch += ' Use low glycemic index foods like quinoa or buckwheat.';
+    customDietGuidanceObj.foodsToAvoid.push('Fruit juices', 'Honey', 'High-sugar fruits (mango/grapes)');
+  }
+
+  if (isValidNumber(profile.cholesterol) && Number(profile.cholesterol) >= 200) {
+    customDietGuidanceObj.snacks = '1-2 walnuts and soaked almonds daily.';
+    customDietGuidanceObj.foodsToAvoid.push('Red meat', 'Full-fat dairy', 'Trans fats');
+  }
+
+  if (isValidNumber(profile.sleepHours) && Number(profile.sleepHours) < 7) {
+    customDietGuidanceObj.dinner += ' Avoid caffeine 4-6 hours before bed.';
+  }
+
+  if (customDietGuidanceObj.foodsToAvoid.length === 0) {
+    customDietGuidanceObj.foodsToAvoid.push('Deep-fried foods', 'Excess salt and sugar');
+  }
+
+  let status = 'Healthy';
+  if (healthScore < 70) status = 'Critical';
+  else if (healthScore < 85) status = 'Attention Required';
 
   return {
     healthScore: clampScore(healthScore),
     risks,
-    insights: finalInsights,
+    personalizedHealthReports: {
+      status,
+      summary: `Your health score is ${clampScore(healthScore)}. ${risks.length > 0 ? 'Some areas need attention.' : 'You are doing well.'}`,
+      keyPoints: risks.map(r => r.reason),
+    },
+    nutritionInsights: nutritionInsights.length > 0 ? nutritionInsights : ['Maintain a balanced and varied diet.'],
+    customDietGuidance: customDietGuidanceObj,
+    fitnessSuggestions: fitnessSuggestions.length > 0 ? fitnessSuggestions : ['Aim for at least 150 minutes of moderate activity per week.'],
   };
 }
 

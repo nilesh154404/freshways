@@ -367,6 +367,13 @@ export class AiService {
     const profile = await this.healthProfileRepo.save(entity);
     const insights = analyzeHealthProfile(profile);
 
+    // Update entity with calculated baseline insights so they are persisted
+    profile.personalizedHealthReports = insights.personalizedHealthReports;
+    profile.nutritionInsights = insights.nutritionInsights;
+    profile.customDietGuidance = insights.customDietGuidance;
+    profile.fitnessSuggestions = insights.fitnessSuggestions;
+    await this.healthProfileRepo.save(profile);
+
     return {
       profile,
       ...insights,
@@ -1541,31 +1548,41 @@ ${reportText || "No reports uploaded"}
 ----------------------------------------
 
 {
-  "summary": "string",
+  "personalizedHealthReport": {
+    "status": "string (Healthy | Attention Required | Critical)",
+    "summary": "string (max 2 sentences)",
+    "keyPoints": [
+      "string (short bullet point)"
+    ]
+  },
+
+  "nutritionInsights": [
+    "string (short bullet point)"
+  ],
+
+  "customDietGuide": {
+    "breakfast": "string (specific healthy option)",
+    "lunch": "string (specific healthy option)",
+    "dinner": "string (specific healthy option)",
+    "snacks": "string (healthy snack)",
+    "foodsToAvoid": ["string (simple item)"]
+  },
+
+  "fitnessSuggestions": [
+    "string (short bullet point)"
+  ],
+
+  "riskAlerts": [
+    "string (urgent warnings if any)"
+  ],
 
   "reportAnalysis": {
-    "isMismatch": true,
+    "isMismatch": boolean,
     "details": "string",
     "extractedFindings": [
       "string"
     ]
   },
-
-  "healthInsights": [
-    "string"
-  ],
-
-  "nutritionInsights": [
-    "string"
-  ],
-
-  "fitnessSuggestions": [
-    "string"
-  ],
-
-  "riskAlerts": [
-    "string"
-  ],
   "extractedVitaminD": 0.0,
   "extractedVitaminB12": 0.0,
   "extractedCholesterol": 0.0,
@@ -1598,9 +1615,12 @@ If:
 Step 4: Generate insights
 - Personalized but safe
 - No over-medical claims
+- KEEP IT SHORT AND SIMPLE for mobile app users.
 
-Step 5: Nutrition + fitness suggestions
-- Based on diabetes risk, BMI, lifestyle
+Step 5: Nutrition + Diet + Fitness suggestions
+- Nutrition: General food category advice.
+- Diet Guide: Specific meal suggestions for Breakfast, Lunch, Dinner, and Snacks.
+- Fitness: Activity types and frequency based on profile.
 
 Step 6: Risk alerts
 - Highlight possible risks (e.g. diabetes, low sleep)
@@ -1613,6 +1633,8 @@ Step 6: Risk alerts
 - Do not include explanation outside JSON
 - Do not skip report findings
 - Do not assume missing lab values
+- ⚠️ IMPORTANT: Diet Guide and Fitness MUST contain ONLY lifestyle and food recommendations. DO NOT put medical risks, warnings, or disease progression alerts here.
+- Do not put medical jargon or complex risks in the Diet or Fitness sections. Keep them simple, meal-based, and actionable.
 `;
   }
 
@@ -1694,9 +1716,9 @@ Step 6: Risk alerts
     const prompt = this.buildHealthInsightsPrompt(userData, profile.bloodReports || '');
     const insights = await this.generateGeminiHealthInsights(prompt);
     
-    profile.personalizedHealthReports = [insights.summary, ...(insights.healthInsights || []), ...(insights.riskAlerts || [])].filter(Boolean);
+    profile.personalizedHealthReports = insights.personalizedHealthReport || {};
     profile.nutritionInsights = insights.nutritionInsights || [];
-    profile.customDietGuidance = insights.riskAlerts || [];
+    profile.customDietGuidance = insights.customDietGuide || {};
     profile.fitnessSuggestions = insights.fitnessSuggestions || [];
 
     if (insights.extractedBloodReportsSummary) profile.bloodReports = insights.extractedBloodReportsSummary;
@@ -1759,9 +1781,9 @@ Step 6: Risk alerts
     const prompt = this.buildHealthInsightsPrompt(userData, combinedText.slice(0, 20000));
     const insights = await this.generateGeminiHealthInsights(prompt);
     
-    profile.personalizedHealthReports = [insights.summary, ...(insights.healthInsights || []), ...(insights.riskAlerts || [])].filter(Boolean);
+    profile.personalizedHealthReports = insights.personalizedHealthReport || {};
     profile.nutritionInsights = insights.nutritionInsights || [];
-    profile.customDietGuidance = insights.riskAlerts || [];
+    profile.customDietGuidance = insights.customDietGuide || {};
     profile.fitnessSuggestions = insights.fitnessSuggestions || [];
     
     if (insights.extractedBloodReportsSummary) profile.bloodReports = insights.extractedBloodReportsSummary;
