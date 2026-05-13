@@ -122,10 +122,10 @@ export class HealthInsightsResponseDto {
 
   @ApiProperty({
     example: {
-      breakfast: 'Oats with flaxseeds',
-      lunch: 'Large salad with grilled tofu',
-      dinner: 'Vegetable soup',
-      snacks: 'A handful of walnuts',
+      breakfast: ['Oats with flaxseeds', 'Moong dal chilla'],
+      lunch: ['Large salad with grilled tofu', 'Lentil soup with veggies'],
+      dinner: ['Vegetable soup', 'Grilled paneer with sautéed greens'],
+      snacks: ['A handful of walnuts', 'Roasted makhana'],
       foodsToAvoid: ['Refined sugar', 'Deep-fried snacks'],
     },
   })
@@ -161,10 +161,10 @@ export class HealthAnalysisResponseDto {
 
   @ApiProperty({
     example: {
-      breakfast: 'Multigrain toast with egg whites',
-      lunch: 'Balanced plate with 50% vegetables',
-      dinner: 'Light meal like dal-palak',
-      snacks: 'Fresh seasonal fruits',
+      breakfast: ['Multigrain toast with egg whites', 'Poha with veggies'],
+      lunch: ['Balanced plate with 50% vegetables', 'Quinoa bowl'],
+      dinner: ['Light meal like dal-palak', 'Sprout salad'],
+      snacks: ['Fresh seasonal fruits', 'Soaked almonds'],
       foodsToAvoid: ['Processed snacks', 'Excess oil'],
     },
   })

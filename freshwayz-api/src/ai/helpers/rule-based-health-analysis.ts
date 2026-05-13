@@ -27,10 +27,10 @@ export interface HealthAnalysisResult {
   };
   nutritionInsights: string[];
   customDietGuidance: {
-    breakfast: string;
-    lunch: string;
-    dinner: string;
-    snacks: string;
+    breakfast: string[];
+    lunch: string[];
+    dinner: string[];
+    snacks: string[];
     foodsToAvoid: string[];
   };
   fitnessSuggestions: string[];
@@ -123,37 +123,38 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
   }
   
   const customDietGuidanceObj = {
-    breakfast: 'Oats with nuts or sprouts.',
-    lunch: 'Brown rice with plenty of vegetables and lean protein.',
-    dinner: 'Light meal like soup or grilled vegetables.',
-    snacks: 'Fresh seasonal fruits or roasted seeds.',
+    breakfast: ['Oats with nuts', 'Sprouts with lemon', 'Paneer bhurji (low oil)'],
+    lunch: ['Brown rice with lentils and veggies', 'Multigrain chapati with leafy greens', 'Quinoa vegetable bowl'],
+    dinner: ['Vegetable soup', 'Grilled vegetables/tofu', 'Moong dal khichdi (light)'],
+    snacks: ['Fresh seasonal fruits', 'Roasted makhana', 'Handful of walnuts'],
     foodsToAvoid: [] as string[],
   };
 
   if (bmi >= 30) {
-    customDietGuidanceObj.breakfast = 'Oats with flaxseeds or a protein-rich moong dal chilla.';
-    customDietGuidanceObj.lunch = 'Large portion of salad with a small portion of whole grains and lentils.';
-    customDietGuidanceObj.dinner = 'Vegetable soup or sautéed greens with grilled tofu/chicken.';
+    customDietGuidanceObj.breakfast = ['Oats with flaxseeds', 'Moong dal chilla', 'Vegetable Daliya'];
+    customDietGuidanceObj.lunch = ['Large salad with small portion of whole grains', 'Boiled lentils with sautéed vegetables', 'Chickpea salad'];
+    customDietGuidanceObj.dinner = ['Clear vegetable soup', 'Sautéed greens with grilled tofu', 'Steamed broccoli and carrots'];
     customDietGuidanceObj.foodsToAvoid.push('Refined carbs', 'Sugary beverages', 'Deep-fried items');
   } else if (bmi >= 25) {
-    customDietGuidanceObj.breakfast = 'Multigrain toast with egg whites or poha with lots of veggies.';
-    customDietGuidanceObj.lunch = 'Balanced plate with 50% vegetables, 25% protein, and 25% complex carbs.';
-    customDietGuidanceObj.dinner = 'Light meal like dal-palak or a sprout salad.';
+    customDietGuidanceObj.breakfast = ['Multigrain toast with egg whites', 'Poha with plenty of vegetables', 'Ragi malt'];
+    customDietGuidanceObj.lunch = ['Balanced plate: 50% veggies, 25% protein, 25% complex carbs', 'Dal-palak with one roti', 'Tofu wrap with whole wheat tortilla'];
+    customDietGuidanceObj.dinner = ['Light dal with steamed vegetables', 'Sprout salad', 'Pumpkin soup'];
     customDietGuidanceObj.foodsToAvoid.push('Excess oil', 'Butter', 'Processed snacks');
   }
 
   if (diabetesRisk) {
-    customDietGuidanceObj.lunch += ' Use low glycemic index foods like quinoa or buckwheat.';
+    customDietGuidanceObj.lunch.push('Buckwheat or Quinoa based meals');
+    customDietGuidanceObj.dinner.push('Light vegetable stir-fry (avoid starchy veggies)');
     customDietGuidanceObj.foodsToAvoid.push('Fruit juices', 'Honey', 'High-sugar fruits (mango/grapes)');
   }
 
   if (isValidNumber(profile.cholesterol) && Number(profile.cholesterol) >= 200) {
-    customDietGuidanceObj.snacks = '1-2 walnuts and soaked almonds daily.';
+    customDietGuidanceObj.snacks = ['1-2 walnuts', 'Soaked almonds', 'Roasted flaxseeds'];
     customDietGuidanceObj.foodsToAvoid.push('Red meat', 'Full-fat dairy', 'Trans fats');
   }
 
   if (isValidNumber(profile.sleepHours) && Number(profile.sleepHours) < 7) {
-    customDietGuidanceObj.dinner += ' Avoid caffeine 4-6 hours before bed.';
+    customDietGuidanceObj.dinner.push('Avoid caffeine 4-6 hours before bed');
   }
 
   if (customDietGuidanceObj.foodsToAvoid.length === 0) {

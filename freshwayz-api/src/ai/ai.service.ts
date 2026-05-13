@@ -1561,10 +1561,10 @@ ${reportText || "No reports uploaded"}
   ],
 
   "customDietGuide": {
-    "breakfast": "string (specific healthy option)",
-    "lunch": "string (specific healthy option)",
-    "dinner": "string (specific healthy option)",
-    "snacks": "string (healthy snack)",
+    "breakfast": ["string (2-3 specific healthy options)"],
+    "lunch": ["string (2-3 specific healthy options)"],
+    "dinner": ["string (2-3 specific healthy options)"],
+    "snacks": ["string (2-3 healthy snacks)"],
     "foodsToAvoid": ["string (simple item)"]
   },
 
