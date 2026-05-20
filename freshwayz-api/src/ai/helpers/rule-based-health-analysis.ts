@@ -34,6 +34,8 @@ export interface HealthAnalysisResult {
     foodsToAvoid: string[];
   };
   fitnessSuggestions: string[];
+  preventiveAlerts: string[];
+  nutritionAlerts: string[];
 }
 
 export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalysisResult {
@@ -47,6 +49,8 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
   const nutritionInsights: string[] = [];
   const customDietGuidance: string[] = [];
   const fitnessSuggestions: string[] = [];
+  const preventiveAlerts: string[] = [];
+  const nutritionAlerts: string[] = [];
 
   if (bmi >= 30) {
     risks.push({
@@ -58,6 +62,8 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
     nutritionInsights.push('Focus on a calorie-deficit diet with high fiber.');
     customDietGuidance.push('Reduce portion sizes and limit late-night snacking.');
     fitnessSuggestions.push('Start with 30 mins of brisk walking daily.');
+    preventiveAlerts.push('High BMI indicates risk for cardiovascular and metabolic disorders. Regular checkups advised.');
+    nutritionAlerts.push('Strictly monitor daily calorie intake and avoid high-calorie foods.');
   } else if (bmi >= 25) {
     risks.push({
       type: 'overweight',
@@ -77,6 +83,8 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
     nutritionInsights.push('Prefer complex carbs over simple sugars.');
     customDietGuidance.push('Follow a low-glycemic index meal plan.');
     fitnessSuggestions.push('Consistent physical activity helps manage blood sugar.');
+    preventiveAlerts.push('Elevated blood sugar levels detected. Please consult a physician for diabetes screening.');
+    nutritionAlerts.push('Avoid refined sugars and carbohydrates with high glycemic index.');
   }
 
   if (isValidNumber(profile.cholesterol)) {
@@ -110,6 +118,8 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
       });
       healthScore -= 5;
       nutritionInsights.push('Include vitamin D fortified foods.');
+      preventiveAlerts.push('Vitamin D deficiency observed. Consider sun exposure and supplements after consulting a doctor.');
+      nutritionAlerts.push('Increase intake of foods rich in Vitamin D like mushrooms or fortified dairy/plant milks.');
     }
   }
 
@@ -176,6 +186,8 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
     nutritionInsights: nutritionInsights.length > 0 ? nutritionInsights : ['Maintain a balanced and varied diet.'],
     customDietGuidance: customDietGuidanceObj,
     fitnessSuggestions: fitnessSuggestions.length > 0 ? fitnessSuggestions : ['Aim for at least 150 minutes of moderate activity per week.'],
+    preventiveAlerts: preventiveAlerts.length > 0 ? preventiveAlerts : ['Continue routine check-ups and healthy habits.'],
+    nutritionAlerts: nutritionAlerts.length > 0 ? nutritionAlerts : ['Maintain proper hydration and balanced macronutrient intake.'],
   };
 }
 

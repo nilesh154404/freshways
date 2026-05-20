@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
@@ -60,14 +60,22 @@ export class OrderController {
   @Get()
   @ApiOperation({ summary: 'Get all orders with optional filters' })
   @ApiResponse({ status: 200, type: [Order] })
+  @ApiQuery({ name: 'customerId', required: false })
+  @ApiQuery({ name: 'vendorId', required: false })
+  @ApiQuery({ name: 'communityId', required: false })
+  @ApiQuery({ name: 'orderStatus', required: false })
+  @ApiQuery({ name: 'paymentStatus', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'deliveryDate', required: false })
   async findAll(
     @Query('customerId') customerId?: number,
     @Query('vendorId') vendorId?: number,
     @Query('communityId') communityId?: number,
     @Query('orderStatus') orderStatus?: string,
     @Query('paymentStatus') paymentStatus?: string,
-    @Query('startDate') startDate?: string,  // createdAt start
-    @Query('endDate') endDate?: string,      // createdAt end
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('deliveryDate') deliveryDate?: string,
   ) {
     return this.orderService.findAll({

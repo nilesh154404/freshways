@@ -1,34 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Res } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import type { Response } from 'express';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post()
-  create(@Body() createPaymentDto: CreatePaymentDto) {
-    return this.paymentsService.create(createPaymentDto);
+  @Post('initiate')
+  async initiatePayment(@Body() createPaymentDto: CreatePaymentDto) {
+    return await this.paymentsService.initiatePayment(createPaymentDto);
   }
 
-  @Get()
-  findAll() {
-    return this.paymentsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paymentsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePaymentDto: UpdatePaymentDto) {
-    return this.paymentsService.update(+id, updatePaymentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentsService.remove(+id);
+  @Get('response')
+  async handlePaymentResponse(@Query('query') query: string, @Res() res: Response) {
+    if (!query) {
+      return res.status(400).json({ success: false, message: 'Missing query parameter' });
+    }
+    
+    const verificationResult = await this.paymentsService.verifyPaymentResponse(query);
+    
+    // In a real application, you might want to redirect to a frontend page:
+    // return res.redirect(`http://localhost:4200/payment/status?success=${verificationResult.success}&txnId=${verificationResult.transactionId}`);
+    
+    return res.json(verificationResult);
   }
 }

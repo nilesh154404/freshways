@@ -133,6 +133,12 @@ export class HealthInsightsResponseDto {
 
   @ApiProperty({ type: [String], example: ['Daily 30 min walk.'] })
   fitnessSuggestions: string[];
+
+  @ApiProperty({ type: [String], example: ['Monitor blood pressure regularly.'] })
+  preventiveAlerts: string[];
+
+  @ApiProperty({ type: [String], example: ['Avoid excessive sodium intake.'] })
+  nutritionAlerts: string[];
 }
 
 export class HealthAnalysisResponseDto {
@@ -172,4 +178,10 @@ export class HealthAnalysisResponseDto {
 
   @ApiProperty({ type: [String], example: ['Incorporate light cardio.'] })
   fitnessSuggestions: string[];
+
+  @ApiProperty({ type: [String], example: ['Annual health checkup advised.'] })
+  preventiveAlerts: string[];
+
+  @ApiProperty({ type: [String], example: ['Watch your sugar intake.'] })
+  nutritionAlerts: string[];
 }

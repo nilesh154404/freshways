@@ -86,6 +86,12 @@ export class HealthProfile {
   @Column({ type: 'json', nullable: true })
   fitnessSuggestions: any;
 
+  @Column({ type: 'json', nullable: true })
+  preventiveAlerts: any;
+
+  @Column({ type: 'json', nullable: true })
+  nutritionAlerts: any;
+
   @CreateDateColumn()
   createdAt: Date;
 

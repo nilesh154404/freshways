@@ -164,6 +164,8 @@ export class AiController {
       nutritionInsights: result.nutritionInsights,
       customDietGuidance: result.customDietGuidance,
       fitnessSuggestions: result.fitnessSuggestions,
+      preventiveAlerts: result.preventiveAlerts,
+      nutritionAlerts: result.nutritionAlerts,
     };
   }
 
@@ -258,6 +260,20 @@ export class AiController {
     return profile?.fitnessSuggestions || [];
   }
 
+  @Get('health/insights/preventivealerts')
+  @ApiQuery({ name: 'userId', required: true, example: 101 })
+  async getPreventiveAlerts(@Query('userId', ParseIntPipe) userId: number) {
+    const profile = await this.aiService.getHealthProfileEntity(userId);
+    return profile?.preventiveAlerts || [];
+  }
+
+  @Get('health/insights/nutritionalerts')
+  @ApiQuery({ name: 'userId', required: true, example: 101 })
+  async getNutritionAlerts(@Query('userId', ParseIntPipe) userId: number) {
+    const profile = await this.aiService.getHealthProfileEntity(userId);
+    return profile?.nutritionAlerts || [];
+  }
+
   @Post('health/file-insights')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -289,6 +305,8 @@ export class AiController {
         customDietGuide: { type: 'array', items: { type: 'string' } },
         fitnessSuggestions: { type: 'array', items: { type: 'string' } },
         riskAlerts: { type: 'array', items: { type: 'string' } },
+        preventiveAlerts: { type: 'array', items: { type: 'string' } },
+        nutritionAlerts: { type: 'array', items: { type: 'string' } },
       },
     },
   })

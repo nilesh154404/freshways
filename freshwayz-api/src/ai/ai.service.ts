@@ -372,6 +372,8 @@ export class AiService {
     profile.nutritionInsights = insights.nutritionInsights;
     profile.customDietGuidance = insights.customDietGuidance;
     profile.fitnessSuggestions = insights.fitnessSuggestions;
+    profile.preventiveAlerts = insights.preventiveAlerts;
+    profile.nutritionAlerts = insights.nutritionAlerts;
     await this.healthProfileRepo.save(profile);
 
     return {
@@ -1576,6 +1578,14 @@ ${reportText || "No reports uploaded"}
     "string (urgent warnings if any)"
   ],
 
+  "preventiveAlerts": [
+    "string (preventive measures or early warnings based on health profile and reports)"
+  ],
+
+  "nutritionAlerts": [
+    "string (warnings about nutritional deficiencies or excesses)"
+  ],
+
   "reportAnalysis": {
     "isMismatch": boolean,
     "details": "string",
@@ -1618,12 +1628,14 @@ Step 4: Generate insights
 - KEEP IT SHORT AND SIMPLE for mobile app users.
 
 Step 5: Nutrition + Diet + Fitness suggestions
-- Nutrition: General food category advice.
+- Nutrition Insights: General food category advice.
 - Diet Guide: Specific meal suggestions for Breakfast, Lunch, Dinner, and Snacks.
 - Fitness: Activity types and frequency based on profile.
+- Nutrition Alerts: Specific warnings regarding nutrient deficiencies, excesses, or dietary risks.
 
 Step 6: Risk alerts
 - Highlight possible risks (e.g. diabetes, low sleep)
+- Preventive Alerts: Early warnings and preventive measures based on health risks.
 
 ----------------------------------------
 🚫 DO NOT DO
@@ -1720,6 +1732,8 @@ Step 6: Risk alerts
     profile.nutritionInsights = insights.nutritionInsights || [];
     profile.customDietGuidance = insights.customDietGuide || {};
     profile.fitnessSuggestions = insights.fitnessSuggestions || [];
+    profile.preventiveAlerts = insights.preventiveAlerts || [];
+    profile.nutritionAlerts = insights.nutritionAlerts || [];
 
     if (insights.extractedBloodReportsSummary) profile.bloodReports = insights.extractedBloodReportsSummary;
     if (insights.extractedVitaminD) profile.vitaminD = Number(insights.extractedVitaminD);
@@ -1785,6 +1799,8 @@ Step 6: Risk alerts
     profile.nutritionInsights = insights.nutritionInsights || [];
     profile.customDietGuidance = insights.customDietGuide || {};
     profile.fitnessSuggestions = insights.fitnessSuggestions || [];
+    profile.preventiveAlerts = insights.preventiveAlerts || [];
+    profile.nutritionAlerts = insights.nutritionAlerts || [];
     
     if (insights.extractedBloodReportsSummary) profile.bloodReports = insights.extractedBloodReportsSummary;
     if (insights.extractedVitaminD) profile.vitaminD = Number(insights.extractedVitaminD);

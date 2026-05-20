@@ -72,8 +72,10 @@ export class OrderService {
 
     if (!community) throw new NotFoundException('Community not found');
 
-    const deliverySlot = await this.deliverySlotRepo.findOneBy({ id: deliverySlotId });
-
+    let deliverySlot: DeliverySlot | null = null;
+    if (deliverySlotId) {
+      deliverySlot = await this.deliverySlotRepo.findOneBy({ id: deliverySlotId });
+    }
     let vendorSubscriptionPlan: VendorSubscriptionPlan | undefined;
 
     if (vendorSubscriptionPlanId) {
