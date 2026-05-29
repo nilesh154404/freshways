@@ -28,7 +28,7 @@ export class CreateProductDto {
   @IsNotEmpty()
   measurementValue: string;
 
-  @ApiProperty({ example: 'VEG', enum: ['VEG', 'NON-VEG'] })
+  @ApiProperty({ example: 'VEG', enum: ['VEG', 'NON-VEG', 'BOTH'] })
   @IsString()
   @IsOptional()
   productType?: string;
