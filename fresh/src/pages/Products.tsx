@@ -37,6 +37,7 @@ type Product = {
   productUrl: string;
   measurementUnit: string;
   measurementValue: string;
+  productType?: string;
   serviceOffering: any;
   discounts?: any;
   vendor: any;
@@ -124,6 +125,7 @@ const Products = () => {
     vendorSubscriptionPlanId: "",
     categoryId: "",
     productUrl: "",
+    productType: "VEG",
   });
 
   // -----------------------------
@@ -197,6 +199,7 @@ const Products = () => {
       vendorSubscriptionPlanId: "",
       categoryId: "",
       productUrl: "",
+      productType: "VEG",
     });
     setImageFile(null);
     setEditingProduct(null);
@@ -275,6 +278,7 @@ const Products = () => {
       vendorSubscriptionPlanId: product.vendorSubscriptionPlan?.id?.toString() || "",
       categoryId: product.category?.id?.toString() || "",
       productUrl: product.productUrl || "",
+      productType: product.productType || "VEG",
     });
     setIsDialogOpen(true);
   };
@@ -453,6 +457,20 @@ const Products = () => {
                 </div>
 
                 <div className="grid gap-2">
+                  <Label>Product Type</Label>
+                  <Select
+                    value={formData.productType}
+                    onValueChange={(v) => setFormData({ ...formData, productType: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VEG">VEG</SelectItem>
+                      <SelectItem value="NON-VEG">NON-VEG</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
                   <Label>Product Image</Label>
                   <Input
                     type="text"
@@ -487,6 +505,7 @@ const Products = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Unit</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -498,6 +517,13 @@ const Products = () => {
                     <TableCell>{p.label}</TableCell>
                     <TableCell className="max-w-xs truncate">{p.description}</TableCell>
                     <TableCell>{p.measurementValue} {p.measurementUnit}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        p.productType === 'NON-VEG' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {p.productType || 'VEG'}
+                      </span>
+                    </TableCell>
                     <TableCell>{p.dailyPrices[0]?.amount}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">

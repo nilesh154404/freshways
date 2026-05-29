@@ -312,6 +312,7 @@ Provide concise, actionable insights specific to this person's combined health p
             community: customer.community,
             landmark: customer.landmark,
             locality: customer.locality,
+            dietPreference: customer.dietPreference,
             userType: customer.userType,
             createdAt: customer.createdAt,
             updatedAt: customer.updatedAt,

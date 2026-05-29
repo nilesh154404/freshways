@@ -80,4 +80,28 @@ export class UpsertHealthProfileDto {
   @IsString()
   dietPreference?: string;
 
+  @ApiPropertyOptional({ example: 18, description: 'Vitamin D level' })
+  @IsOptional()
+  @IsNumber()
+  vitaminD?: number;
+
+  @ApiPropertyOptional({ example: 250, description: 'Vitamin B12 level' })
+  @IsOptional()
+  @IsNumber()
+  vitaminB12?: number;
+
+  @ApiPropertyOptional({ example: 200, description: 'Total cholesterol level' })
+  @IsOptional()
+  @IsNumber()
+  cholesterol?: number;
+
+  @ApiPropertyOptional({ example: 100, description: 'Fasting blood sugar' })
+  @IsOptional()
+  @IsNumber()
+  fastingSugar?: number;
+
+  @ApiPropertyOptional({ example: 5.8, description: 'HbA1c percentage' })
+  @IsOptional()
+  @IsNumber()
+  hba1c?: number;
 }

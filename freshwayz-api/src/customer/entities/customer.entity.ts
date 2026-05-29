@@ -50,6 +50,9 @@ export class Customer {
     @Column({ nullable: true })
     locality: string;
 
+    @Column({ nullable: true })
+    dietPreference: string;
+
     @ManyToOne(() => UserType, userType => userType.users, { nullable: false })
     userType: UserType;
 

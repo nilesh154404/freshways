@@ -28,6 +28,11 @@ export class CreateProductDto {
   @IsNotEmpty()
   measurementValue: string;
 
+  @ApiProperty({ example: 'VEG', enum: ['VEG', 'NON-VEG'] })
+  @IsString()
+  @IsOptional()
+  productType?: string;
+
   // @ApiProperty({ example: "MARKET" })
   // @IsString()
   // serviceOfferingCode: string;

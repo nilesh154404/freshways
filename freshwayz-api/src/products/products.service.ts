@@ -45,6 +45,7 @@ export class ProductsService {
         productUrl,
         measurementUnit,
         measurementValue,
+        productType,
         // serviceOfferingCode,
         vendorSubscriptionPlanId,
         categoryId,
@@ -103,6 +104,7 @@ export class ProductsService {
         productUrl,
         measurementUnit,
         measurementValue,
+        productType,
         category,
         vendor,
         // serviceOffering,
@@ -173,8 +175,37 @@ export class ProductsService {
     });
   }
 
-  update(id: number, dto: any) {
-    return `This action updates product #${id}`;
+  async update(id: number, dto: any) {
+    const product = await this.productRepo.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    const {
+      vendorSubscriptionPlanId,
+      categoryId,
+      vendorId,
+      ...otherData
+    } = dto;
+
+    if (vendorSubscriptionPlanId) {
+      const plan = await this.vendorPlanRepo.findOne({ where: { id: vendorSubscriptionPlanId } });
+      if (plan) product.vendorSubscriptionPlan = plan;
+    }
+
+    if (categoryId) {
+      const category = await this.categoryRepo.findOne({ where: { id: categoryId } });
+      if (category) product.category = category;
+    }
+
+    if (vendorId) {
+      const vendor = await this.vendorRepo.findOne({ where: { id: vendorId } });
+      if (vendor) product.vendor = vendor;
+    }
+
+    Object.assign(product, otherData);
+
+    return await this.productRepo.save(product);
   }
 
   remove(id: number) {

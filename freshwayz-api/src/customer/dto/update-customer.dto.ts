@@ -73,4 +73,9 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsString()
   locality?: string;
+
+  @ApiPropertyOptional({ enum: ['veg', 'non-veg'], example: 'veg' })
+  @IsOptional()
+  @IsString()
+  dietPreference?: string;
 }

@@ -46,4 +46,9 @@ export class CreateCustomerDto {
     @IsOptional()
     @IsString()
     locality?: string;
+
+    @ApiProperty({ required: false, enum: ['veg', 'non-veg'], example: 'veg' })
+    @IsOptional()
+    @IsString()
+    dietPreference?: string;
 }

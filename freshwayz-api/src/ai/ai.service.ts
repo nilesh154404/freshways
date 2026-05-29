@@ -358,6 +358,11 @@ export class AiService {
       activityLevel: dto.activityLevel,
       dietPreference: dto.dietPreference,
       bloodGroup: dto.bloodGroup,
+      vitaminD: dto.vitaminD,
+      vitaminB12: dto.vitaminB12,
+      cholesterol: dto.cholesterol,
+      fastingSugar: dto.fastingSugar,
+      hba1c: dto.hba1c,
     };
 
     const entity = existing
@@ -1723,6 +1728,11 @@ Step 6: Risk alerts
       sleepHours: profile.sleepHours,
       activityLevel: profile.activityLevel,
       dietPreference: profile.dietPreference,
+      vitaminD: profile.vitaminD,
+      vitaminB12: profile.vitaminB12,
+      cholesterol: profile.cholesterol,
+      fastingSugar: profile.fastingSugar,
+      hba1c: profile.hba1c,
     };
 
     const prompt = this.buildHealthInsightsPrompt(userData, profile.bloodReports || '');
@@ -1790,6 +1800,11 @@ Step 6: Risk alerts
       sleepHours: profile.sleepHours,
       activityLevel: profile.activityLevel,
       dietPreference: profile.dietPreference,
+      vitaminD: profile.vitaminD,
+      vitaminB12: profile.vitaminB12,
+      cholesterol: profile.cholesterol,
+      fastingSugar: profile.fastingSugar,
+      hba1c: profile.hba1c,
     };
 
     const prompt = this.buildHealthInsightsPrompt(userData, combinedText.slice(0, 20000));

@@ -26,6 +26,9 @@ export class Product {
     @Column()
     measurementValue: string;
 
+    @Column({ default: 'VEG' })
+    productType: string;
+
     @ManyToOne(() => ServiceOffering, serviceOffering => serviceOffering.products, { nullable: true })
     serviceOffering: ServiceOffering;
 

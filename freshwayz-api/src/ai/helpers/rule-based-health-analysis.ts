@@ -14,7 +14,12 @@ export interface HealthAnalysisInput {
   hba1c?: number | null;
   cholesterol?: number | null;
   vitaminD?: number | null;
+  vitaminB12?: number | null;
   sleepHours?: number | null;
+  activityLevel?: string | null;
+  dietPreference?: string | null;
+  allergies?: string | null;
+  currentMedications?: string | null;
 }
 
 export interface HealthAnalysisResult {
@@ -123,6 +128,21 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
     }
   }
 
+  if (isValidNumber(profile.vitaminB12)) {
+    const vitaminB12 = Number(profile.vitaminB12);
+    if (vitaminB12 < 200) {
+      risks.push({
+        type: 'vitamin_b12_deficiency',
+        level: 'high',
+        reason: `Vitamin B12 of ${formatNumber(vitaminB12)} pg/mL indicates deficiency`,
+      });
+      healthScore -= 5;
+      nutritionInsights.push('Increase intake of B12-rich foods or supplements.');
+      preventiveAlerts.push('Vitamin B12 deficiency detected. High risk for nerve and blood health issues.');
+      nutritionAlerts.push('Focus on dairy, eggs, or B12 supplements if following a vegetarian/vegan diet.');
+    }
+  }
+
   if (isValidNumber(profile.sleepHours) && Number(profile.sleepHours) < 7) {
     risks.push({
       type: 'sleep',
@@ -165,6 +185,24 @@ export function analyzeHealthProfile(profile: HealthAnalysisInput): HealthAnalys
 
   if (isValidNumber(profile.sleepHours) && Number(profile.sleepHours) < 7) {
     customDietGuidanceObj.dinner.push('Avoid caffeine 4-6 hours before bed');
+  }
+
+  if (profile.dietPreference?.toLowerCase().includes('vegan')) {
+    customDietGuidanceObj.breakfast = customDietGuidanceObj.breakfast.filter(i => !i.toLowerCase().includes('paneer'));
+    customDietGuidanceObj.lunch.push('Include tofu or tempeh for protein');
+  } else if (profile.dietPreference?.toLowerCase().includes('non-veg')) {
+    customDietGuidanceObj.lunch.push('Grilled chicken or fish (limit red meat)');
+  }
+
+  if (profile.allergies) {
+    nutritionAlerts.push(`STRICT ALERT: Be cautious of identified allergies: ${profile.allergies}`);
+    customDietGuidanceObj.foodsToAvoid.push(...profile.allergies.split(',').map(a => a.trim()));
+  }
+
+  if (profile.activityLevel?.toLowerCase() === 'high') {
+    fitnessSuggestions.push('Maintain high-intensity workouts and ensure adequate protein recovery.');
+  } else if (profile.activityLevel?.toLowerCase() === 'sedentary' || profile.activityLevel?.toLowerCase() === 'low') {
+    fitnessSuggestions.push('Try to incorporate 10-minute movement breaks every hour.');
   }
 
   if (customDietGuidanceObj.foodsToAvoid.length === 0) {
