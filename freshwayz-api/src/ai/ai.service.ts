@@ -88,6 +88,7 @@ import { Repository } from 'typeorm';
 import { UpsertHealthProfileDto } from './dto/upsert-health-profile.dto';
 import { analyzeHealthProfile } from './helpers/rule-based-health-analysis';
 import { HealthProfile } from './entities/health-profile.entity';
+import { Customer } from 'src/customer/entities/customer.entity';
 
 export type ReportFindingStatus = 'normal' | 'abnormal' | 'unknown';
 
@@ -140,6 +141,8 @@ export class AiService {
     private config: ConfigService,
     @InjectRepository(HealthProfile)
     private readonly healthProfileRepo: Repository<HealthProfile>,
+    @InjectRepository(Customer)
+    private readonly customerRepo: Repository<Customer>,
   ) {
     this.baseUrl =
       this.config.get<string>('AI_BASE_URL') ||
@@ -342,28 +345,25 @@ export class AiService {
   
 
   async upsertHealthProfile(dto: UpsertHealthProfileDto) {
-    const bmi = this.calculateBmi(dto.heightCm, dto.weightKg);
-
     const existing = await this.healthProfileRepo.findOne({
       where: { userId: dto.userId },
     });
 
-    const payload: Partial<HealthProfile> = {
-      ...dto,
-      bmi,
-      medicalHistory: dto.medicalHistory,
-      allergies: dto.allergies,
-      currentMedications: dto.currentMedications,
-      sleepHours: dto.sleepHours,
-      activityLevel: dto.activityLevel,
-      dietPreference: dto.dietPreference,
-      bloodGroup: dto.bloodGroup,
-      vitaminD: dto.vitaminD,
-      vitaminB12: dto.vitaminB12,
-      cholesterol: dto.cholesterol,
-      fastingSugar: dto.fastingSugar,
-      hba1c: dto.hba1c,
-    };
+    const payload: Partial<HealthProfile> = {};
+
+    // Only copy properties from dto that are actually defined (not undefined)
+    for (const key of Object.keys(dto)) {
+      if (dto[key] !== undefined) {
+        payload[key] = dto[key];
+      }
+    }
+
+    // Calculate BMI if height and weight are provided (either in dto or already existing)
+    const height = dto.heightCm !== undefined ? dto.heightCm : existing?.heightCm;
+    const weight = dto.weightKg !== undefined ? dto.weightKg : existing?.weightKg;
+    if (height !== undefined && weight !== undefined) {
+      payload.bmi = this.calculateBmi(height, weight);
+    }
 
     const entity = existing
       ? this.healthProfileRepo.merge(existing, payload)
@@ -380,6 +380,23 @@ export class AiService {
     profile.preventiveAlerts = insights.preventiveAlerts;
     profile.nutritionAlerts = insights.nutritionAlerts;
     await this.healthProfileRepo.save(profile);
+
+    // Sync to Customer table if the customer exists
+    try {
+      const customer = await this.customerRepo.findOne({ where: { id: dto.userId } });
+      if (customer) {
+        if (dto.name !== undefined) customer.fullName = dto.name;
+        if (dto.gender !== undefined) customer.gender = dto.gender;
+        if (dto.bloodGroup !== undefined) customer.bloodGroup = dto.bloodGroup;
+        if (dto.heightCm !== undefined) customer.height = dto.heightCm;
+        if (dto.weightKg !== undefined) customer.weight = dto.weightKg;
+        if (dto.medicalHistory !== undefined) customer.medicalHistory = dto.medicalHistory;
+        if (dto.dietPreference !== undefined) customer.dietPreference = dto.dietPreference;
+        await this.customerRepo.save(customer);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to sync health profile to customer table for userId ${dto.userId}`, err?.message || err);
+    }
 
     return {
       profile,
