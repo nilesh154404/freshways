@@ -143,7 +143,7 @@ export class ProductsService {
   //     limit: dto.limit,
   //   });
   // }
-  async findAll(dto: RangeDTO, categoryId?: number, vendorId?: number) {
+  async findAll(dto: RangeDTO, categoryId?: number, vendorId?: number, search?: string) {
     const qb = this.productRepo
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.serviceOffering', 'serviceOffering')
@@ -162,6 +162,33 @@ export class ProductsService {
       qb.andWhere('product.vendor = :vendorId', { vendorId });
     }
 
+    if (search) {
+      const trimmedSearch = search.trim();
+      if (trimmedSearch) {
+        qb.andWhere(
+          '(product.label LIKE :searchParam OR product.description LIKE :searchParam)',
+          { searchParam: `%${trimmedSearch}%` }
+        );
+
+        // Multi-tiered Relevance Sorting (like Amazon / Flipkart):
+        // Rank 1: Product label starts with the search initials (Prefix match)
+        // Rank 2: Product label contains the search term anywhere (Sub-string name match)
+        // Rank 3: Product description contains the search term (Fallback description match)
+        qb.addSelect(`
+          CASE 
+            WHEN product.label LIKE :startSearch THEN 1
+            WHEN product.label LIKE :containSearch THEN 2
+            ELSE 3
+          END
+        `, 'search_rank');
+        
+        qb.setParameter('startSearch', `${trimmedSearch}%`);
+        qb.setParameter('containSearch', `%${trimmedSearch}%`);
+        
+        qb.addOrderBy('search_rank', 'ASC');
+      }
+    }
+
     return paginate(qb, {
       page: dto.page,
       limit: dto.limit,
@@ -173,6 +200,38 @@ export class ProductsService {
       where: { id },
       relations: ['serviceOffering', 'vendorSubscriptionPlan'],
     });
+  }
+
+  async searchByLetters(letters: string) {
+    if (!letters) {
+      return [];
+    }
+    const trimmed = letters.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    const qb = this.productRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.serviceOffering', 'serviceOffering')
+      .leftJoinAndSelect('product.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
+      .leftJoinAndSelect('product.vendor', 'vendor')
+      .leftJoinAndSelect('product.dailyPrices', 'dailyPrices')
+      .leftJoinAndSelect('product.discounts', 'discounts')
+      .where('product.label LIKE :searchParam', { searchParam: `%${trimmed}%` });
+
+    qb.addSelect(`
+      CASE 
+        WHEN product.label LIKE :startSearch THEN 1
+        ELSE 2
+      END
+    `, 'search_rank');
+
+    qb.setParameter('startSearch', `${trimmed}%`);
+    qb.addOrderBy('search_rank', 'ASC');
+    qb.addOrderBy('product.label', 'ASC');
+
+    return qb.getMany();
   }
 
   async update(id: number, dto: any) {

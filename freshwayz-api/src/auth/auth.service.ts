@@ -62,32 +62,60 @@ export class AuthService {
             throw new BadRequestException('Customer data with phone is required');
         }
 
-        const existingAuth = await this.authRepo.findOne({
-            where: {
-                // username: dto.username,
-                username: dto.customer.phone,
-                customer: {
-                    email: dto.customer.email,
-                    phone: dto.customer.phone
-                },
+        // 1. Check if customer with this email already exists
+        if (dto.customer.email) {
+            const existingEmail = await this.customerRepo.findOne({
+                where: { email: dto.customer.email }
+            });
+            if (existingEmail) {
+                throw new BadRequestException(`Email "${dto.customer.email}" is already registered`);
             }
-        });
+        }
 
-        if (existingAuth) throw new BadRequestException('Username/Email/Phone already exists');
+        // 2. Check if customer with this phone number already exists
+        if (dto.customer.phone) {
+            const existingPhone = await this.customerRepo.findOne({
+                where: { phone: dto.customer.phone }
+            });
+            if (existingPhone) {
+                throw new BadRequestException(`Phone number "${dto.customer.phone}" is already registered`);
+            }
+        }
+
+        // 3. Check if username (which is phone) already exists in Auth table
+        const existingAuth = await this.authRepo.findOne({
+            where: { username: dto.customer.phone }
+        });
+        if (existingAuth) {
+            throw new BadRequestException(`Username/Phone "${dto.customer.phone}" is already registered`);
+        }
 
         const userType = await this.userTypeRepo.findOne({ where: { typeName: 'Customer' } });
         if (!userType) throw new BadRequestException('UserType "Customer" not found');
 
-        const customer = this.customerRepo.create({ 
-            ...dto.customer, 
-            userType
-        });
-        await this.customerRepo.save(customer);
+        let customer;
+        try {
+            customer = this.customerRepo.create({ 
+                ...dto.customer, 
+                userType
+            });
+            await this.customerRepo.save(customer);
+        } catch (dbError: any) {
+            throw new BadRequestException(`Database error: Failed to save customer details. ${dbError.message || dbError}`);
+        }
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-        const auth = this.authRepo.create({ username: dto.customer.phone, password: hashedPassword, customer });
-        await this.authRepo.save(auth);
+        let auth;
+        try {
+            auth = this.authRepo.create({ username: dto.customer.phone, password: hashedPassword, customer });
+            await this.authRepo.save(auth);
+        } catch (dbError: any) {
+            if (customer && customer.id) {
+                await this.customerRepo.delete(customer.id).catch(() => {});
+            }
+            throw new BadRequestException(`Database error: Failed to save login credentials. ${dbError.message || dbError}`);
+        }
 
         let healthProfile: HealthProfile | null = null;
         let aiGeneratedInsights: any = null;
@@ -123,7 +151,7 @@ export class AuthService {
                 aiGeneratedInsights: aiGeneratedInsights,
                 externalResponse: externalResponse.data,
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error("External registration error:", {
                 message: error.message,
                 responseData: error.response?.data,
@@ -131,15 +159,32 @@ export class AuthService {
                 headers: error.response?.headers,
             });
 
-            // optional: rollback local user creation if external fails
-            // await this.repository.delete({ id: user.id });
+            // Rollback local user and customer creation if external fails
+            if (auth && auth.id) {
+                await this.authRepo.delete(auth.id).catch(() => {});
+            }
+            if (customer && customer.id) {
+                await this.customerRepo.delete(customer.id).catch(() => {});
+            }
+
+            let errorMessage = '';
+            if (error.response?.data) {
+                const data = error.response.data;
+                if (typeof data === 'string') {
+                    errorMessage = data;
+                } else if (typeof data === 'object') {
+                    errorMessage = data.message || data.error || JSON.stringify(data);
+                }
+            }
+            
+            if (!errorMessage) {
+                errorMessage = error.message || String(error);
+            }
 
             throw new BadRequestException(
-                `External registration failed: ${error.response?.data?.message || error.message
-                }`
+                `External registration failed: ${errorMessage}`
             );
         }
-        // return { message: 'Customer registered successfully' };
     }
 
     private calculateBmi(heightCm?: number, weightKg?: number): number {

@@ -15,7 +15,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AuthGuard } from '@nestjs/passport';
 
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiOkResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 import { Pagination } from 'src/helpers/pagination/dto/pagination.dto';
 import { Product } from './entities/product.entity';
 import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
@@ -48,18 +48,29 @@ export class ProductsController {
     description: 'Get all products with pagination',
     type: Pagination<Product>,
   })
+  @ApiQuery({ name: 'categoryId', required: false, type: Number })
+  @ApiQuery({ name: 'vendorId', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
   async getAllProducts(
     @Query() dto: RangeDTO,
     @Query('categoryId') categoryId?: number,
     @Query('vendorId') vendorId?: number,
+    @Query('search') search?: string,
   ) {
-    return this.productsService.findAll(dto, categoryId,vendorId);
+    return this.productsService.findAll(dto, categoryId, vendorId, search);
   }
 
   // @ApiOperation({ summary: 'Get all products' })
   // findAll() {
   //   return this.productsService.findAll();
   // }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search products by letters' })
+  @ApiQuery({ name: 'letters', required: true, type: String })
+  async searchByLetters(@Query('letters') letters: string) {
+    return this.productsService.searchByLetters(letters);
+  }
 
   // GET SINGLE PRODUCT
   @Get(':id')

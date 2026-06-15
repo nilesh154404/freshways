@@ -52,12 +52,17 @@ export class VendorSubscriptionPlanService {
   }
 
   async update(id: number, dto: UpdateVendorSubscriptionPlanDto) {
-    const plan = await this.findOne(id);
+    const plan = await this.repo.findOne({
+      where: { id },
+      relations: ['vendor'],
+    });
+    if (!plan) throw new NotFoundException('Plan not found');
 
-    if (dto.vendorId) plan.vendor = { id: dto.vendorId } as any;
+    const { vendorId, ...updateData } = dto;
+    Object.assign(plan, updateData);
 
-    Object.assign(plan, dto);
-    return this.repo.save(plan);
+    const saved = await this.repo.save(plan);
+    return this.transformToResponse(saved);
   }
 
   async remove(id: number) {
