@@ -358,45 +358,19 @@ export class AiService {
       }
     }
 
-    // Calculate BMI if height and weight are provided (either in dto or already existing)
-    const height = dto.heightCm !== undefined ? dto.heightCm : existing?.heightCm;
-    const weight = dto.weightKg !== undefined ? dto.weightKg : existing?.weightKg;
-    if (height !== undefined && weight !== undefined) {
-      payload.bmi = this.calculateBmi(height, weight);
-    }
-
     const entity = existing
       ? this.healthProfileRepo.merge(existing, payload)
       : this.healthProfileRepo.create(payload);
 
     const profile = await this.healthProfileRepo.save(entity);
-    const insights = analyzeHealthProfile(profile);
+    
+    // We calculate bmi dynamically on the fly to pass to analyzeHealthProfile
+    const calculatedBmi = this.calculateBmi(profile.heightCm, profile.weightKg);
 
-    // Update entity with calculated baseline insights so they are persisted
-    profile.personalizedHealthReports = insights.personalizedHealthReports;
-    profile.nutritionInsights = insights.nutritionInsights;
-    profile.customDietGuidance = insights.customDietGuidance;
-    profile.fitnessSuggestions = insights.fitnessSuggestions;
-    profile.preventiveAlerts = insights.preventiveAlerts;
-    profile.nutritionAlerts = insights.nutritionAlerts;
-    await this.healthProfileRepo.save(profile);
-
-    // Sync to Customer table if the customer exists
-    try {
-      const customer = await this.customerRepo.findOne({ where: { id: dto.userId } });
-      if (customer) {
-        if (dto.name !== undefined) customer.fullName = dto.name;
-        if (dto.gender !== undefined) customer.gender = dto.gender;
-        if (dto.bloodGroup !== undefined) customer.bloodGroup = dto.bloodGroup;
-        if (dto.heightCm !== undefined) customer.height = dto.heightCm;
-        if (dto.weightKg !== undefined) customer.weight = dto.weightKg;
-        if (dto.medicalHistory !== undefined) customer.medicalHistory = dto.medicalHistory;
-        if (dto.dietPreference !== undefined) customer.dietPreference = dto.dietPreference;
-        await this.customerRepo.save(customer);
-      }
-    } catch (err) {
-      this.logger.error(`Failed to sync health profile to customer table for userId ${dto.userId}`, err?.message || err);
-    }
+    const insights = analyzeHealthProfile({
+      ...profile,
+      bmi: calculatedBmi,
+    });
 
     return {
       profile,
@@ -418,7 +392,11 @@ export class AiService {
 
   async getHealthInsights(userId: number) {
     const profile = await this.getHealthProfile(userId);
-    const insights = analyzeHealthProfile(profile);
+    const calculatedBmi = this.calculateBmi(profile.heightCm, profile.weightKg);
+    const insights = analyzeHealthProfile({
+      ...profile,
+      bmi: calculatedBmi,
+    });
 
     return {
       profile,
@@ -858,12 +836,28 @@ export class AiService {
     );
   }
 
+  private async getCustomerDetailsForProfile(userId: number) {
+    const customer = await this.customerRepo.findOne({ where: { id: userId } });
+    if (!customer) {
+      return { name: '', age: 0, gender: '' };
+    }
+    const age = customer.dob
+      ? new Date().getFullYear() - new Date(customer.dob).getFullYear()
+      : 0;
+    return {
+      name: customer.fullName || '',
+      age: age || 0,
+      gender: customer.gender || '',
+    };
+  }
+
   private async getHealthInsightsFromChat(profile: HealthProfile, retried = false) {
-    const prompt = this.buildHealthAnalysisPrompt(profile);
+    const customerDetails = await this.getCustomerDetailsForProfile(profile.userId);
+    const prompt = this.buildHealthAnalysisPrompt(profile, customerDetails);
 
     try {
       const aiResult = await this.sendChat(prompt);
-      return this.normalizeHealthAnalysisResponse(aiResult, profile);
+      return this.normalizeHealthAnalysisResponse(aiResult, profile, customerDetails);
     } catch (err: any) {
       this.logger.error(
         'AI chat fallback for health analysis failed',
@@ -879,12 +873,12 @@ export class AiService {
       if (this.isAiProcessingFailure(err)) {
         this.logger.warn('AI processing failed for detailed health prompt, retrying with compact prompt');
         try {
-          const compactPrompt = this.buildHealthAnalysisPrompt(profile, true);
+          const compactPrompt = this.buildHealthAnalysisPrompt(profile, customerDetails, true);
           const compactResult = await this.sendChat(compactPrompt);
-          return this.normalizeHealthAnalysisResponse(compactResult, profile);
+          return this.normalizeHealthAnalysisResponse(compactResult, profile, customerDetails);
         } catch {
           this.logger.warn('Compact health prompt also failed, returning safe profile-based fallback');
-          return this.buildProfileBasedSafetyFallback(profile, '');
+          return this.buildProfileBasedSafetyFallback(profile, customerDetails, '');
         }
       }
 
@@ -909,25 +903,26 @@ export class AiService {
     }
   }
 
-  private buildHealthAnalysisPrompt(profile: HealthProfile, compact = false) {
-    const bmi = profile.bmi ?? this.calculateBmi(profile.heightCm, profile.weightKg);
+  private buildHealthAnalysisPrompt(
+    profile: HealthProfile,
+    customerDetails: { name: string; age: number; gender: string },
+    compact = false,
+  ) {
+    const bmi = this.calculateBmi(profile.heightCm, profile.weightKg);
     const profileForPrompt = {
       userId: profile.userId,
-      age: profile.age,
-      gender: profile.gender,
+      name: customerDetails.name,
+      age: customerDetails.age,
+      gender: customerDetails.gender,
       bmi,
       bloodGroup: profile.bloodGroup,
+      medicalInformation: profile.medicalInformation,
       medicalHistory: profile.medicalHistory,
       allergies: profile.allergies,
       currentMedications: profile.currentMedications,
       sleepHours: profile.sleepHours,
       activityLevel: profile.activityLevel,
       dietPreference: profile.dietPreference,
-      vitaminD: profile.vitaminD,
-      vitaminB12: profile.vitaminB12,
-      cholesterol: profile.cholesterol,
-      fastingSugar: profile.fastingSugar,
-      hba1c: profile.hba1c,
     };
 
     if (compact) {
@@ -955,9 +950,10 @@ export class AiService {
 
   // Load shared files for a profile (names stored in profile.reportFileNames)
   private async loadSharedFilesForProfile(profile: HealthProfile): Promise<string[]> {
-    if (!profile?.reportFileNames) return [];
+    const reportFileNames = (profile as any).reportFileNames;
+    if (!reportFileNames) return [];
 
-    const names = String(profile.reportFileNames)
+    const names = String(reportFileNames)
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
@@ -999,7 +995,11 @@ export class AiService {
     return results;
   }
 
-  private async normalizeHealthAnalysisResponse(aiResult: any, profile: HealthProfile) {
+  private async normalizeHealthAnalysisResponse(
+    aiResult: any,
+    profile: HealthProfile,
+    customerDetails: { name: string; age: number; gender: string },
+  ) {
     const rawText = this.extractChatText(aiResult);
     const parsed = this.tryParseJsonFromText(rawText);
     const candidate = this.extractHealthPayloadCandidate(parsed);
@@ -1014,7 +1014,7 @@ export class AiService {
       };
     }
 
-    const repaired = await this.repairHealthJsonWithAi(rawText, profile);
+    const repaired = await this.repairHealthJsonWithAi(rawText, profile, customerDetails);
     const repairedCandidate = this.extractHealthPayloadCandidate(repaired);
     if (repairedCandidate) {
       return {
@@ -1033,7 +1033,7 @@ export class AiService {
       return recovered;
     }
 
-    const profileFallback = this.buildProfileBasedSafetyFallback(profile, rawText);
+    const profileFallback = this.buildProfileBasedSafetyFallback(profile, customerDetails, rawText);
     if (profileFallback) {
       return profileFallback;
     }
@@ -1151,12 +1151,16 @@ export class AiService {
     return hasScore && hasRisks && hasInsights;
   }
 
-  private async repairHealthJsonWithAi(rawText: string, profile: HealthProfile) {
+  private async repairHealthJsonWithAi(
+    rawText: string,
+    profile: HealthProfile,
+    customerDetails: { name: string; age: number; gender: string },
+  ) {
     if (!rawText) {
       return null;
     }
 
-    const bmi = profile.bmi ?? this.calculateBmi(profile.heightCm, profile.weightKg);
+    const bmi = this.calculateBmi(profile.heightCm, profile.weightKg);
     const repairPrompt = [
       'Convert the following health analysis into strict JSON only.',
       'Return exactly this schema and nothing else:',
@@ -1166,7 +1170,7 @@ export class AiService {
       '- at least 1 insight',
       '- no markdown/code fences',
       '',
-      `Profile context: ${JSON.stringify({ ...profile, bmi })}`,
+      `Profile context: ${JSON.stringify({ ...profile, bmi, name: customerDetails.name, age: customerDetails.age, gender: customerDetails.gender })}`,
       `Text to convert: ${rawText}`,
     ].join('\n');
 
@@ -1215,7 +1219,11 @@ export class AiService {
     };
   }
 
-  private buildProfileBasedSafetyFallback(profile: HealthProfile, rawText: string) {
+  private buildProfileBasedSafetyFallback(
+    profile: HealthProfile,
+    customerDetails: { name: string; age: number; gender: string },
+    rawText: string,
+  ) {
     const calculated = this.generateHealthReport(profile);
     const insights = calculated.insights;
 
@@ -1231,7 +1239,12 @@ export class AiService {
     const risks: Array<{ type: string; level: 'low' | 'moderate' | 'high'; reason: string }> = [];
     const insights: string[] = [];
 
-    const { heightCm, weightKg, fastingSugar, hba1c, cholesterol, vitaminD, vitaminB12, sleepHours, activityLevel, dietPreference } = profile;
+    const { heightCm, weightKg, sleepHours, activityLevel, dietPreference } = profile;
+    const fastingSugar = undefined;
+    const hba1c = undefined;
+    const cholesterol = undefined;
+    const vitaminD = undefined;
+    const vitaminB12 = undefined;
 
     const heightM = (heightCm ?? 0) / 100;
     const bmi = heightM > 0 ? (weightKg ?? 0) / (heightM * heightM) : 0;
@@ -1733,45 +1746,26 @@ Step 6: Risk alerts
       throw new HttpException({ message: 'Health profile not found' }, HttpStatus.NOT_FOUND);
     }
 
+    const customerDetails = await this.getCustomerDetailsForProfile(userId);
     const userData = {
-      name: profile.name,
-      age: profile.age,
-      gender: profile.gender,
-      bmi: profile.bmi,
+      name: customerDetails.name,
+      age: customerDetails.age,
+      gender: customerDetails.gender,
+      bmi: this.calculateBmi(profile.heightCm, profile.weightKg),
       bloodGroup: profile.bloodGroup,
+      medicalInformation: profile.medicalInformation,
       medicalHistory: profile.medicalHistory,
       allergies: profile.allergies,
       currentMedications: profile.currentMedications,
       sleepHours: profile.sleepHours,
       activityLevel: profile.activityLevel,
       dietPreference: profile.dietPreference,
-      vitaminD: profile.vitaminD,
-      vitaminB12: profile.vitaminB12,
-      cholesterol: profile.cholesterol,
-      fastingSugar: profile.fastingSugar,
-      hba1c: profile.hba1c,
     };
 
-    const prompt = this.buildHealthInsightsPrompt(userData, profile.bloodReports || '');
+    const prompt = this.buildHealthInsightsPrompt(userData, '');
     const insights = await this.generateGeminiHealthInsights(prompt);
     
-    profile.personalizedHealthReports = insights.personalizedHealthReport || {};
-    profile.nutritionInsights = insights.nutritionInsights || [];
-    profile.customDietGuidance = insights.customDietGuide || {};
-    profile.fitnessSuggestions = insights.fitnessSuggestions || [];
-    profile.preventiveAlerts = insights.preventiveAlerts || [];
-    profile.nutritionAlerts = insights.nutritionAlerts || [];
-
-    if (insights.extractedBloodReportsSummary) profile.bloodReports = insights.extractedBloodReportsSummary;
-    if (insights.extractedVitaminD) profile.vitaminD = Number(insights.extractedVitaminD);
-    if (insights.extractedVitaminB12) profile.vitaminB12 = Number(insights.extractedVitaminB12);
-    if (insights.extractedCholesterol) profile.cholesterol = Number(insights.extractedCholesterol);
-    if (insights.extractedFastingSugar) profile.fastingSugar = Number(insights.extractedFastingSugar);
-    if (insights.extractedHba1c) profile.hba1c = Number(insights.extractedHba1c);
-
-    await this.healthProfileRepo.save(profile);
-
-    return { message: 'Insights generated and saved successfully', insights };
+    return { message: 'Insights generated successfully', insights };
   }
 
   async getHealthProfileEntity(userId: number) {
@@ -1802,50 +1796,25 @@ Step 6: Risk alerts
       }
     }
 
-    // Save the raw text in bloodReports so we have a record
-    profile.bloodReports = (profile.bloodReports ? profile.bloodReports + '\n' : '') + combinedText;
-
+    const customerDetails = await this.getCustomerDetailsForProfile(userId);
     const userData = {
-      name: profile.name,
-      age: profile.age,
-      gender: profile.gender,
-      bmi: profile.bmi,
+      name: customerDetails.name,
+      age: customerDetails.age,
+      gender: customerDetails.gender,
+      bmi: this.calculateBmi(profile.heightCm, profile.weightKg),
       bloodGroup: profile.bloodGroup,
+      medicalInformation: profile.medicalInformation,
       medicalHistory: profile.medicalHistory,
       allergies: profile.allergies,
       currentMedications: profile.currentMedications,
       sleepHours: profile.sleepHours,
       activityLevel: profile.activityLevel,
       dietPreference: profile.dietPreference,
-      vitaminD: profile.vitaminD,
-      vitaminB12: profile.vitaminB12,
-      cholesterol: profile.cholesterol,
-      fastingSugar: profile.fastingSugar,
-      hba1c: profile.hba1c,
     };
 
     const prompt = this.buildHealthInsightsPrompt(userData, combinedText.slice(0, 20000));
     const insights = await this.generateGeminiHealthInsights(prompt);
-    
-    profile.personalizedHealthReports = insights.personalizedHealthReport || {};
-    profile.nutritionInsights = insights.nutritionInsights || [];
-    profile.customDietGuidance = insights.customDietGuide || {};
-    profile.fitnessSuggestions = insights.fitnessSuggestions || [];
-    profile.preventiveAlerts = insights.preventiveAlerts || [];
-    profile.nutritionAlerts = insights.nutritionAlerts || [];
-    
-    if (insights.extractedBloodReportsSummary) profile.bloodReports = insights.extractedBloodReportsSummary;
-    if (insights.extractedVitaminD) profile.vitaminD = Number(insights.extractedVitaminD);
-    if (insights.extractedVitaminB12) profile.vitaminB12 = Number(insights.extractedVitaminB12);
-    if (insights.extractedCholesterol) profile.cholesterol = Number(insights.extractedCholesterol);
-    if (insights.extractedFastingSugar) profile.fastingSugar = Number(insights.extractedFastingSugar);
-    if (insights.extractedHba1c) profile.hba1c = Number(insights.extractedHba1c);
 
-    profile.reportFileCount = (profile.reportFileCount || 0) + files.length;
-    profile.reportFileNames = [profile.reportFileNames, ...files.map(f => f.originalname)].filter(Boolean).join(', ');
-
-    await this.healthProfileRepo.save(profile);
-
-    return { message: 'Reports processed, values extracted, and insights generated successfully', insights };
+    return { message: 'Reports processed and insights generated successfully', insights };
   }
 }

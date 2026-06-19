@@ -26,14 +26,6 @@ export class HealthProfileResponseDto {
   @ApiProperty({ example: 101 })
   userId: number;
 
-  @ApiProperty({ example: 'Riya Sharma' })
-  name: string;
-
-  @ApiProperty({ example: 29 })
-  age: number;
-
-  @ApiProperty({ example: 'female' })
-  gender: string;
 
   @ApiProperty({ example: 165 })
   heightCm: number;
@@ -41,11 +33,11 @@ export class HealthProfileResponseDto {
   @ApiProperty({ example: 68 })
   weightKg: number;
 
-  @ApiProperty({ example: 24.98 })
-  bmi: number;
-
   @ApiProperty({ example: 'O+', nullable: true })
   bloodGroup: string | null;
+
+  @ApiProperty({ example: 'Type 2 diabetes, controlled blood pressure', nullable: true })
+  medicalInformation: string | null;
 
   @ApiProperty({
     example: 'Family history of diabetes',
@@ -67,24 +59,6 @@ export class HealthProfileResponseDto {
 
   @ApiProperty({ example: 'low fiber vegetarian', nullable: true })
   dietPreference: string | null;
-
-  @ApiProperty({ example: 'CBC normal', nullable: true })
-  bloodReports: string | null;
-
-  @ApiProperty({ example: 18, nullable: true })
-  vitaminD: number | null;
-
-  @ApiProperty({ example: 230, nullable: true })
-  vitaminB12: number | null;
-
-  @ApiProperty({ example: 245, nullable: true })
-  cholesterol: number | null;
-
-  @ApiProperty({ example: 132, nullable: true })
-  fastingSugar: number | null;
-
-  @ApiProperty({ example: 6.7, nullable: true })
-  hba1c: number | null;
 
   @ApiProperty({ example: '2026-04-21T10:34:12.000Z' })
   createdAt: Date;

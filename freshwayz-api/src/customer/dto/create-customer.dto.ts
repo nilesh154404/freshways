@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsEmail, IsNotEmpty, IsString } from "class-validator";
 
 export class CreateCustomerDto {
 
@@ -12,43 +12,20 @@ export class CreateCustomerDto {
     @IsEmail()
     email: string;
 
-    @ApiProperty({ required: false })
-    @IsOptional()
+    @ApiProperty()
+    @IsNotEmpty()
     @IsString()
-    phone?: string;
+    phone: string;
 
-    @ApiProperty({ required: false, example: "1998-11-14" })
-    @IsOptional()
+    @ApiProperty({ example: "1998-11-14" })
     @IsDateString()
-    dob?: Date;
+    dob: Date;
 
-    @ApiProperty({ required: false })
-    @IsOptional()
+    @ApiProperty()
     @IsString()
-    gender?: string;
+    gender: string;
 
-    @ApiProperty({ required: false })
-    @IsOptional()
+    @ApiProperty()
     @IsString()
-    goal?: string;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsString()
-    community?: string;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsString()
-    landmark?: string;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsString()
-    locality?: string;
-
-    @ApiProperty({ required: false, enum: ['veg', 'non-veg'], example: 'veg' })
-    @IsOptional()
-    @IsString()
-    dietPreference?: string;
+    address: string;
 }

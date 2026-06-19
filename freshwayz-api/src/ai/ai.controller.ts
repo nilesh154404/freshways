@@ -235,43 +235,43 @@ export class AiController {
   @Get('health/insights/personalizedhealthreport')
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getPersonalizedHealthReport(@Query('userId', ParseIntPipe) userId: number) {
-    const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.personalizedHealthReports || {};
+    const insights = await this.aiService.getHealthInsights(userId);
+    return insights?.personalizedHealthReports || {};
   }
 
   @Get('health/insights/nutritioninsights')
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getNutritionInsights(@Query('userId', ParseIntPipe) userId: number) {
-    const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.nutritionInsights || [];
+    const insights = await this.aiService.getHealthInsights(userId);
+    return insights?.nutritionInsights || [];
   }
 
   @Get('health/insights/customerdietguidence')
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getCustomerDietGuidance(@Query('userId', ParseIntPipe) userId: number) {
-    const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.customDietGuidance || {};
+    const insights = await this.aiService.getHealthInsights(userId);
+    return insights?.customDietGuidance || {};
   }
 
   @Get('health/insights/fitnesssuggestion')
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getFitnessSuggestions(@Query('userId', ParseIntPipe) userId: number) {
-    const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.fitnessSuggestions || [];
+    const insights = await this.aiService.getHealthInsights(userId);
+    return insights?.fitnessSuggestions || [];
   }
 
   @Get('health/insights/preventivealerts')
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getPreventiveAlerts(@Query('userId', ParseIntPipe) userId: number) {
-    const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.preventiveAlerts || [];
+    const insights = await this.aiService.getHealthInsights(userId);
+    return insights?.preventiveAlerts || [];
   }
 
   @Get('health/insights/nutritionalerts')
   @ApiQuery({ name: 'userId', required: true, example: 101 })
   async getNutritionAlerts(@Query('userId', ParseIntPipe) userId: number) {
-    const profile = await this.aiService.getHealthProfileEntity(userId);
-    return profile?.nutritionAlerts || [];
+    const insights = await this.aiService.getHealthInsights(userId);
+    return insights?.nutritionAlerts || [];
   }
 
   @Post('health/file-insights')

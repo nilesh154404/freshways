@@ -27,31 +27,7 @@ export class Customer {
     gender: string;
 
     @Column({ nullable: true })
-    bloodGroup: string;
-
-    @Column({ type: "float", nullable: true })
-    height: number;
-
-    @Column({ type: "float", nullable: true })
-    weight: number;
-
-    @Column({ type: "text", nullable: true })
-    medicalHistory: string;
-
-    @Column({ type: "text", nullable: true })
-    goal: string;
-
-    @Column({ nullable: true })
-    community: string;
-
-    @Column({ nullable: true })
-    landmark: string;
-
-    @Column({ nullable: true })
-    locality: string;
-
-    @Column({ nullable: true })
-    dietPreference: string;
+    address: string;
 
     @ManyToOne(() => UserType, userType => userType.users, { nullable: false })
     userType: UserType;

@@ -3,7 +3,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEmail,
-  IsNumber,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -34,48 +33,8 @@ export class UpdateCustomerDto {
   @IsString()
   gender?: string;
 
-  @ApiPropertyOptional({ example: 'O+' })
+  @ApiPropertyOptional({ example: 'Flat 12, Green Valley Apartments, Pune' })
   @IsOptional()
   @IsString()
-  bloodGroup?: string;
-
-  @ApiPropertyOptional({ example: 175 })
-  @IsOptional()
-  @IsNumber()
-  height?: number;
-
-  @ApiPropertyOptional({ example: 70 })
-  @IsOptional()
-  @IsNumber()
-  weight?: number;
-
-  @ApiPropertyOptional({ example: 'Diabetes, BP' })
-  @IsOptional()
-  @IsString()
-  medicalHistory?: string;
-
-  @ApiPropertyOptional({ example: 'Lose weight' })
-  @IsOptional()
-  @IsString()
-  goal?: string;
-
-  @ApiPropertyOptional({ example: 'Downtown' })
-  @IsOptional()
-  @IsString()
-  community?: string;
-
-  @ApiPropertyOptional({ example: 'Near City Mall' })
-  @IsOptional()
-  @IsString()
-  landmark?: string;
-
-  @ApiPropertyOptional({ example: 'Bangalore' })
-  @IsOptional()
-  @IsString()
-  locality?: string;
-
-  @ApiPropertyOptional({ enum: ['veg', 'non-veg'], example: 'veg' })
-  @IsOptional()
-  @IsString()
-  dietPreference?: string;
+  address?: string;
 }

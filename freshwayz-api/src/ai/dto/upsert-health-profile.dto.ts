@@ -16,22 +16,6 @@ export class UpsertHealthProfileDto {
   @Min(1)
   userId: number;
 
-  @ApiPropertyOptional({ example: 'Riya Sharma' })
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @ApiPropertyOptional({ example: 29 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(120)
-  age?: number;
-
-  @ApiPropertyOptional({ example: 'female' })
-  @IsOptional()
-  @IsString()
-  gender?: string;
 
   @ApiProperty({ example: 165, description: 'Height in centimeters' })
   @IsNumber()
@@ -47,6 +31,11 @@ export class UpsertHealthProfileDto {
   @IsOptional()
   @IsString()
   bloodGroup?: string;
+
+  @ApiPropertyOptional({ example: 'Type 2 diabetes, controlled blood pressure' })
+  @IsOptional()
+  @IsString()
+  medicalInformation?: string;
 
   @ApiPropertyOptional({ example: 'Family history of diabetes' })
   @IsOptional()
@@ -79,29 +68,4 @@ export class UpsertHealthProfileDto {
   @IsOptional()
   @IsString()
   dietPreference?: string;
-
-  @ApiPropertyOptional({ example: 18, description: 'Vitamin D level' })
-  @IsOptional()
-  @IsNumber()
-  vitaminD?: number;
-
-  @ApiPropertyOptional({ example: 250, description: 'Vitamin B12 level' })
-  @IsOptional()
-  @IsNumber()
-  vitaminB12?: number;
-
-  @ApiPropertyOptional({ example: 200, description: 'Total cholesterol level' })
-  @IsOptional()
-  @IsNumber()
-  cholesterol?: number;
-
-  @ApiPropertyOptional({ example: 100, description: 'Fasting blood sugar' })
-  @IsOptional()
-  @IsNumber()
-  fastingSugar?: number;
-
-  @ApiPropertyOptional({ example: 5.8, description: 'HbA1c percentage' })
-  @IsOptional()
-  @IsNumber()
-  hba1c?: number;
 }
