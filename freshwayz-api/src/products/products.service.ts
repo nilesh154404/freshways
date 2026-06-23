@@ -267,7 +267,33 @@ export class ProductsService {
     return await this.productRepo.save(product);
   }
 
-  remove(id: number) {
-    return this.productRepo.delete(id);
+  async remove(id: number) {
+    const product = await this.productRepo.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    const manager = this.productRepo.manager;
+
+    // 1. Delete price logs for audit trails linked to this product
+    await manager.query('DELETE FROM price_logs WHERE productId = ?', [id]);
+
+    // 2. Delete daily prices configured for this product
+    await manager.query('DELETE FROM daily_price WHERE productId = ?', [id]);
+
+    // 3. Delete product discounts configured for this product
+    await manager.query('DELETE FROM product_discount WHERE productId = ?', [id]);
+
+    // 4. Update marketing contents to dissociate the deleted product
+    await manager.query('UPDATE marketing_contents SET product_id = NULL WHERE product_id = ?', [id]);
+
+    // 5. Update customer product lists to dissociate the deleted product
+    await manager.query('UPDATE customer_product_list SET productId = NULL WHERE productId = ?', [id]);
+
+    // 6. Update listed orders to dissociate the deleted product
+    await manager.query('UPDATE listed_order SET productId = NULL WHERE productId = ?', [id]);
+
+    // 7. Finally delete the product itself
+    return await this.productRepo.remove(product);
   }
 }

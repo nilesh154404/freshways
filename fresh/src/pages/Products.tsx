@@ -61,6 +61,11 @@ const Products = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [relatedMarketing, setRelatedMarketing] = useState<any[]>([]);
+  const [isFetchingMarketing, setIsFetchingMarketing] = useState(false);
+
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   const [discountProduct, setDiscountProduct] = useState<Product | null>(null);
   const [discountForm, setDiscountForm] = useState({
@@ -283,8 +288,22 @@ const Products = () => {
     setIsDialogOpen(true);
   };
 
+  const triggerDelete = async (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteConfirmOpen(true);
+    setIsFetchingMarketing(true);
+    setRelatedMarketing([]);
+    try {
+      const res = await axios.get(`${API_BASE}/marketing?productId=${product.id}`);
+      setRelatedMarketing(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch related marketing content", err);
+    } finally {
+      setIsFetchingMarketing(false);
+    }
+  };
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await axios.delete(`${API_BASE}/products/${id}`);
       toast.success("Product deleted");
@@ -533,7 +552,7 @@ const Products = () => {
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => triggerDelete(p)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         <Button variant="outline" size="sm" onClick={() => handleConfigurePrice(p)}>Configure Price</Button>
                         <Button variant="outline" size="sm" onClick={() => handleConfigureDiscount(p)}>
                           Configure Discount
@@ -691,6 +710,53 @@ const Products = () => {
                 <Button type="submit">Save Discount</Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Product: {productToDelete?.label}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this product? This action cannot be undone.
+              </p>
+              
+              <div className="border rounded-md p-3 space-y-3 bg-muted/40 max-h-60 overflow-y-auto">
+                <h4 className="text-sm font-semibold text-foreground">Associated Marketing Content</h4>
+                {isFetchingMarketing ? (
+                  <p className="text-xs text-muted-foreground">Loading associated marketing content...</p>
+                ) : relatedMarketing.length > 0 ? (
+                  <div className="space-y-3">
+                    {relatedMarketing.map((item) => (
+                      <div key={item.id} className="border-b pb-2 last:border-0 last:pb-0 text-xs">
+                        <p className="font-medium text-foreground">{item.description}</p>
+                        {item.media && item.media.length > 0 && (
+                          <div className="flex gap-1 mt-1 overflow-x-auto">
+                            {item.media.map((file: any) => (
+                              <img key={file.id} src={file.fileUrl} alt={file.fileName} className="h-10 w-10 object-cover rounded border" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No associated marketing content found for this product.</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+              <Button type="button" variant="destructive" onClick={() => {
+                if (productToDelete) {
+                  handleDelete(productToDelete.id);
+                  setIsDeleteConfirmOpen(false);
+                }
+              }}>Delete</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
