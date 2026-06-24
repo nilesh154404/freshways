@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -16,9 +17,12 @@ import { AiService } from 'src/ai/ai.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories, HealthProfile]),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || "SECRET123",
-      signOptions: { expiresIn: "7d" }
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || "SECRET123",
+        signOptions: { expiresIn: "7d" }
+      })
     })
   ],
   controllers: [AuthController],

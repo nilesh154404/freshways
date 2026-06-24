@@ -40,12 +40,16 @@ interface CustomerProductListItem {
   notes: string | null;
   product: {
     id: number;
-    name: string;
-    price: number;
+    label: string;
+    dailyPrices?: { amount: number }[];
   } | null;
   vendorSubscriptionPlan: {
     id: number;
-    planName: string;
+    label: string;
+    vendor?: {
+      businessName?: string;
+      ownerName?: string;
+    };
   };
 }
 
@@ -59,9 +63,9 @@ interface VendorSubscriptionPlan {
 
 interface Product {
   id: number;
-  name: string;
-  price: number;
-  category: string;
+  label: string;
+  dailyPrices?: { amount: number }[];
+  category: any;
 }
 
 const CustomerProductList = () => {
@@ -152,7 +156,7 @@ const CustomerProductList = () => {
         // Transform the subscription data to extract plan details
         const transformedPlans = Array.isArray(data) ? data.map((subscription: any) => ({
           id: subscription.plan?.id,
-          planName: `${subscription.plan?.vendor?.name || 'Unknown'} - ${subscription.plan?.label || 'Unknown Plan'}`,
+          planName: `${subscription.plan?.vendor?.businessName || subscription.plan?.vendor?.ownerName || 'Unknown Vendor'} - ${subscription.plan?.label || 'Unknown Plan'}`,
           price: subscription.plan?.price,
           duration: subscription.plan?.duration,
           vendorId: subscription.plan?.vendor?.id,
@@ -353,8 +357,8 @@ const CustomerProductList = () => {
         setFormData({
           ...formData,
           productId,
-          productName: selectedProduct.name || '',
-          amount: (selectedProduct.price || 0).toString(),
+          productName: selectedProduct.label || '',
+          amount: (selectedProduct.dailyPrices?.[0]?.amount || 0).toString(),
         });
       } else {
         console.log('Product not found for ID:', productId);
@@ -455,7 +459,7 @@ const CustomerProductList = () => {
                       ) : (
                         products.map((product) => (
                           <SelectItem key={product.id} value={product.id.toString()}>
-                            {product.name || 'Unknown'} - ₹{product.price || '0'}
+                            {product.label || 'Unknown'} - ₹{product.dailyPrices?.[0]?.amount || '0'}
                           </SelectItem>
                         ))
                       )}
@@ -551,7 +555,7 @@ const CustomerProductList = () => {
               <CardHeader>
                 <CardTitle className="flex items-start justify-between">
                   <span className="text-lg">
-                    {item.product?.name || item.productName || 'Custom Product'}
+                    {item.product?.label || item.productName || 'Custom Product'}
                   </span>
                   <Button
                     variant="ghost"
@@ -563,7 +567,9 @@ const CustomerProductList = () => {
                   </Button>
                 </CardTitle>
                 <CardDescription>
-                  {item.vendorSubscriptionPlan.planName}
+                  {item.vendorSubscriptionPlan
+                    ? `${item.vendorSubscriptionPlan.vendor?.businessName || item.vendorSubscriptionPlan.vendor?.ownerName || 'Vendor'} - ${item.vendorSubscriptionPlan.label || 'Plan'}`
+                    : 'No Plan'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">

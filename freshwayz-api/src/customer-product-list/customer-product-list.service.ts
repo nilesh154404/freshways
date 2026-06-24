@@ -61,6 +61,13 @@ export class CustomerProductListService {
       where: {
         customer: { id: customerId },
       },
+      relations: [
+        'customer',
+        'vendorSubscriptionPlan',
+        'vendorSubscriptionPlan.vendor',
+        'product',
+        'product.dailyPrices',
+      ],
       order: { id: 'DESC' },
     });
   }

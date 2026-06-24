@@ -28,6 +28,8 @@ import BrowseVendors from "./pages/BrowseVendors";
 import PostDetail from "./pages/PostDetail";
 import ProductPriceLog from "./pages/ProductPriceLog";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundCancel from "./pages/RefundCancel";
+import CancelRequests from "./pages/CancelRequests";
 
 const queryClient = new QueryClient();
 
@@ -221,6 +223,24 @@ const App = () => {
               <ProtectedRoute>
                 <Layout>
                   <BrowseVendors/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/refund-cancel" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <RefundCancel/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+
+            <Route path="/admin/cancel-requests" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CancelRequests/>
                 </Layout>
               </ProtectedRoute>
             }/>
