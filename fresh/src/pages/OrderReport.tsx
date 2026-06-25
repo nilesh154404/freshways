@@ -424,24 +424,33 @@ export default function OrdersReport() {
 
                         {/* ITEMS */}
                         <div className="p-4 border rounded-lg mt-4">
-                            <h3 className="font-semibold text-lg mb-2">Items</h3>
+                            <h3 className="font-semibold text-lg mb-4">Items</h3>
 
-                            {selectedOrder.listedOrders.map((item) => (
-                                <div key={item.id} className="border rounded p-3 mb-3">
-                                    <p className="font-medium">
-                                        {item.productName || item.product?.label || "Unnamed Item"}
-                                    </p>
-
-                                    <p className="text-sm">Qty: {item.quantity}</p>
-                                    <p className="text-sm">Amount: ₹{item.amount}</p>
-
-                                    {item.notes && (
-                                        <p className="text-xs italic text-muted-foreground">
-                                            Notes: {item.notes}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
+                            {selectedOrder.listedOrders.map((item) => {
+                                const unitPrice = parseFloat(item.amount) || 0;
+                                const quantity = item.quantity || 1;
+                                const total = unitPrice * quantity;
+                                return (
+                                    <div key={item.id} className="border rounded-lg p-3 mb-3 flex justify-between items-start bg-card shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="space-y-1.5 flex-1 min-w-0">
+                                            <p className="font-semibold text-base truncate text-foreground">
+                                                {item.productName || item.product?.label || "Unnamed Item"}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                ₹{unitPrice.toFixed(2)} × {quantity}
+                                            </p>
+                                            {item.notes && (
+                                                <p className="text-xs italic text-muted-foreground bg-muted p-1.5 rounded mt-2 inline-block">
+                                                    Notes: {item.notes}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="text-right font-bold text-base text-primary pl-4 shrink-0">
+                                            ₹{total.toFixed(2)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* PAYMENTS */}

@@ -233,20 +233,23 @@ export class OrderService {
     const listedOrders: ListedOrder[] = [];
 
     for (const item of productListItems) {
+      const unitPrice = item.amount ? Number(item.amount) : 0;
+      const quantity = item.quantity ? Number(item.quantity) : 1;
+      const lineTotal = unitPrice * quantity;
+
       const listedOrder = this.listedOrderRepo.create({
         order: savedOrder,
         product: item.product || null,
         productName: item.productName || item.product?.label || null,
-        quantity: item.quantity,
-        amount: item.amount,
+        quantity: quantity,
+        amount: unitPrice,
+        discountedAmount: lineTotal,
         notes: item.notes || null,
       });
       await this.listedOrderRepo.save(listedOrder);
       listedOrders.push(listedOrder);
       
-      if (item.amount) {
-        totalAmount += item.amount;
-      }
+      totalAmount += lineTotal;
     }
 
     // Update order with total amount
