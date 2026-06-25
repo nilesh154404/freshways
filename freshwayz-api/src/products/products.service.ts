@@ -63,10 +63,23 @@ export class ProductsService {
       //   );
       // }
 
-      // Validate vendor subscription plan (mandatory)
-      const vendorSubscriptionPlan = await this.vendorPlanRepo.findOne({
-        where: { id: vendorSubscriptionPlanId },
-      });
+      // Validate vendor subscription plan
+      let vendorSubscriptionPlan: VendorSubscriptionPlan | null = null;
+      if (vendorSubscriptionPlanId) {
+        vendorSubscriptionPlan = await this.vendorPlanRepo.findOne({
+          where: { id: vendorSubscriptionPlanId },
+        });
+      } else if (vendorId) {
+        vendorSubscriptionPlan = await this.vendorPlanRepo.findOne({
+          where: { vendor: { id: vendorId } },
+        });
+      }
+
+      if (!vendorSubscriptionPlan) {
+        vendorSubscriptionPlan = await this.vendorPlanRepo.findOne({
+          where: {},
+        });
+      }
 
       if (!vendorSubscriptionPlan) {
         throw new NotFoundException(
@@ -293,7 +306,10 @@ export class ProductsService {
     // 6. Update listed orders to dissociate the deleted product
     await manager.query('UPDATE listed_order SET productId = NULL WHERE productId = ?', [id]);
 
-    // 7. Finally delete the product itself
+    // 7. Update order returns to dissociate the deleted product
+    await manager.query('UPDATE order_returns SET productId = NULL WHERE productId = ?', [id]);
+
+    // 8. Finally delete the product itself
     return await this.productRepo.remove(product);
   }
 }

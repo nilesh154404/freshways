@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
 import { API_BASE_URL } from "@/lib/api";
@@ -65,6 +65,8 @@ const Products = () => {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [relatedMarketing, setRelatedMarketing] = useState<any[]>([]);
   const [isFetchingMarketing, setIsFetchingMarketing] = useState(false);
+  const [relatedOrders, setRelatedOrders] = useState<any[]>([]);
+  const [isFetchingOrders, setIsFetchingOrders] = useState(false);
 
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   const [discountProduct, setDiscountProduct] = useState<Product | null>(null);
@@ -292,7 +294,9 @@ const Products = () => {
     setProductToDelete(product);
     setIsDeleteConfirmOpen(true);
     setIsFetchingMarketing(true);
+    setIsFetchingOrders(true);
     setRelatedMarketing([]);
+    setRelatedOrders([]);
     try {
       const res = await axios.get(`${API_BASE}/marketing?productId=${product.id}`);
       setRelatedMarketing(res.data || []);
@@ -300,6 +304,15 @@ const Products = () => {
       console.error("Failed to fetch related marketing content", err);
     } finally {
       setIsFetchingMarketing(false);
+    }
+
+    try {
+      const res = await axios.get(`${API_BASE}/orders/pending-by-product/${product.id}`);
+      setRelatedOrders(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch related pending orders", err);
+    } finally {
+      setIsFetchingOrders(false);
     }
   };
 
@@ -715,7 +728,7 @@ const Products = () => {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-xl">
             <DialogHeader>
               <DialogTitle>Delete Product: {productToDelete?.label}</DialogTitle>
             </DialogHeader>
@@ -723,29 +736,92 @@ const Products = () => {
               <p className="text-sm text-muted-foreground">
                 Are you sure you want to delete this product? This action cannot be undone.
               </p>
-              
-              <div className="border rounded-md p-3 space-y-3 bg-muted/40 max-h-60 overflow-y-auto">
-                <h4 className="text-sm font-semibold text-foreground">Associated Marketing Content</h4>
-                {isFetchingMarketing ? (
-                  <p className="text-xs text-muted-foreground">Loading associated marketing content...</p>
-                ) : relatedMarketing.length > 0 ? (
-                  <div className="space-y-3">
-                    {relatedMarketing.map((item) => (
-                      <div key={item.id} className="border-b pb-2 last:border-0 last:pb-0 text-xs">
-                        <p className="font-medium text-foreground">{item.description}</p>
-                        {item.media && item.media.length > 0 && (
-                          <div className="flex gap-1 mt-1 overflow-x-auto">
-                            {item.media.map((file: any) => (
-                              <img key={file.id} src={file.fileUrl} alt={file.fileName} className="h-10 w-10 object-cover rounded border" />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+
+              {relatedOrders.length > 0 && (
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="space-y-1">
+                    <h5 className="font-semibold text-xs leading-none">Active Orders Warning</h5>
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      There are {relatedOrders.length} pending/active orders for this product. Deleting it will remove the direct product relation from these orders.
+                    </p>
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No associated marketing content found for this product.</p>
-                )}
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Column 1: Associated Marketing Content */}
+                <div className="border rounded-md p-3 space-y-3 bg-muted/40 max-h-64 overflow-y-auto">
+                  <h4 className="text-sm font-semibold text-foreground border-b pb-1">Marketing Content</h4>
+                  {isFetchingMarketing ? (
+                    <p className="text-xs text-muted-foreground">Loading marketing content...</p>
+                  ) : relatedMarketing.length > 0 ? (
+                    <div className="space-y-3">
+                      {relatedMarketing.map((item) => (
+                        <div key={item.id} className="border-b pb-2 last:border-0 last:pb-0 text-xs">
+                          <p className="font-medium text-foreground">{item.description}</p>
+                          {item.media && item.media.length > 0 && (
+                            <div className="flex gap-1 mt-1 overflow-x-auto">
+                              {item.media.map((file: any) => (
+                                <img key={file.id} src={file.fileUrl} alt={file.fileName} className="h-10 w-10 object-cover rounded border" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No associated marketing content found.</p>
+                  )}
+                </div>
+
+                {/* Column 2: Pending Customer Orders */}
+                <div className="border rounded-md p-3 space-y-3 bg-muted/40 max-h-64 overflow-y-auto">
+                  <h4 className="text-sm font-semibold text-foreground border-b pb-1">Pending Orders</h4>
+                  {isFetchingOrders ? (
+                    <p className="text-xs text-muted-foreground">Loading pending orders...</p>
+                  ) : relatedOrders.length > 0 ? (
+                    <div className="space-y-3">
+                      {relatedOrders.map((order) => (
+                        <div key={order.id} className="border-b pb-2 last:border-0 last:pb-0 text-xs">
+                          <div className="flex justify-between items-start">
+                            <span className="font-semibold text-foreground">
+                              Order #{order.id}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-medium text-[10px]">
+                              {order.orderStatus}
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground font-medium mt-1">
+                            {order.customer?.fullName || "Unknown Customer"}
+                          </p>
+                          {order.customer?.phone && (
+                            <p className="text-muted-foreground text-[11px]">
+                              📞 {order.customer.phone}
+                            </p>
+                          )}
+                          {order.customer?.email && (
+                            <p className="text-muted-foreground text-[11px] truncate">
+                              ✉️ {order.customer.email}
+                            </p>
+                          )}
+                          <div className="flex justify-between text-[11px] mt-1 pt-1 border-t border-dashed">
+                            <span>
+                              Qty: {order.listedOrders?.find((lo: any) => lo.product?.id === productToDelete?.id)?.quantity || 1}
+                            </span>
+                            {order.deliveryDate && (
+                              <span>
+                                Deliv: {new Date(order.deliveryDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No pending customer orders found.</p>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter>

@@ -132,4 +132,10 @@ export class OrderController {
   getOrdersByVendor(@Param('vendorId') vendorId: string) {
     return this.orderService.getOrdersByVendor(+vendorId);
   }
+
+  @Get('pending-by-product/:productId')
+  @ApiOperation({ summary: 'Get all pending/active orders for a specific product' })
+  async getPendingByProductId(@Param('productId', ParseIntPipe) productId: number) {
+    return this.orderService.findPendingByProductId(productId);
+  }
 }

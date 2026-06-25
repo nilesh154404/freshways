@@ -236,8 +236,10 @@ export class OrderService {
       const listedOrder = this.listedOrderRepo.create({
         order: savedOrder,
         product: item.product || null,
+        productName: item.productName || item.product?.label || null,
         quantity: item.quantity,
         amount: item.amount,
+        notes: item.notes || null,
       });
       await this.listedOrderRepo.save(listedOrder);
       listedOrders.push(listedOrder);
@@ -429,5 +431,20 @@ export class OrderService {
       where: { vendor: { id: vendorId }, isDeleted: false },
       relations: ['customer', 'community', 'listedOrders', 'payments'],
     });
+  }
+
+  async findPendingByProductId(productId: number): Promise<Order[]> {
+    return this.orderRepo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.customer', 'customer')
+      .leftJoinAndSelect('order.listedOrders', 'listedOrders')
+      .leftJoinAndSelect('listedOrders.product', 'product')
+      .where('product.id = :productId', { productId })
+      .andWhere('order.orderStatus IN (:...statuses)', {
+        statuses: ['PENDING', 'CONFIRMED', 'PROCESSING'],
+      })
+      .andWhere('order.isDeleted = false')
+      .orderBy('order.createdAt', 'DESC')
+      .getMany();
   }
 }

@@ -87,6 +87,30 @@ const CustomerProductList = () => {
     notes: '',
   });
 
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const filteredProducts = formData.productName.trim()
+    ? products.filter((product) =>
+        product.label?.toLowerCase().includes(formData.productName.toLowerCase())
+      )
+    : [];
+
+  const handleProductNameChange = (val: string) => {
+    const matchingProduct = products.find(
+      (p) => p.label?.toLowerCase() === val.trim().toLowerCase()
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      productName: val,
+      productId: matchingProduct ? matchingProduct.id.toString() : '',
+      amount: matchingProduct
+        ? (matchingProduct.dailyPrices?.[0]?.amount || 0).toString()
+        : prev.amount,
+    }));
+    setShowSuggestions(true);
+  };
+
   // Get customer ID from localStorage
   const getUserId = () => {
     try {
@@ -467,17 +491,40 @@ const CustomerProductList = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label htmlFor="productName">Product Name</Label>
                   <Input
                     id="productName"
                     value={formData.productName}
-                    onChange={(e) =>
-                    setFormData({ ...formData, productName: e.target.value })
-                  }
-                  placeholder="Custom product name"
-                />
-              </div>
+                    onChange={(e) => handleProductNameChange(e.target.value)}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setShowSuggestions(false)}
+                    placeholder="Custom product name"
+                    autoComplete="off"
+                  />
+                  {showSuggestions && filteredProducts.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-input bg-popover text-popover-foreground shadow-lg">
+                      <div className="py-1">
+                        {filteredProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault(); // Prevents blur event on input
+                              handleProductSelect(product.id.toString());
+                              setShowSuggestions(false);
+                            }}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center transition-colors"
+                          >
+                            <span className="font-medium">{product.label}</span>
+                            <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                              ₹{product.dailyPrices?.[0]?.amount || '0'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
