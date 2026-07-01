@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { CustomerProduct } from './entities/customer-product.entity';
 import { CreateCustomerProductDto } from './dto/create-customer-product.dto';
+import { UpdateCustomerProductDto } from './dto/update-customer-product.dto';
 
 import { Customer } from '../customer/entities/customer.entity';
 import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/vendor-subscription-plan.entity';
@@ -70,6 +71,35 @@ export class CustomerProductListService {
       ],
       order: { id: 'DESC' },
     });
+  }
+
+  // UPDATE
+  async update(id: number, dto: UpdateCustomerProductDto) {
+    const record = await this.customerProductRepo.findOneBy({ id });
+    if (!record) throw new NotFoundException('Customer product not found');
+
+    if (dto.vendorSubscriptionPlanId != null) {
+      const plan = await this.planRepo.findOneBy({ id: dto.vendorSubscriptionPlanId });
+      if (!plan) throw new NotFoundException('Subscription plan not found');
+      record.vendorSubscriptionPlan = plan;
+    }
+
+    if (dto.productId !== undefined) {
+      if (dto.productId === null) {
+        record.product = null;
+      } else {
+        const product = await this.productRepo.findOneBy({ id: dto.productId });
+        if (!product) throw new NotFoundException('Product not found');
+        record.product = product;
+      }
+    }
+
+    if (dto.productName !== undefined) record.productName = dto.productName;
+    if (dto.quantity !== undefined) record.quantity = dto.quantity;
+    if (dto.amount !== undefined) record.amount = dto.amount;
+    if (dto.notes !== undefined) record.notes = dto.notes;
+
+    return this.customerProductRepo.save(record);
   }
 
   // DELETE

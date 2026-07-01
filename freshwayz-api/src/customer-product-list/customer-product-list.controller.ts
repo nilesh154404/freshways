@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Get, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Patch, ParseIntPipe } from '@nestjs/common';
 import { CustomerProductListService } from './customer-product-list.service';
 import { CreateCustomerProductDto } from './dto/create-customer-product.dto';
+import { UpdateCustomerProductDto } from './dto/update-customer-product.dto';
 
 @Controller('customer-product-list')
 export class CustomerProductListController {
@@ -16,6 +17,12 @@ export class CustomerProductListController {
   @Get('customer/:customerId')
   getByCustomer(@Param('customerId') customerId: number) {
     return this.service.getByCustomerId(+customerId);
+  }
+
+  // UPDATE
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCustomerProductDto) {
+    return this.service.update(id, dto);
   }
 
   // DELETE

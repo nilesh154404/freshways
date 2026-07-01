@@ -8,7 +8,6 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags('order-return')
 @Controller('order-return')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
 export class OrderReturnController {
   constructor(private readonly orderReturnService: OrderReturnService) {}
 
@@ -20,6 +19,7 @@ export class OrderReturnController {
   }
 
   @Get()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Find all cancellation requests' })
   findAll() {
     return this.orderReturnService.findAll();
@@ -32,30 +32,35 @@ export class OrderReturnController {
   }
 
   @Get('vendor/:vendorId')
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Find all requests for a specific vendor' })
   findByVendorId(@Param('vendorId', ParseIntPipe) vendorId: number) {
     return this.orderReturnService.findByVendorId(vendorId);
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Find a specific request by ID' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.orderReturnService.findOne(id);
   }
 
   @Patch(':id/confirm-cancel')
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Confirm / Approve cancellation request' })
   confirmCancel(@Param('id', ParseIntPipe) id: number) {
     return this.orderReturnService.confirmCancel(id);
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Update a specific request by ID' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateOrderReturnDto: UpdateOrderReturnDto) {
     return this.orderReturnService.update(id, updateOrderReturnDto);
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Delete a specific request by ID' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.orderReturnService.remove(id);

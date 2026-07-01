@@ -43,19 +43,57 @@ export class ListedOrderService {
   }
 
   async update(id: number, dto: UpdateListedOrderDto): Promise<ListedOrder> {
-    const item = await this.findOne(id);
+    const item = await this.listedOrderRepository.findOne({
+      where: { id },
+      relations: ['order', 'product'],
+    });
+    if (!item) throw new NotFoundException(`ListedOrder #${id} not found`);
 
     if (dto.orderId) item.order = { id: dto.orderId } as any;
     if ('productId' in dto)
       item.product = dto.productId ? ({ id: dto.productId } as any) : null;
 
     Object.assign(item, dto);
-    return this.listedOrderRepository.save(item);
+    const updatedItem = await this.listedOrderRepository.save(item);
+
+    const parentOrder = item.order;
+    if (parentOrder) {
+      const allItems = await this.listedOrderRepository.find({
+        where: { order: { id: parentOrder.id } },
+      });
+      const total = allItems.reduce((sum, current) => {
+        const qty = Number(current.quantity || 0);
+        const amt = Number(current.amount || 0);
+        return sum + qty * amt;
+      }, 0);
+      parentOrder.grandTotal = total;
+      await this.listedOrderRepository.manager.save(parentOrder);
+    }
+
+    return updatedItem;
   }
 
-
   async remove(id: number): Promise<void> {
-    const item = await this.findOne(id);
+    const item = await this.listedOrderRepository.findOne({
+      where: { id },
+      relations: ['order'],
+    });
+    if (!item) throw new NotFoundException(`ListedOrder #${id} not found`);
+
+    const parentOrder = item.order;
     await this.listedOrderRepository.remove(item);
+
+    if (parentOrder) {
+      const allItems = await this.listedOrderRepository.find({
+        where: { order: { id: parentOrder.id } },
+      });
+      const total = allItems.reduce((sum, current) => {
+        const qty = Number(current.quantity || 0);
+        const amt = Number(current.amount || 0);
+        return sum + qty * amt;
+      }, 0);
+      parentOrder.grandTotal = total;
+      await this.listedOrderRepository.manager.save(parentOrder);
+    }
   }
 }
