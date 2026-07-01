@@ -9,7 +9,7 @@ import { AuthGuard } from '@nestjs/passport';
 @Controller('order-return')
 @ApiBearerAuth()
 export class OrderReturnController {
-  constructor(private readonly orderReturnService: OrderReturnService) {}
+  constructor(private readonly orderReturnService: OrderReturnService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create refund and cancellation request' })

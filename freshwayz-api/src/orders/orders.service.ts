@@ -182,15 +182,32 @@ export class OrderService {
   // ----------------------------------------------------------
   // PLACE ORDER FROM CUSTOMER PRODUCT LIST
   // ----------------------------------------------------------
-  async placeOrderFromProductList(dto: { customerId: number; communityId: number; vendorSubscriptionPlanId: number }): Promise<Order> {
+  async placeOrderFromProductList(dto: { customerId: number; communityId?: number; vendorSubscriptionPlanId: number }): Promise<Order> {
     const { customerId, communityId, vendorSubscriptionPlanId } = dto;
 
-    // Fetch customer
-    const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+    // Fetch customer with communities
+    const customer = await this.customerRepo.findOne({ 
+      where: { id: customerId },
+      relations: ['communities'],
+    });
     if (!customer) throw new NotFoundException('Customer not found');
 
-    // Fetch community
-    const community = await this.communityRepo.findOne({ where: { id: communityId } });
+    // Resolve community with fallbacks
+    let community: Community | null = null;
+    if (communityId) {
+      community = await this.communityRepo.findOne({ where: { id: communityId } });
+    } else if (customer.communities && customer.communities.length > 0) {
+      community = customer.communities[0];
+    } else {
+      // Fallback to community ID 1 or the first community in the database
+      community = await this.communityRepo.findOne({ where: { id: 1 } });
+      if (!community) {
+        const allCommunities = await this.communityRepo.find();
+        if (allCommunities.length > 0) {
+          community = allCommunities[0];
+        }
+      }
+    }
     if (!community) throw new NotFoundException('Community not found');
 
     // Fetch vendor subscription plan with vendor info
