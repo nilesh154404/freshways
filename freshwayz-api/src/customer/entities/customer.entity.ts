@@ -27,6 +27,12 @@ export class Customer {
     gender: string;
 
     @Column({ nullable: true })
+    flatNo: string;
+
+    @Column({ nullable: true })
+    floorNo: string;
+
+    @Column({ nullable: true })
     address: string;
 
     @ManyToOne(() => UserType, userType => userType.users, { nullable: false })

@@ -31,8 +31,9 @@ export class CreateCustomerProductDto {
   @IsNumber()
   customerId: number;
 
+  @IsOptional()
   @IsNumber()
-  vendorSubscriptionPlanId: number;
+  vendorSubscriptionPlanId?: number;
 
   @IsOptional()
   @IsNumber()

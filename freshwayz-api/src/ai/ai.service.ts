@@ -351,29 +351,47 @@ export class AiService {
 
     const payload: Partial<HealthProfile> = {};
 
-    // Only copy properties from dto that are actually defined (not undefined)
     for (const key of Object.keys(dto)) {
       if (dto[key] !== undefined) {
         payload[key] = dto[key];
       }
     }
 
+    const heightUnit = payload.heightUnit || existing?.heightUnit || 'cm';
+    const heightVal = payload.height !== undefined ? payload.height : (payload.heightCm !== undefined ? payload.heightCm : (existing?.height || existing?.heightCm || 0));
+    
+    let heightCm = 0;
+    if (heightUnit === 'inch') {
+      heightCm = Number((heightVal * 2.54).toFixed(2));
+    } else {
+      heightCm = heightVal;
+    }
+
+    payload.height = heightVal;
+    payload.heightUnit = heightUnit;
+    payload.heightCm = heightCm;
+
+    const weightKg = payload.weightKg !== undefined ? payload.weightKg : (existing?.weightKg || 0);
+    const calculatedBmi = this.calculateBmi(heightCm, weightKg);
+    payload.bmi = calculatedBmi;
+
     const entity = existing
       ? this.healthProfileRepo.merge(existing, payload)
       : this.healthProfileRepo.create(payload);
 
     const profile = await this.healthProfileRepo.save(entity);
-    
-    // We calculate bmi dynamically on the fly to pass to analyzeHealthProfile
-    const calculatedBmi = this.calculateBmi(profile.heightCm, profile.weightKg);
 
     const insights = analyzeHealthProfile({
       ...profile,
-      bmi: calculatedBmi,
     });
 
+    const bmiStatus = this.getBmiStatus(profile.bmi);
+
     return {
-      profile,
+      profile: {
+        ...profile,
+        bmiStatus
+      },
       ...insights,
     };
   }
@@ -392,14 +410,17 @@ export class AiService {
 
   async getHealthInsights(userId: number) {
     const profile = await this.getHealthProfile(userId);
-    const calculatedBmi = this.calculateBmi(profile.heightCm, profile.weightKg);
     const insights = analyzeHealthProfile({
       ...profile,
-      bmi: calculatedBmi,
     });
 
+    const bmiStatus = this.getBmiStatus(profile.bmi);
+
     return {
-      profile,
+      profile: {
+        ...profile,
+        bmiStatus
+      },
       ...insights,
     };
   }
@@ -468,6 +489,13 @@ export class AiService {
     const heightM = heightCm / 100;
     const bmi = weightKg / (heightM * heightM);
     return Number.isFinite(bmi) ? Number(bmi.toFixed(2)) : 0;
+  }
+
+  private getBmiStatus(bmi: number): string {
+    if (bmi <= 0) return 'Unknown';
+    if (bmi < 18.5) return 'Underweight';
+    if (bmi < 25) return 'Maintained';
+    return 'Overweight';
   }
 
   private async generateGeminiReportAnalysis(

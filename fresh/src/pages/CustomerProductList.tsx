@@ -251,9 +251,10 @@ const CustomerProductList = () => {
 
   const fetchProducts = async (vendorId?: number) => {
     try {
+      const customerId = getUserId();
       const url = vendorId 
-        ? `${API_URL}/products?vendorId=${vendorId}`
-        : `${API_URL}/products`;
+        ? `${API_URL}/products?vendorId=${vendorId}&customerId=${customerId}`
+        : `${API_URL}/products?customerId=${customerId}`;
       
       console.log('Fetching products from URL:', url);
       const response = await fetch(url);
@@ -400,6 +401,37 @@ const CustomerProductList = () => {
     }
   };
 
+  // Order confirmation states
+  const [isConfirmOrderOpen, setIsConfirmOrderOpen] = useState(false);
+  const [confirmPlanId, setConfirmPlanId] = useState<number | null>(null);
+  const [deliveryDetails, setDeliveryDetails] = useState({
+    flatNo: '',
+    floorNo: '',
+    address: '',
+    phone: '',
+  });
+
+  const handleOpenConfirmOrder = async (vendorSubscriptionPlanId: number) => {
+    try {
+      setConfirmPlanId(vendorSubscriptionPlanId);
+      // Fetch customer profile default details
+      const response = await fetch(`${API_URL}/customer/${customerId}`);
+      if (response.ok) {
+        const customerData = await response.json();
+        setDeliveryDetails({
+          flatNo: customerData.flatNo || '',
+          floorNo: customerData.floorNo || '',
+          address: customerData.address || '',
+          phone: customerData.phone || '',
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch customer profile details for order confirmation:", err);
+    } finally {
+      setIsConfirmOrderOpen(true);
+    }
+  };
+
   const handlePlaceOrder = async (vendorSubscriptionPlanId: number) => {
     try {
       const communityId = 1; // Default to main community (Geras)
@@ -408,6 +440,10 @@ const CustomerProductList = () => {
         customerId,
         vendorSubscriptionPlanId,
         communityId,
+        flatNo: deliveryDetails.flatNo || undefined,
+        floorNo: deliveryDetails.floorNo || undefined,
+        address: deliveryDetails.address || undefined,
+        phone: deliveryDetails.phone || undefined,
       };
 
       console.log('Placing order with payload:', payload);
@@ -429,6 +465,7 @@ const CustomerProductList = () => {
           title: 'Success',
           description: `Order #${orderData.id} placed successfully!`,
         });
+        setIsConfirmOrderOpen(false);
         // Refresh the product list
         fetchProductList();
       } else {
@@ -781,7 +818,7 @@ const CustomerProductList = () => {
                 )}
                 <div className="pt-4 flex gap-2">
                   <Button
-                    onClick={() => handlePlaceOrder(item.vendorSubscriptionPlan.id)}
+                    onClick={() => handleOpenConfirmOrder(item.vendorSubscriptionPlan.id)}
                     className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
                   >
                     <ShoppingCart className="h-4 w-4" />
@@ -801,6 +838,72 @@ const CustomerProductList = () => {
           ))}
         </div>
       )}
+
+      {/* CONFIRM ORDER WITH CUSTOM DELIVERY DETAILS */}
+      <Dialog open={isConfirmOrderOpen} onOpenChange={setIsConfirmOrderOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Order Details</DialogTitle>
+            <DialogDescription>
+              Verify or update your delivery address and mobile number before placing the order.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="order-flat">Flat / House No.</Label>
+              <Input
+                id="order-flat"
+                placeholder="e.g. Apartment 4B"
+                value={deliveryDetails.flatNo}
+                onChange={(e) => setDeliveryDetails({ ...deliveryDetails, flatNo: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="order-floor">Floor No.</Label>
+              <Input
+                id="order-floor"
+                placeholder="e.g. 4th Floor"
+                value={deliveryDetails.floorNo}
+                onChange={(e) => setDeliveryDetails({ ...deliveryDetails, floorNo: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="order-address">Delivery Address</Label>
+              <Textarea
+                id="order-address"
+                placeholder="Full delivery street address"
+                value={deliveryDetails.address}
+                onChange={(e) => setDeliveryDetails({ ...deliveryDetails, address: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="order-phone">Contact Mobile Number</Label>
+              <Input
+                id="order-phone"
+                placeholder="Mobile number for delivery updates"
+                value={deliveryDetails.phone}
+                onChange={(e) => setDeliveryDetails({ ...deliveryDetails, phone: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmOrderOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white font-medium"
+              onClick={() => confirmPlanId && handlePlaceOrder(confirmPlanId)}
+            >
+              Confirm & Place Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

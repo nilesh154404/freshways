@@ -14,6 +14,7 @@ import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 import { paginate } from 'src/helpers/pagination/pagination';
 import { Categories } from 'src/categories/categories.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
+import { HealthProfile } from 'src/ai/entities/health-profile.entity';
 
 @Injectable()
 export class ProductsService {
@@ -156,7 +157,7 @@ export class ProductsService {
   //     limit: dto.limit,
   //   });
   // }
-  async findAll(dto: RangeDTO, categoryId?: number, vendorId?: number, search?: string) {
+  async findAll(dto: RangeDTO, categoryId?: number, vendorId?: number, search?: string, customerId?: number) {
     const qb = this.productRepo
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.serviceOffering', 'serviceOffering')
@@ -166,6 +167,22 @@ export class ProductsService {
       .leftJoinAndSelect('product.discounts', 'discounts')
       // .where('product.isDeleted = false')
       .orderBy('product.id', 'DESC');
+
+    if (customerId) {
+      try {
+        const healthProfile = await this.productRepo.manager.findOne(HealthProfile, {
+          where: { userId: customerId },
+        });
+        if (healthProfile?.dietPreference) {
+          const pref = healthProfile.dietPreference.trim().toLowerCase();
+          if (pref === 'vegetarian' || pref === 'veg') {
+            qb.andWhere('product.productType != :nonVegType', { nonVegType: 'NON-VEG' });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to retrieve diet preference for customer:', customerId, err);
+      }
+    }
 
     if (categoryId) {
       qb.andWhere('product.category = :categoryId', { categoryId });

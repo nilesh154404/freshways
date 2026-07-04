@@ -11,6 +11,7 @@ import { ListedOrder } from 'src/listed-order/entities/listed-order.entity';
 import { CreateNewOrderDto } from './dto/create-new-order.dto';
 import { Product } from 'src/products/entities/product.entity';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { PlaceOrderFromProductListDto } from './dto/place-order-from-product-list.dto';
 import { DeliverySlot } from 'src/delivery-slot/entities/delivery-slot.entity';
 import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 import { ProductDiscountService } from 'src/product-discount/product-discount.service';
@@ -95,7 +96,11 @@ export class OrderService {
       grandTotal: createDto.grandTotal || 0,
       deliverySlot,
       listedOrders: [],
-      vendorSubscriptionPlan
+      vendorSubscriptionPlan,
+      flatNo: createDto.flatNo !== undefined ? createDto.flatNo : customer.flatNo,
+      floorNo: createDto.floorNo !== undefined ? createDto.floorNo : customer.floorNo,
+      address: createDto.address !== undefined ? createDto.address : customer.address,
+      phone: createDto.phone !== undefined ? createDto.phone : customer.phone,
     });
 
     // ---------------------------
@@ -182,7 +187,7 @@ export class OrderService {
   // ----------------------------------------------------------
   // PLACE ORDER FROM CUSTOMER PRODUCT LIST
   // ----------------------------------------------------------
-  async placeOrderFromProductList(dto: { customerId: number; communityId?: number; vendorSubscriptionPlanId: number }): Promise<Order> {
+  async placeOrderFromProductList(dto: PlaceOrderFromProductListDto): Promise<Order> {
     const { customerId, communityId, vendorSubscriptionPlanId } = dto;
 
     // Fetch customer with communities
@@ -241,6 +246,10 @@ export class OrderService {
       orderStatus: 'PENDING',
       paymentStatus: 'PENDING',
       grandTotal: 0,
+      flatNo: dto.flatNo !== undefined ? dto.flatNo : customer.flatNo,
+      floorNo: dto.floorNo !== undefined ? dto.floorNo : customer.floorNo,
+      address: dto.address !== undefined ? dto.address : customer.address,
+      phone: dto.phone !== undefined ? dto.phone : customer.phone,
     });
 
     const savedOrder = await this.orderRepo.save(order);
@@ -325,7 +334,11 @@ export class OrderService {
       community,
       deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
       grandTotal: grandTotal || 0,
-      deliverySlot
+      deliverySlot,
+      flatNo: createOrderDto.flatNo !== undefined ? createOrderDto.flatNo : customer.flatNo,
+      floorNo: createOrderDto.floorNo !== undefined ? createOrderDto.floorNo : customer.floorNo,
+      address: createOrderDto.address !== undefined ? createOrderDto.address : customer.address,
+      phone: createOrderDto.phone !== undefined ? createOrderDto.phone : customer.phone,
     });
 
     const savedOrder = await this.orderRepo.save(order);

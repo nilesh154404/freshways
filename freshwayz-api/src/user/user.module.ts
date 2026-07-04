@@ -7,10 +7,12 @@ import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Order } from 'src/orders/entities/order.entity';
+import { Auth } from 'src/auth/entities/auth.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Vendor, Customer, Product, Order])],
+  imports: [TypeOrmModule.forFeature([User, Vendor, Customer, Product, Order, Auth])],
   controllers: [UserController],
   providers: [UserService],
 })
 export class UserModule {}
+

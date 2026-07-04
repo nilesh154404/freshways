@@ -15,6 +15,21 @@ export class HealthProfile {
   @Column({ type: 'float' })
   weightKg: number;
 
+  @Column({ type: 'float', nullable: true })
+  height: number;
+
+  @Column({ default: 'cm' })
+  heightUnit: string;
+
+  @Column({ type: 'float', nullable: true })
+  bmi: number;
+
+  @Column({ nullable: true })
+  goal: string;
+
+  @Column({ type: 'text', nullable: true })
+  analysisPrompt: string;
+
   @Column({ nullable: true })
   bloodGroup: string;
 

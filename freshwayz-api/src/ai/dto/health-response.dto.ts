@@ -30,11 +30,29 @@ export class HealthProfileResponseDto {
   @ApiProperty({ example: 165 })
   heightCm: number;
 
+  @ApiProperty({ example: 165, nullable: true })
+  height: number | null;
+
+  @ApiProperty({ example: 'cm' })
+  heightUnit: string;
+
   @ApiProperty({ example: 68 })
   weightKg: number;
 
+  @ApiProperty({ example: 24.9, nullable: true })
+  bmi: number | null;
+
+  @ApiProperty({ example: 'Maintain weight', nullable: true })
+  goal: string | null;
+
+  @ApiProperty({ example: 'Maintained', nullable: true })
+  bmiStatus: string | null;
+
   @ApiProperty({ example: 'O+', nullable: true })
   bloodGroup: string | null;
+
+  @ApiProperty({ example: 'Generate health score...', nullable: true })
+  analysisPrompt: string | null;
 
   @ApiProperty({ example: 'Type 2 diabetes, controlled blood pressure', nullable: true })
   medicalInformation: string | null;

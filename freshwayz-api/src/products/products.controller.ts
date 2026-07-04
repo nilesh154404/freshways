@@ -51,13 +51,15 @@ export class ProductsController {
   @ApiQuery({ name: 'categoryId', required: false, type: Number })
   @ApiQuery({ name: 'vendorId', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'customerId', required: false, type: Number })
   async getAllProducts(
     @Query() dto: RangeDTO,
     @Query('categoryId') categoryId?: number,
     @Query('vendorId') vendorId?: number,
     @Query('search') search?: string,
+    @Query('customerId') customerId?: number,
   ) {
-    return this.productsService.findAll(dto, categoryId, vendorId, search);
+    return this.productsService.findAll(dto, categoryId, vendorId, search, customerId);
   }
 
   // @ApiOperation({ summary: 'Get all products' })

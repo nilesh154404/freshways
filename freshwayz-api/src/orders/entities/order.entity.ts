@@ -57,6 +57,18 @@ export class Order {
     @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
     grandTotal: number;
 
+    @Column({ nullable: true })
+    flatNo: string;
+
+    @Column({ nullable: true })
+    floorNo: string;
+
+    @Column({ nullable: true })
+    address: string;
+
+    @Column({ nullable: true })
+    phone: string;
+
     @OneToMany(() => ListedOrder, listedOrder => listedOrder.order, { cascade: true })
     listedOrders: ListedOrder[];
 

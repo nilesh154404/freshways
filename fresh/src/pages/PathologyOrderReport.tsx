@@ -245,9 +245,9 @@ export default function PathologyOrderReport() {
         if (!e.target.files || e.target.files.length === 0 || !selectedOrder) return;
         const file = e.target.files[0];
         const data = new FormData();
-        data.append("file", file);
         data.append("orderId", selectedOrder.id.toString());
         data.append("customerId", selectedOrder.customer.id.toString());
+        data.append("file", file);
 
         try {
             setUploading(true);
@@ -496,6 +496,34 @@ export default function PathologyOrderReport() {
                                     )}
                                 </div>
                             ))}
+                        </div>
+
+                        {/* DELIVERY DETAILS */}
+                        <div className="p-4 border rounded-lg mt-4 bg-muted/40">
+                            <h3 className="font-semibold text-lg mb-3 text-primary flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                Delivery Address & Customer Details
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <p className="text-muted-foreground font-medium">Customer Name</p>
+                                    <p className="font-semibold text-foreground">{selectedOrder.customer?.fullName || "N/A"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground font-medium">Mobile Number</p>
+                                    <p className="font-semibold text-foreground">{selectedOrder.phone || selectedOrder.customer?.phone || "N/A"}</p>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <p className="text-muted-foreground font-medium">Delivery Address</p>
+                                    <p className="font-semibold text-foreground">
+                                        {[
+                                            selectedOrder.flatNo ? `Flat/House No: ${selectedOrder.flatNo}` : selectedOrder.customer?.flatNo ? `Flat/House No: ${selectedOrder.customer.flatNo}` : null,
+                                            selectedOrder.floorNo ? `Floor No: ${selectedOrder.floorNo}` : selectedOrder.customer?.floorNo ? `Floor No: ${selectedOrder.customer.floorNo}` : null,
+                                            selectedOrder.address || selectedOrder.customer?.address || null,
+                                        ].filter(Boolean).join(', ') || "No address provided"}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         {/* PAYMENTS */}

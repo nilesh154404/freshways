@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsInt, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class PlaceOrderFromProductListDto {
   @ApiProperty({ description: 'Customer ID placing the order', example: 1 })
@@ -16,5 +16,25 @@ export class PlaceOrderFromProductListDto {
   @IsNotEmpty()
   @IsInt()
   vendorSubscriptionPlanId: number;
+
+  @ApiProperty({ description: 'Flat No', required: false })
+  @IsOptional()
+  @IsString()
+  flatNo?: string;
+
+  @ApiProperty({ description: 'Floor No', required: false })
+  @IsOptional()
+  @IsString()
+  floorNo?: string;
+
+  @ApiProperty({ description: 'Delivery Address', required: false })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiProperty({ description: 'Mobile/Phone No', required: false })
+  @IsOptional()
+  @IsString()
+  phone?: string;
 }
 

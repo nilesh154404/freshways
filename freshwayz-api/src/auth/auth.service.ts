@@ -197,6 +197,25 @@ export class AuthService {
         return Number.isFinite(bmi) ? Number(bmi.toFixed(2)) : 0;
     }
 
+    private getBmiStatus(bmi: number): string {
+        if (bmi <= 0) return 'Unknown';
+        if (bmi < 18.5) return 'Underweight';
+        if (bmi < 25) return 'Maintained';
+        return 'Overweight';
+    }
+
+    private calculateAge(dob?: Date | string): number {
+        if (!dob) return 0;
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
+
     private async generatePersonalizedHealthInsights(
         healthData: any,
         reportFiles: Express.Multer.File[] = [],
@@ -390,10 +409,18 @@ Provide concise, actionable insights specific to this person's combined health p
 
     // ---------------------- LOGIN ----------------------
     async login(dto: AuthDto) {
-        const auth = await this.authRepo.findOne({
-            where: { username: dto.username },
-            relations: ['user', 'vendor', 'customer', 'user.userType', 'vendor.userType', 'customer.userType']
-        });
+        const auth = await this.authRepo.createQueryBuilder('auth')
+            .leftJoinAndSelect('auth.user', 'user')
+            .leftJoinAndSelect('auth.vendor', 'vendor')
+            .leftJoinAndSelect('auth.customer', 'customer')
+            .leftJoinAndSelect('user.userType', 'userUserType')
+            .leftJoinAndSelect('vendor.userType', 'vendorUserType')
+            .leftJoinAndSelect('customer.userType', 'customerUserType')
+            .where('auth.username = :input', { input: dto.username })
+            .orWhere('user.email = :input', { input: dto.username })
+            .orWhere('vendor.email = :input', { input: dto.username })
+            .orWhere('customer.email = :input', { input: dto.username })
+            .getOne();
 
         if (!auth) throw new UnauthorizedException('Invalid credentials');
 

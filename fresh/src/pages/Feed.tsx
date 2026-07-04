@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Bookmark, MessageCircle, Share2, Send, MoreVertical, Trash2 } from "lucide-react";
+import { Bookmark, MessageCircle, Share2, Send, MoreVertical, Trash2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -21,6 +21,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { API_BASE_URL } from "@/lib/api";
 
 interface MarketingContent {
@@ -31,7 +40,7 @@ interface MarketingContent {
   createdAt?: string;
   vendor?: { id: number; name?: string; businessName?: string; ownerName?: string; };
   category?: { id: number; name: string; };
-  product?: { id: number; name: string; };
+  product?: { id: number; label: string; dailyPrices?: { amount: number }[] };
   media?: { id: number; fileUrl: string; fileName: string; }[];
   saves?: { id: number; userId: number; userType: string; user?: { id: number; fullName: string; }; }[];
   comments?: MarketingComment[];
@@ -50,6 +59,16 @@ const Feed = () => {
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState<{ [key: number]: string }>({});
   const [savesOpen, setSavesOpen] = useState<number | null>(null);
+  
+  // Buy Now Feature States
+  const [selectedBuyPost, setSelectedBuyPost] = useState<MarketingContent | null>(null);
+  const [buyQuantity, setBuyQuantity] = useState(1);
+  const [buyNotes, setBuyNotes] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [vendorPlans, setVendorPlans] = useState<any[]>([]);
+  const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
+  const [submittingBuy, setSubmittingBuy] = useState(false);
+  
   const { toast } = useToast();
   
   const userId = parseInt(localStorage.getItem("profileId") || "0");
@@ -99,6 +118,103 @@ const Feed = () => {
       });
     }
   }, [userId, toast]);
+
+  useEffect(() => {
+    if (selectedBuyPost?.vendor?.id) {
+      const fetchPlans = async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/vendor-subscription-plans/vendor/${selectedBuyPost.vendor.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            const plans = Array.isArray(data) ? data : [];
+            setVendorPlans(plans);
+            if (plans.length > 0) {
+              setSelectedPlanId(plans[0].id.toString());
+            } else {
+              setSelectedPlanId("");
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching vendor plans:", err);
+          setVendorPlans([]);
+          setSelectedPlanId("");
+        }
+      };
+      fetchPlans();
+    } else {
+      setVendorPlans([]);
+      setSelectedPlanId("");
+    }
+  }, [selectedBuyPost]);
+
+  const handleBuyNowClick = (post: MarketingContent) => {
+    setSelectedBuyPost(post);
+    setBuyQuantity(1);
+    setBuyNotes("");
+    setIsBuyDialogOpen(true);
+  };
+
+  const handleConfirmBuy = async () => {
+    if (!selectedBuyPost?.product) return;
+    if (vendorPlans.length > 0 && !selectedPlanId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a subscription plan for this vendor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmittingBuy(true);
+      
+      const productPrice = parseFloat(selectedBuyPost.product.dailyPrices?.[0]?.amount as any) || 0;
+      
+      const payload = {
+        customerId: userId,
+        vendorSubscriptionPlanId: selectedPlanId ? parseInt(selectedPlanId) : undefined,
+        productId: selectedBuyPost.product.id,
+        productName: selectedBuyPost.product.label || "",
+        quantity: Number(buyQuantity),
+        amount: productPrice,
+        notes: buyNotes,
+      };
+
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_BASE_URL}/customer-product-list`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Failed to subscribe/buy product.");
+      }
+
+      toast({
+        title: "Success!",
+        description: `${selectedBuyPost.product.label || "Product"} added to your product list!`,
+      });
+
+      setIsBuyDialogOpen(false);
+      setSelectedBuyPost(null);
+      setBuyQuantity(1);
+      setBuyNotes("");
+    } catch (err: any) {
+      console.error("Error subscribing product:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to add product to your list",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingBuy(false);
+    }
+  };
 
   const handleSave = async (postId: number) => {
     if (!userId) {
@@ -368,24 +484,36 @@ const Feed = () => {
                             </p>
                           </div>
                         </div>
-                        {isAdminOrVendor && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleDeletePost(post.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Post
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isCustomer && post.product && (
+                            <Button
+                              onClick={() => handleBuyNowClick(post)}
+                              size="sm"
+                              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold shadow-sm rounded-lg text-xs py-1.5 px-3 flex items-center gap-1.5 transition-all duration-300 hover:scale-105"
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5" />
+                              Buy Now
+                            </Button>
+                          )}
+                          {isAdminOrVendor && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleDeletePost(post.id)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Post
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
 
@@ -570,7 +698,109 @@ const Feed = () => {
             )}
           </div>
         </DialogContent>
-      </Dialog>    </div>
+      </Dialog>
+
+      {/* BUY NOW DIALOG */}
+      <Dialog open={isBuyDialogOpen} onOpenChange={(o) => {
+        setIsBuyDialogOpen(o);
+        if (!o) setSelectedBuyPost(null);
+      }}>
+        <DialogContent className="max-w-md border-green-200">
+          <DialogHeader>
+            <DialogTitle className="text-green-700 flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-emerald-600" />
+              Subscribe / Buy Product
+            </DialogTitle>
+            <DialogDescription>
+              Add this product to your daily product subscription list.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBuyPost?.product && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-gray-500 uppercase">Product Name</Label>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 font-medium text-sm text-gray-800">
+                  {selectedBuyPost.product.label || ""}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-gray-500 uppercase">Price</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 font-semibold text-sm text-gray-800">
+                    ₹{selectedBuyPost.product.dailyPrices?.[0]?.amount || 0}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="quantity" className="text-xs font-semibold text-gray-500 uppercase">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={buyQuantity}
+                    onChange={(e) => setBuyQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-gray-500 uppercase">Subscription Plan</Label>
+                {vendorPlans.length > 0 ? (
+                  <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendorPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id.toString()}>
+                          {plan.planName} (₹{plan.price} / {plan.duration})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-sm text-red-500 bg-red-50 border border-red-100 p-3 rounded-lg">
+                    This vendor has no subscription plans configured.
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="notes" className="text-xs font-semibold text-gray-500 uppercase">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="e.g. deliver after 8 AM, ring doorbell"
+                  value={buyNotes}
+                  onChange={(e) => setBuyNotes(e.target.value)}
+                  className="resize-none"
+                  rows={2}
+                />
+              </div>
+
+              <div className="p-3 bg-green-50 rounded-lg border border-green-100 flex justify-between items-center">
+                <span className="text-xs font-semibold text-green-800 uppercase">Estimated Total</span>
+                <span className="text-lg font-bold text-green-700">
+                  ₹{((selectedBuyPost.product.dailyPrices?.[0]?.amount || 0) * buyQuantity).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => setIsBuyDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmBuy}
+                  disabled={submittingBuy || (vendorPlans.length > 0 && !selectedPlanId)}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
+                >
+                  {submittingBuy ? "Processing..." : "Confirm Order"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

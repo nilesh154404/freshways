@@ -15,6 +15,9 @@ INSERT INTO `user` (
   NOW()
 );
 
+
+
+
 -- Get the user ID
 SET @userId = LAST_INSERT_ID();
 SELECT @userId as user_id;

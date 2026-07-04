@@ -17,20 +17,45 @@ export class UpsertHealthProfileDto {
   userId: number;
 
 
-  @ApiProperty({ example: 165, description: 'Height in centimeters' })
+  @ApiPropertyOptional({ example: 165, description: 'Height in centimeters' })
+  @IsOptional()
   @IsNumber()
-  @IsPositive()
-  heightCm: number;
+  heightCm?: number;
+
+  @ApiPropertyOptional({ example: 165, description: 'Height value' })
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+
+  @ApiPropertyOptional({ example: 'cm', enum: ['cm', 'inch'], description: 'Height unit (cm or inch)' })
+  @IsOptional()
+  @IsString()
+  heightUnit?: string;
 
   @ApiProperty({ example: 68, description: 'Weight in kilograms' })
   @IsNumber()
   @IsPositive()
   weightKg: number;
 
+  @ApiPropertyOptional({ example: 24.9, description: 'Body Mass Index' })
+  @IsOptional()
+  @IsNumber()
+  bmi?: number;
+
+  @ApiPropertyOptional({ example: 'Maintain weight', description: 'Health Goal (Gain weight, Loose weight, Maintain weight, Stay healthy, Diating)' })
+  @IsOptional()
+  @IsString()
+  goal?: string;
+
   @ApiPropertyOptional({ example: 'O+' })
   @IsOptional()
   @IsString()
   bloodGroup?: string;
+
+  @ApiPropertyOptional({ description: 'Custom prompt for health analysis' })
+  @IsOptional()
+  @IsString()
+  analysisPrompt?: string;
 
   @ApiPropertyOptional({ example: 'Type 2 diabetes, controlled blood pressure' })
   @IsOptional()

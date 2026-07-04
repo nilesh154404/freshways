@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsEnum, IsDateString, IsNumber, IsArray } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsEnum, IsDateString, IsNumber, IsArray, IsString } from 'class-validator';
 import { CreateListedOrderDto } from 'src/listed-order/dto/create-listed-order.dto';
 import { ListedOrder } from 'src/listed-order/entities/listed-order.entity';
 
@@ -31,6 +31,26 @@ export class CreateNewOrderDto {
     @IsOptional()
     @IsNumber()
     grandTotal?: number;
+
+    @ApiPropertyOptional({ description: 'Flat No' })
+    @IsOptional()
+    @IsString()
+    flatNo?: string;
+
+    @ApiPropertyOptional({ description: 'Floor No' })
+    @IsOptional()
+    @IsString()
+    floorNo?: string;
+
+    @ApiPropertyOptional({ description: 'Delivery Address' })
+    @IsOptional()
+    @IsString()
+    address?: string;
+
+    @ApiPropertyOptional({ description: 'Mobile/Phone No' })
+    @IsOptional()
+    @IsString()
+    phone?: string;
 
     @ApiPropertyOptional({ description: 'Listed Orders', type: [Object] })
     @IsOptional()

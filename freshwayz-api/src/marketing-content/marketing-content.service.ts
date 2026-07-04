@@ -84,13 +84,13 @@ export class MarketingContentService {
 
     return this.marketingRepo.findOne({
       where: { id: content.id },
-      relations: ['category', 'product', 'vendor', 'media'],
+      relations: ['category', 'product', 'product.dailyPrices', 'vendor', 'media'],
     });
   }
 
   findAll() {
     return this.marketingRepo.find({
-      relations: ['media', 'product', 'vendor', 'category', 'saves', 'comments'],
+      relations: ['media', 'product', 'product.dailyPrices', 'vendor', 'category', 'saves', 'comments'],
       order: {
         id: 'DESC',
       }
@@ -149,6 +149,7 @@ export class MarketingContentService {
       .leftJoinAndSelect('content.vendor', 'vendor')
       .leftJoinAndSelect('content.category', 'category')
       .leftJoinAndSelect('content.product', 'product')
+      .leftJoinAndSelect('product.dailyPrices', 'dailyPrices')
       .leftJoinAndSelect('content.comments', 'comments')
       .leftJoinAndSelect('content.likes', 'likes')
       .leftJoinAndSelect('content.saves', 'saves')

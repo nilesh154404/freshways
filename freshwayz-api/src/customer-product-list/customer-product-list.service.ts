@@ -31,10 +31,13 @@ export class CustomerProductListService {
     const customer = await this.customerRepo.findOneBy({ id: dto.customerId });
     if (!customer) throw new NotFoundException('Customer not found');
 
-    const plan = await this.planRepo.findOneBy({
-      id: dto.vendorSubscriptionPlanId,
-    });
-    if (!plan) throw new NotFoundException('Subscription plan not found');
+    let plan: VendorSubscriptionPlan | null = null;
+    if (dto.vendorSubscriptionPlanId != null) {
+      plan = await this.planRepo.findOneBy({
+        id: dto.vendorSubscriptionPlanId,
+      });
+      if (!plan) throw new NotFoundException('Subscription plan not found');
+    }
 
     let product: Product | null = null;
     if (dto.productId != null) {
