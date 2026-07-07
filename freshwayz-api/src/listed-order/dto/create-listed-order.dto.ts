@@ -22,7 +22,7 @@ export class CreateListedOrderDto {
   // @ApiProperty({ description: 'Customer ID placing the order' })
   // @IsNotEmpty()
   // customerId: number;
-  
+
   @ApiPropertyOptional({
     description: 'Optional product ID if linked to a product',
     example: 5,
