@@ -22,4 +22,8 @@ export class CreateDeliverySlotDto {
   @ApiProperty({ example: true })
   @IsBoolean()
   isActive: boolean;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsInt()
+  planId?: number;
 }

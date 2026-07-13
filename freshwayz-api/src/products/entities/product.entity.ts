@@ -38,7 +38,7 @@ export class Product {
     @ManyToOne(() => Vendor, vendor => vendor.products, { nullable: true })
     vendor: Vendor;
 
-    @ManyToOne(() => VendorSubscriptionPlan, vendorSubscriptionPlan => vendorSubscriptionPlan.products, { nullable: true })
+    @ManyToOne(() => VendorSubscriptionPlan, vendorSubscriptionPlan => vendorSubscriptionPlan.products, { nullable: true, onDelete: 'SET NULL' })
     vendorSubscriptionPlan: VendorSubscriptionPlan;
 
     @ManyToOne(type => Categories, category => category.products)

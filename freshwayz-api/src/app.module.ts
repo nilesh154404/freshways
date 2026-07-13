@@ -30,6 +30,7 @@ import { DeliverySlotsModule } from './delivery-slot/delivery-slot.module';
 import { ProductDiscountModule } from './product-discount/product-discount.module';
 import { CustomerProductListModule } from './customer-product-list/customer-product-list.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -76,8 +77,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     MarketingContentModule,
     DeliverySlotsModule,
     ProductDiscountModule,
-    CustomerProductListModule
-    ,
+    CustomerProductListModule,
+    ReportsModule,
     // AI proxy module (provides /api/chat and /api/recommendations)
     require('./ai/ai.module').AiModule
   ],

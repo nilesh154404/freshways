@@ -15,6 +15,9 @@ export class DeliverySlotsService {
 
   create(dto: CreateDeliverySlotDto) {
     const slot = this.slotRepository.create(dto);
+    if (dto.planId) {
+      slot.vendorSubscriptionPlan = { id: dto.planId } as any;
+    }
     return this.slotRepository.save(slot);
   }
 

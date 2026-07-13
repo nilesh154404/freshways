@@ -78,6 +78,9 @@ type APIOrder = {
         id: number;
         fullName: string;
         phone: string;
+        flatNo?: string;
+        floorNo?: string;
+        address?: string;
     };
     vendor: any;
     community: Community;
@@ -89,6 +92,20 @@ type APIOrder = {
     grandTotal: string;
     listedOrders: ListedOrder[];
     payments: Payment[];
+    phone?: string;
+    flatNo?: string;
+    floorNo?: string;
+    address?: string;
+    deliverySlot?: {
+        id: number;
+        date: string;
+        startTime: string;
+        endTime: string;
+    } | null;
+    vendorSubscriptionPlan?: {
+        id: number;
+        label: string;
+    } | null;
 };
 
 //
@@ -468,6 +485,25 @@ export default function OrdersReport() {
                                     <p className="text-muted-foreground font-medium">Mobile Number</p>
                                     <p className="font-semibold text-foreground">{selectedOrder.phone || selectedOrder.customer?.phone || "N/A"}</p>
                                 </div>
+
+                                <div>
+                                    <p className="text-muted-foreground font-medium">Order Type</p>
+                                    <p className="font-semibold text-foreground">
+                                        {selectedOrder.vendorSubscriptionPlan?.label || "One-time Order"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground font-medium">Delivery Slot</p>
+                                    <p className="font-semibold text-foreground">
+                                        {selectedOrder.deliverySlot ? `${selectedOrder.deliverySlot.startTime} - ${selectedOrder.deliverySlot.endTime}` : "Anytime"}
+                                    </p>
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <p className="text-muted-foreground font-medium">Community</p>
+                                    <p className="font-semibold text-foreground">{selectedOrder.community?.name || "N/A"}</p>
+                                </div>
+
                                 <div className="sm:col-span-2">
                                     <p className="text-muted-foreground font-medium">Delivery Address</p>
                                     <p className="font-semibold text-foreground">

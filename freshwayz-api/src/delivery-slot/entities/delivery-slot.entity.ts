@@ -30,11 +30,11 @@ export class DeliverySlot {
   @Column({ default: true })
   isActive: boolean;
 
-  @ManyToOne(() => VendorSubscriptionPlan, vendorSubscriptionPlan => vendorSubscriptionPlan.deliverySlot)
+  @ManyToOne(() => VendorSubscriptionPlan, vendorSubscriptionPlan => vendorSubscriptionPlan.deliverySlot, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'vendorSubscriptionPlanId' })
   vendorSubscriptionPlan: VendorSubscriptionPlan;
 
-  @OneToMany(() => Order, order => order.vendor)
+  @OneToMany(() => Order, order => order.deliverySlot)
   orders: Order[];
 
   @CreateDateColumn()

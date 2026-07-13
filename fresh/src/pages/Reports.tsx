@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Download, FileText, TrendingUp, Users, Package } from "lucide-react";
 import { toast } from "sonner";
+import axios from "axios";
+import { API_BASE_URL } from "@/lib/api";
 
 type ReportType = {
   id: string;
@@ -24,6 +26,7 @@ const Reports = () => {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [exportFormat, setExportFormat] = useState<string>("csv");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const reportTypes: ReportType[] = [
     {
@@ -56,7 +59,7 @@ const Reports = () => {
     },
   ];
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (!selectedReport) {
       toast.error("Please select a report type");
       return;
@@ -67,14 +70,44 @@ const Reports = () => {
     }
 
     const reportName = reportTypes.find(r => r.id === selectedReport)?.name || "Report";
-    toast.success(`Generating ${reportName}...`, {
-      description: `Date range: ${format(dateFrom, "PP")} to ${format(dateTo, "PP")}`,
-    });
+    setIsGenerating(true);
 
-    // Simulate report generation
-    setTimeout(() => {
+    try {
+      const formattedFrom = format(dateFrom, "yyyy-MM-dd");
+      const formattedTo = format(dateTo, "yyyy-MM-dd");
+
+      const response = await axios.get(`${API_BASE_URL}/reports/generate`, {
+        params: {
+          type: selectedReport,
+          dateFrom: formattedFrom,
+          dateTo: formattedTo,
+          format: exportFormat,
+        },
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const filename = `${selectedReport}_report_${formattedFrom}_to_${formattedTo}.csv`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast.success(`${reportName} downloaded successfully!`);
-    }, 2000);
+    } catch (error: any) {
+      console.error("Failed to generate report:", error);
+      toast.error(`Failed to generate ${reportName}`, {
+        description: error.response?.data?.message || error.message || "An unknown error occurred",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const selectedReportData = reportTypes.find(r => r.id === selectedReport);
@@ -185,9 +218,9 @@ const Reports = () => {
                   </Select>
                 </div>
 
-                <Button onClick={handleGenerateReport} className="w-full gap-2">
+                <Button onClick={handleGenerateReport} disabled={isGenerating} className="w-full gap-2">
                   <Download className="h-4 w-4" />
-                  Generate & Download Report
+                  {isGenerating ? "Generating..." : "Generate & Download Report"}
                 </Button>
               </CardContent>
             </Card>

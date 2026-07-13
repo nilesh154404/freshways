@@ -21,7 +21,7 @@ export class Order {
     @ManyToOne(() => Community, community => community.orders, { nullable: false })
     community: Community;
 
-    @ManyToOne(() => VendorSubscriptionPlan, vendorSubscriptionPlan => vendorSubscriptionPlan.order, { nullable: true })
+    @ManyToOne(() => VendorSubscriptionPlan, vendorSubscriptionPlan => vendorSubscriptionPlan.order, { nullable: true, onDelete: 'SET NULL' })
     vendorSubscriptionPlan?: VendorSubscriptionPlan;
 
     @ManyToOne(() => DeliverySlot, deliverySlot => deliverySlot.orders, { nullable: true })

@@ -20,9 +20,15 @@ export class PaymentsController {
     
     const verificationResult = await this.paymentsService.verifyPaymentResponse(query);
     
+    // === OLD CODE (Commented out to fix mobile white screen) ===
     // In a real application, you might want to redirect to a frontend page:
     // return res.redirect(`http://localhost:4200/payment/status?success=${verificationResult.success}&txnId=${verificationResult.transactionId}`);
-    
-    return res.json(verificationResult);
+    // return res.json(verificationResult); 
+    // ==========================================================
+
+    // === NEW CODE (Added to support mobile app deep linking) ===
+    // Redirect back to the mobile app instead of returning JSON
+    return res.redirect(`freshways://gateway?success=${verificationResult.success}&txnId=${verificationResult.transactionId}`);
+    // ==========================================================
   }
 }

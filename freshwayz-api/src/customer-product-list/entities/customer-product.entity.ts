@@ -11,7 +11,7 @@ export class CustomerProduct {
   @ManyToOne(() => Customer, { eager: true })
   customer: Customer;
 
-  @ManyToOne(() => VendorSubscriptionPlan, { eager: true, nullable: true })
+  @ManyToOne(() => VendorSubscriptionPlan, { eager: true, nullable: true, onDelete: 'CASCADE' })
   vendorSubscriptionPlan: VendorSubscriptionPlan | null;
 
   // OPTIONAL product reference

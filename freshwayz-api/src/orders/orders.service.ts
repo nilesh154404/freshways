@@ -170,7 +170,15 @@ export class OrderService {
     // Set grand total
     order.grandTotal = createDto.grandTotal ?? total;
 
-    return this.orderRepo.save(order);
+    const saved = await this.orderRepo.save(order);
+    const found = await this.orderRepo.findOne({
+      where: { id: saved.id },
+      relations: ['customer', 'vendor', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'],
+    });
+    if (!found) {
+      throw new NotFoundException(`Order with ID ${saved.id} not found`);
+    }
+    return found;
   }
 
   async updateStatus(orderId: number, dto: UpdateOrderStatusDto): Promise<Order> {
@@ -284,13 +292,20 @@ export class OrderService {
 
     console.log(`Order #${finalOrder.id} placed successfully from product list`);
 
-    return finalOrder;
+    const found = await this.orderRepo.findOne({
+      where: { id: finalOrder.id },
+      relations: ['customer', 'vendor', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'],
+    });
+    if (!found) {
+      throw new NotFoundException(`Order with ID ${finalOrder.id} not found`);
+    }
+    return found;
   }
 
   async findByCustomerId(customerId: number): Promise<Order[]> {
     const orders = await this.orderRepo.find({
       where: { customer: { id: customerId } },
-      relations: ['customer', 'vendor', 'listedOrders.product', 'deliverySlot', 'community', 'listedOrders', 'payments'],
+      relations: ['customer', 'vendor', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'],
       order: { createdAt: 'DESC' },
     });
 
@@ -363,6 +378,8 @@ export class OrderService {
       .leftJoinAndSelect('order.community', 'community')
       .leftJoinAndSelect('order.listedOrders', 'listedOrders')
       .leftJoinAndSelect('listedOrders.product', 'product')
+      .leftJoinAndSelect('order.deliverySlot', 'deliverySlot')
+      .leftJoinAndSelect('order.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
       .leftJoinAndSelect('order.payments', 'payments')
       .where('order.isDeleted = false');
 
@@ -405,7 +422,7 @@ export class OrderService {
   async findOne(id: number): Promise<Order> {
     const order = await this.orderRepo.findOne({
       where: { id },
-      relations: ['customer', 'vendor', 'community', 'listedOrders', 'payments'],
+      relations: ['customer', 'vendor', 'community', 'listedOrders', 'listedOrders.product', 'payments', 'deliverySlot', 'vendorSubscriptionPlan'],
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
@@ -455,14 +472,14 @@ export class OrderService {
   async getOrdersByCustomer(customerId: number): Promise<Order[]> {
     return this.orderRepo.find({
       where: { customer: { id: customerId }, isDeleted: false },
-      relations: ['vendor', 'community', 'listedOrders', 'payments'],
+      relations: ['vendor', 'community', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'payments'],
     });
   }
 
   async getOrdersByVendor(vendorId: number): Promise<Order[]> {
     return this.orderRepo.find({
       where: { vendor: { id: vendorId }, isDeleted: false },
-      relations: ['customer', 'community', 'listedOrders', 'payments'],
+      relations: ['customer', 'community', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'payments'],
     });
   }
 

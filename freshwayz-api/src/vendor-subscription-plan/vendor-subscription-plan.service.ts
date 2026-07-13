@@ -66,7 +66,8 @@ export class VendorSubscriptionPlanService {
   }
 
   async remove(id: number) {
-    const plan = await this.findOne(id);
+    const plan = await this.repo.findOne({ where: { id } });
+    if (!plan) throw new NotFoundException('Plan not found');
     return this.repo.remove(plan);
   }
 

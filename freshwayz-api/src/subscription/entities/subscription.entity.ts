@@ -10,7 +10,7 @@ export class Subscription {
     @ManyToOne(() => Customer, customer => customer.subscriptions, { eager: true })
     customer: Customer;
 
-    @ManyToOne(() => VendorSubscriptionPlan, plan => plan.subscriptions, { eager: true })
+    @ManyToOne(() => VendorSubscriptionPlan, plan => plan.subscriptions, { eager: true, onDelete: 'CASCADE' })
     plan: VendorSubscriptionPlan;
 
     @Column({ type: 'timestamp', default: () => "CURRENT_TIMESTAMP" })
