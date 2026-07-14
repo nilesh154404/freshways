@@ -27,15 +27,24 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<Payment>,
     private readonly configService: ConfigService
   ) {
-    this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://test.payplatter.in/Router/initiateTransaction";
-    this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MPANKA261";
-    this.password = this.configService.get<string>('DEXPERT_PASSWORD') || "[C@445aba30";
-    this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "THE265";
-    this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "Wq0F6lS7A5tIJU90";
-    this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "lo4syhqHnRjm4L0T";
+    // this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
+    // this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MPANKA261";
+    // this.password = this.configService.get<string>('DEXPERT_PASSWORD') || "[C@445aba30";
+    // this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "THE265";
+    // this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "Wq0F6lS7A5tIJU90";
+    // this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "lo4syhqHnRjm4L0T";
     
-    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "http://localhost:3000/payments/response";
-    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "http://localhost:3000/payments/response";
+    // this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "http://localhost:3000/payments/response";
+    // this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "http://localhost:3000/payments/response";
+     this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
+    this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MSANDY344";
+    this.password = this.configService.get<string>('DEXPERT_PASSWORD') || "[C@2e2789b";
+    this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "MYA344";
+    this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "HQ9ej2ncdwnbIB5a";
+    this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "wmJRtH4WKvv733tF";
+    
+    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "https://dexpertsystems.com/response";
+    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "https://dexpertsystems.com/response";
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto) {
