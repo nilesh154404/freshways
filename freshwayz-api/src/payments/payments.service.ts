@@ -43,8 +43,8 @@ export class PaymentsService {
     this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "HQ9ej2ncdwnbIB5a";
     this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "wmJRtH4WKvv733tF";
     
-    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "https://dexpertsystems.com/response";
-    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "https://dexpertsystems.com/response";
+    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "https://dexpertsystems.com/Router/EaseBuzz-response.jsp";
+    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "https://dexpertsystems.com/Router/EaseBuzz-response.jsp";
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto) {
