@@ -1,10 +1,19 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { DexpertCryptoUtil } from './dexpert-crypto.util';
-import { Payment, PaymentMethod, PaymentStatus } from './entities/payment.entity';
+import { Order } from 'src/orders/entities/order.entity';
+import {
+  Payment,
+  PaymentMethod,
+  PaymentStatus,
+} from './entities/payment.entity';
 
 @Injectable()
 export class PaymentsService {
@@ -17,37 +26,52 @@ export class PaymentsService {
   private readonly merchantCode: string;
   private readonly privateKey: string;
   private readonly privateValue: string;
-  
+
   // URLs for payment gateway response redirects
   private readonly urlSuccess: string;
   private readonly urlFail: string;
 
+  private generateReceiptNumber(orderId: number, transactionId: string): string {
+    const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+    const txnSuffix = transactionId.slice(-6).toUpperCase();
+    return `RCPT-${orderId}-${timestamp}-${txnSuffix}`;
+  }
+
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
     private readonly configService: ConfigService,
   ) {
-    // this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
-    // this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MPANKA261";
-    // this.password = this.configService.get<string>('DEXPERT_PASSWORD') || "[C@445aba30";
-    // this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "THE265";
-    // this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "Wq0F6lS7A5tIJU90";
-    // this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "lo4syhqHnRjm4L0T";
-    // this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "http://localhost:3000/payments/response";
-    // this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "http://localhost:3000/payments/response";
-    this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
-    this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MSANDY344";
-    this.password = this.configService.get<string>('DEXPERT_PASSWORD') || "[C@2e2789b";
-    this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "MYA344";
-    this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "HQ9ej2ncdwnbIB5a";
-    this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "wmJRtH4WKvv733tF";
-    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "freshways://gateway?success=${verificationResult.success}&txnId=${verificationResult.transactionId}";
-    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "freshways://gateway?success=${verificationResult.success}&txnId=${verificationResult.transactionId}";
+    this.routerDomain =
+      this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') ||
+      'https://dexpertsystems.com/Router/initiateTransaction';
+    this.username =
+      this.configService.get<string>('DEXPERT_USERNAME') || 'MSANDY344';
+    this.password =
+      this.configService.get<string>('DEXPERT_PASSWORD') || '[C@2e2789b';
+    this.merchantCode =
+      this.configService.get<string>('DEXPERT_MERCHANT_CODE') || 'MYA344';
+    this.privateKey =
+      this.configService.get<string>('DEXPERT_PRIVATE_KEY') ||
+      'HQ9ej2ncdwnbIB5a';
+    this.privateValue =
+      this.configService.get<string>('DEXPERT_PRIVATE_VALUE') ||
+      'wmJRtH4WKvv733tF';
+    this.urlSuccess =
+      this.configService.get<string>('DEXPERT_URL_SUCCESS') ||
+      'https://freshwayz.dexpertsystems.com/api/payments/response';
+    this.urlFail =
+      this.configService.get<string>('DEXPERT_URL_FAIL') ||
+      'https://freshwayz.dexpertsystems.com/api/payments/response';
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto) {
     if (!createPaymentDto.orderId) {
-      throw new InternalServerErrorException('orderId is required to initiate a payment.');
+      throw new InternalServerErrorException(
+        'orderId is required to initiate a payment.',
+      );
     }
 
     const txnId = createPaymentDto.transactionId || `TXN${Date.now()}`;
@@ -60,12 +84,16 @@ export class PaymentsService {
         method: PaymentMethod.ONLINE,
         status: PaymentStatus.PENDING,
         amount: txnAmt,
-        transactionId: txnId
+        transactionId: txnId,
       });
       await this.paymentRepository.save(newPayment);
     } catch (error: any) {
-      this.logger.error(`Failed to create pending payment record: ${error.message}`);
-      throw new InternalServerErrorException(`Could not initiate payment in the database. Ensure orderId ${createPaymentDto.orderId} exists. Error: ${error.message}`);
+      this.logger.error(
+        `Failed to create pending payment record: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        `Could not initiate payment in the database. Ensure orderId ${createPaymentDto.orderId} exists. Error: ${error.message}`,
+      );
     }
 
     const customerName = createPaymentDto.customerName || '';
@@ -76,9 +104,12 @@ export class PaymentsService {
     const settlement_split = `online_${txnAmt}~`;
 
     const routerUrl = `?mcode=${this.merchantCode}&uname=${this.username}&psw=${this.password}&amount=${txnAmt}&settlement_split=${settlement_split}&mtxnId=${txnId}&pfname=${pfname}&plname=${plname}&pmno=${pmno}&pemail=${pemail}&padd=&surl=${this.urlSuccess}&furl=${this.urlFail}&udf6=`;
-
-    const encryptedUrl = DexpertCryptoUtil.encrypt(routerUrl, this.privateValue, this.privateKey);
-    // URL encode the '+' sign
+    console.log(routerUrl);
+    const encryptedUrl = DexpertCryptoUtil.encrypt(
+      routerUrl,
+      this.privateValue,
+      this.privateKey,
+    );
     const finalEncryptedUrl = encryptedUrl.replace(/\+/g, '%2B');
 
     const query = `?query=${finalEncryptedUrl}&mcode=${this.merchantCode}`;
@@ -88,57 +119,139 @@ export class PaymentsService {
       paymentUrl: fullPaymentUrl,
       transactionId: txnId,
       encryptedQuery: finalEncryptedUrl,
-      merchantCode: this.merchantCode
+      merchantCode: this.merchantCode,
     };
   }
 
   async verifyPaymentResponse(encryptedQuery: string) {
     try {
-      // Browsers often convert '+' to ' ' in query parameters. 
+      // Browsers often convert '+' to ' ' in query parameters.
       // We must revert spaces back to '+' for base64 decryption to work!
       const sanitizedQuery = encryptedQuery.replace(/ /g, '+');
-      const decText = DexpertCryptoUtil.decrypt(sanitizedQuery, this.privateValue, this.privateKey);
-      
+      const decText = DexpertCryptoUtil.decrypt(
+        sanitizedQuery,
+        this.privateValue,
+        this.privateKey,
+      );
+
       const decryptValues = decText.split('&');
-      
+
       const responseData: Record<string, string> = {};
-      decryptValues.forEach(val => {
+      decryptValues.forEach((val) => {
         const [key, value] = val.split('=');
         if (key) {
           responseData[key] = value || '';
         }
       });
 
-      const orderStatusStr = responseData['status'] || responseData['order_status'] || '';
-      const transactionId = responseData['mtxnId'] || responseData['pg_transt_id'];
-      
+      const orderStatusStr =
+        responseData['status'] || responseData['order_status'] || '';
+      const transactionId =
+        responseData['mtxnId'] || responseData['pg_transt_id'];
+
       const isSuccess = orderStatusStr.toLowerCase() === 'success';
+      let receiptNumber: string | undefined;
 
       if (transactionId) {
-         // Update DB status
-         const payment = await this.paymentRepository.findOne({ where: { transactionId } });
-         if (payment) {
-           payment.status = isSuccess ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
-           await this.paymentRepository.save(payment);
-         } else {
-           this.logger.warn(`Received payment response for unknown transactionId: ${transactionId}`);
-         }
+        // Update DB status
+        const payment = await this.paymentRepository.findOne({
+          where: { transactionId },
+          relations: ['order'],
+        });
+        if (payment) {
+          payment.status = isSuccess
+            ? PaymentStatus.SUCCESS
+            : PaymentStatus.FAILED;
+
+          if (isSuccess && payment.order?.id) {
+            payment.receiptNumber =
+              payment.receiptNumber ||
+              this.generateReceiptNumber(payment.order.id, transactionId);
+            receiptNumber = payment.receiptNumber;
+          }
+
+          await this.paymentRepository.save(payment);
+
+          const orderId = payment.order?.id;
+          if (orderId) {
+            const order = await this.orderRepository.findOne({
+              where: { id: orderId },
+            });
+            if (order) {
+              order.paymentStatus = isSuccess ? 'PAID' : 'FAILED';
+              await this.orderRepository.save(order);
+            } else {
+              this.logger.warn(
+                `Payment ${transactionId} saved, but order ${orderId} was not found for status update`,
+              );
+            }
+          }
+        } else {
+          this.logger.warn(
+            `Received payment response for unknown transactionId: ${transactionId}`,
+          );
+        }
       }
 
       return {
         success: isSuccess,
         data: responseData,
-        orderStatus: orderStatusStr ? orderStatusStr.charAt(0).toUpperCase() + orderStatusStr.slice(1) : 'Unknown',
+        orderStatus: orderStatusStr
+          ? orderStatusStr.charAt(0).toUpperCase() + orderStatusStr.slice(1)
+          : 'Unknown',
         transactionId: transactionId,
-        amount: responseData['amount']
+        amount: responseData['amount'],
+        receiptNumber,
       };
     } catch (error: any) {
       this.logger.error(`Error verifying payment response: ${error.message}`);
       return {
         success: false,
         message: 'Invalid payment response signature or data',
-        error: error.message
+        error: error.message,
       };
     }
+  }
+
+  async getReceiptByNumber(receiptNumber: string) {
+    const payment = await this.paymentRepository.findOne({
+      where: { receiptNumber },
+      relations: [
+        'order',
+        'order.customer',
+        'order.listedOrders',
+        'order.listedOrders.product',
+      ],
+    });
+
+    if (!payment) {
+      return null;
+    }
+
+    const items = (payment.order?.listedOrders || []).map((item) => {
+      const unitPrice = Number(item.amount ?? 0);
+      const quantity = Number(item.quantity ?? 0);
+      const lineTotal = Number(item.discountedAmount ?? unitPrice * quantity);
+
+      return {
+        name: item.product?.label || item.productName || 'Item',
+        quantity,
+        unitPrice,
+        lineTotal,
+      };
+    });
+
+    return {
+      receiptNumber: payment.receiptNumber,
+      transactionId: payment.transactionId,
+      amount: payment.amount,
+      paymentStatus: payment.status,
+      orderId: payment.order?.id,
+      customerName: payment.order?.customer?.fullName,
+      orderPaymentStatus: payment.order?.paymentStatus,
+      orderTotal: payment.order?.grandTotal,
+      items,
+      createdAt: payment.createdAt,
+    };
   }
 }

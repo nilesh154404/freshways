@@ -14,7 +14,7 @@ $privateKey = "HQ9ej2ncdwnbIB5a"; //Authentication Key Provided By Router live
 
 $privateValue = "wmJRtH4WKvv733tF"; //Authentication IV Provided by Router live
 
-$URLsuccess ="https://dexpertsystems.com/Router/EaseBuzz-response.jsp"; // Return URL for successful transaction
-$URLfail ="https://dexpertsystems.com/Router/EaseBuzz-response.jsp";
+$URLsuccess ="https://dexpertsystems.com/response"; // Return URL for successful transaction
+$URLfail ="https://dexpertsystems.com/response";
 
 ?>

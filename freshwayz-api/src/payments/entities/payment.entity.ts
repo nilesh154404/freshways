@@ -43,6 +43,10 @@ export class Payment {
     @Column({ nullable: true })
     transactionId: string;
 
+    // Generated receipt number for successful payments
+    @Column({ nullable: true })
+    receiptNumber: string;
+
     // For offline references → (cash, manual UPI, cheque, bank transfer)
     @Column({ nullable: true })
     referenceNote: string;
