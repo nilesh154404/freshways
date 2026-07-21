@@ -25,7 +25,7 @@ export class PaymentsService {
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {
     // this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
     // this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MPANKA261";
@@ -33,18 +33,16 @@ export class PaymentsService {
     // this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "THE265";
     // this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "Wq0F6lS7A5tIJU90";
     // this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "lo4syhqHnRjm4L0T";
-    
     // this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "http://localhost:3000/payments/response";
     // this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "http://localhost:3000/payments/response";
-     this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
+    this.routerDomain = this.configService.get<string>('DEXPERT_ROUTER_DOMAIN') || "https://dexpertsystems.com/Router/initiateTransaction";
     this.username = this.configService.get<string>('DEXPERT_USERNAME') || "MSANDY344";
     this.password = this.configService.get<string>('DEXPERT_PASSWORD') || "[C@2e2789b";
     this.merchantCode = this.configService.get<string>('DEXPERT_MERCHANT_CODE') || "MYA344";
     this.privateKey = this.configService.get<string>('DEXPERT_PRIVATE_KEY') || "HQ9ej2ncdwnbIB5a";
     this.privateValue = this.configService.get<string>('DEXPERT_PRIVATE_VALUE') || "wmJRtH4WKvv733tF";
-    
-    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "https://dexpertsystems.com/Router/EaseBuzz-response.jsp";
-    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "https://dexpertsystems.com/Router/EaseBuzz-response.jsp";
+    this.urlSuccess = this.configService.get<string>('DEXPERT_URL_SUCCESS') || "freshways://gateway?success=${verificationResult.success}&txnId=${verificationResult.transactionId}";
+    this.urlFail = this.configService.get<string>('DEXPERT_URL_FAIL') || "freshways://gateway?success=${verificationResult.success}&txnId=${verificationResult.transactionId}";
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto) {
