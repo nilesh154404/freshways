@@ -14,7 +14,7 @@ export class Product {
     @Column()
     label: string;
 
-    @Column()
+    @Column({ type: 'text' })
     description: string;
 
     @Column()
