@@ -9,11 +9,11 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('generate')
-  @ApiOperation({ summary: 'Generate and download business reports in CSV format' })
+  @ApiOperation({ summary: 'Generate and download business reports' })
   @ApiQuery({ name: 'type', required: true, example: 'sales', description: 'sales, vendors, users, subscriptions' })
   @ApiQuery({ name: 'dateFrom', required: true, example: '2026-01-01', description: 'Start Date (YYYY-MM-DD)' })
   @ApiQuery({ name: 'dateTo', required: true, example: '2026-12-31', description: 'End Date (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'format', required: false, example: 'csv', description: 'csv, excel, pdf (currently returns CSV)' })
+  @ApiQuery({ name: 'format', required: false, example: 'csv', description: 'csv, excel, pdf' })
   async generateReport(
     @Query('type') type: string,
     @Query('dateFrom') dateFrom: string,
@@ -26,12 +26,20 @@ export class ReportsController {
     }
 
     try {
-      const csvData = await this.reportsService.generateReport(type, dateFrom, dateTo);
-      const filename = `${type}_report_${dateFrom}_to_${dateTo}.csv`;
+      const reportData = await this.reportsService.generateReport(type, dateFrom, dateTo, format);
+      const extension = format.toLowerCase() === 'excel' ? 'xlsx' : format.toLowerCase();
+      const filename = `${type}_report_${dateFrom}_to_${dateTo}.${extension}`;
 
-      res.setHeader('Content-Type', 'text/csv');
+      let contentType = 'text/csv';
+      if (format.toLowerCase() === 'pdf') {
+        contentType = 'application/pdf';
+      } else if (format.toLowerCase() === 'excel') {
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+
+      res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.status(200).send(csvData);
+      res.status(200).send(reportData);
     } catch (error: any) {
       res.status(error.status || 500).json({
         statusCode: error.status || 500,

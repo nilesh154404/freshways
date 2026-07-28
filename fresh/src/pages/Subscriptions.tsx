@@ -66,6 +66,7 @@ const Subscriptions = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [viewSlotDialogOpen, setViewSlotDialogOpen] = useState(false);
   const [addSlotDialogOpen, setAddSlotDialogOpen] = useState(false);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [slotFormData, setSlotFormData] = useState({
     date: "",
     startTime: "",
@@ -160,7 +161,14 @@ const Subscriptions = () => {
       setPlans((prev) =>
         prev.map((p) => (p.id === planId ? { ...p, customers: planCustomers } : p))
       );
-      setSelectedPlan(plans.find((p) => p.id === planId) || null);
+      
+      const currentPlan = plans.find((p) => p.id === planId);
+      if (currentPlan) {
+        setSelectedPlan({ ...currentPlan, customers: planCustomers });
+      } else {
+        setSelectedPlan(null);
+      }
+      setCustomerDialogOpen(true);
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch customers");
@@ -170,11 +178,11 @@ const Subscriptions = () => {
   /* ================= DELIVERY SLOTS ================= */
   const handleViewSlots = async (plan: Plan) => {
     try {
-      const response = await axios.get(`${API_BASE}/delivery-slots/vendor-subscription-plan/${plan.id}`);
+      const response = await axios.get<DeliverySlot[]>(`${API_BASE}/delivery-slots/vendor-subscription-plan/${plan.id}`);
       setPlans((prev) =>
         prev.map((p) => (p.id === plan.id ? { ...p, deliverySlots: response.data } : p))
       );
-      setSelectedPlan(plan);
+      setSelectedPlan({ ...plan, deliverySlots: response.data });
       setViewSlotDialogOpen(true);
     } catch (err) {
       console.error(err);
@@ -342,27 +350,31 @@ const Subscriptions = () => {
         </div>
 
         {/* Customers Dialog */}
-        {selectedPlan && selectedPlan.customers && (
-          <Dialog open={!!selectedPlan.customers.length} onOpenChange={() => setSelectedPlan(null)}>
+        {selectedPlan && (
+          <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Customers - {selectedPlan.label}</DialogTitle>
               </DialogHeader>
               <div className="mt-4 max-h-80 overflow-auto">
-                <ul className="space-y-2">
-                  {selectedPlan.customers.map((c) => (
-                    <li
-                      key={c.id}
-                      className="flex justify-between border p-2 rounded hover:bg-gray-50 transition"
-                    >
-                      <span>{c.fullName}</span>
-                      <span className="text-muted-foreground">{c.email}</span>
-                    </li>
-                  ))}
-                </ul>
+                {selectedPlan.customers?.length ? (
+                  <ul className="space-y-2">
+                    {selectedPlan.customers.map((c) => (
+                      <li
+                        key={c.id}
+                        className="flex justify-between border p-2 rounded hover:bg-gray-50 transition"
+                      >
+                        <span>{c.fullName}</span>
+                        <span className="text-muted-foreground">{c.email}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">No customers found.</p>
+                )}
               </div>
               <DialogFooter>
-                <Button onClick={() => setSelectedPlan(null)}>Close</Button>
+                <Button onClick={() => setCustomerDialogOpen(false)}>Close</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

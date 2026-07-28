@@ -91,7 +91,8 @@ const Reports = () => {
       const link = document.createElement('a');
       link.href = url;
       
-      const filename = `${selectedReport}_report_${formattedFrom}_to_${formattedTo}.csv`;
+      const extension = exportFormat === 'excel' ? 'xlsx' : exportFormat;
+      const filename = `${selectedReport}_report_${formattedFrom}_to_${formattedTo}.${extension}`;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();

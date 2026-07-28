@@ -10,6 +10,7 @@
 ## 📁 Merged Contents
 
 ### Your Code (Base) + Friend's Code (Merged)
+
 - ✅ All your files preserved
 - ✅ All friend's unique files added
 - ✅ No files removed
@@ -65,6 +66,7 @@ development/
 ## 🔧 Technology Stack
 
 ### Frontend (fresh/)
+
 - **Framework**: React 18+ with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
@@ -75,6 +77,7 @@ development/
 - **Validation**: Zod/Class Validator
 
 ### Backend (freshwayz-api/)
+
 - **Framework**: NestJS
 - **Database**: MySQL (TypeORM)
 - **Authentication**: JWT + Passport
@@ -88,18 +91,21 @@ development/
 ## ✨ Key Features (Both Versions)
 
 ### Your Additions:
+
 - Feed functionality
 - Saved posts system
 - Latest dependency versions
 - Port: 8080 configuration
 
 ### Friend's Additions:
+
 - Complete backend API structure
 - All modules and controllers
 - Database entities and relationships
 - Authentication & Authorization
 
 ### Combined:
+
 - ✅ Full-stack application
 - ✅ Complete API with all endpoints
 - ✅ Frontend with all pages
@@ -113,6 +119,7 @@ development/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ or Bun
 - MySQL Server running
 - npm or bun package manager
@@ -120,6 +127,7 @@ development/
 ### Installation & Setup
 
 #### 1. Frontend Setup
+
 ```bash
 cd development/fresh
 npm install          # or bun install
@@ -128,6 +136,7 @@ npm run dev          # Start development server
 ```
 
 #### 2. Backend Setup
+
 ```bash
 cd development/freshwayz-api
 npm install          # or bun install
@@ -136,6 +145,7 @@ npm run start:dev    # Start development server
 ```
 
 #### 3. Database Setup
+
 ```bash
 # Update .env file with MySQL credentials
 # Run migrations if needed
@@ -147,6 +157,7 @@ npm run typeorm migration:run
 ## 📋 Available Commands
 
 ### Frontend (fresh/)
+
 ```bash
 npm run dev          # Start development server
 npm run build        # Production build
@@ -156,6 +167,7 @@ npm run build:dev    # Development build
 ```
 
 ### Backend (freshwayz-api/)
+
 ```bash
 npm run start        # Start server
 npm run start:dev    # Start with hot reload
@@ -172,11 +184,13 @@ npm run test:cov     # Generate coverage report
 ## 🔐 Environment Variables
 
 ### Frontend (.env)
+
 ```
 VITE_API_URL=http://localhost:8080
 ```
 
 ### Backend (.env)
+
 ```
 DATABASE_HOST=localhost
 DATABASE_PORT=3306
@@ -194,6 +208,7 @@ PORT=8080
 ## 📞 API Documentation
 
 Access Swagger API docs at:
+
 ```
 http://localhost:8080/api/docs
 ```
@@ -205,34 +220,35 @@ http://localhost:8080/api/docs
 
 ## ✅ Verification Checklist
 
-- [x] All files from your freshways/ copied
-- [x] All files from clone git/freshways merged
-- [x] No conflicts in dependencies
-- [x] Configuration files present
-- [x] Port settings configured (8080)
-- [x] Database config ready
-- [x] Node_modules excluded (install separately)
-- [x] All source files included
+- [X] All files from your freshways/ copied
+- [X] All files from clone git/freshways merged
+- [X] No conflicts in dependencies
+- [X] Configuration files present
+- [X] Port settings configured (8080)
+- [X] Database config ready
+- [X] Node_modules excluded (install separately)
+- [X] All source files included
 
 ---
 
 ## 🎯 Next Steps
 
 1. **Install Dependencies**
+
    ```bash
    cd fresh && npm install
    cd ../freshwayz-api && npm install
    ```
-
 2. **Configure Database**
+
    - Update .env with MySQL credentials
    - Create database: `freshways`
-
 3. **Start Development**
+
    - Terminal 1: `cd fresh && npm run dev`
    - Terminal 2: `cd freshwayz-api && npm run start:dev`
-
 4. **Access Application**
+
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:8080
    - Swagger Docs: http://localhost:8080/api/docs
@@ -252,6 +268,7 @@ http://localhost:8080/api/docs
 ## 🤝 Collaboration Tips
 
 Since you and your friend were working on this together:
+
 - Frontend edits: Your work in fresh/src
 - Backend edits: Friend's work in freshwayz-api/src
 - Shared: Configuration files, README, documentation

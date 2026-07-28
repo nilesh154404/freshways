@@ -346,14 +346,20 @@ const Marketing = () => {
             <p className="text-sm text-gray-600 mt-1">Manage your marketing content and campaigns</p>
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200">
+              <Button 
+                onClick={() => { resetForm(); setIsDialogOpen(true); }}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200"
+              >
                 <Plus className="h-4 w-4 mr-2" /> Add Marketing
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <DialogHeader>
                 <DialogTitle>
                   {editingItem ? "Edit Marketing" : "Add Marketing"}

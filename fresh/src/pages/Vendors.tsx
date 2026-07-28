@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 type Order = {
   id: number;
   orderStatus: string;
@@ -39,6 +42,13 @@ const Vendors = () => {
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    businessName: "",
+    ownerName: "",
+    email: "",
+    userTypeId: 2,
+  });
 
   useEffect(() => {
     fetchVendors();
@@ -51,6 +61,30 @@ const Vendors = () => {
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch vendors");
+    }
+  };
+
+  const handleEditClick = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setFormData({
+      businessName: vendor.businessName || "",
+      ownerName: vendor.ownerName || "",
+      email: vendor.email || "",
+      userTypeId: 2,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedVendor) return;
+    try {
+      await axios.patch(`${API_BASE_URL}/vendors/${selectedVendor.id}`, formData);
+      toast.success("Vendor updated successfully");
+      setEditDialogOpen(false);
+      fetchVendors();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update vendor");
     }
   };
 
@@ -111,7 +145,7 @@ const Vendors = () => {
                     <Calendar className="h-4 w-4" /> Daily Prices
                   </Button>
 
-                  <Button size="sm" variant="ghost" className="flex-1">
+                  <Button size="sm" variant="ghost" className="flex-1" onClick={() => handleEditClick(vendor)}>
                     <Edit className="h-4 w-4" /> Edit
                   </Button>
                 </div>
@@ -181,6 +215,48 @@ const Vendors = () => {
               </div>
               <DialogFooter>
                 <Button onClick={() => setPriceDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+        {/* Edit Vendor Dialog */}
+        {selectedVendor && (
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Vendor</DialogTitle>
+                <DialogDescription>Update the details for {selectedVendor.businessName}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Business Name</Label>
+                  <Input
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                    placeholder="Enter business name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Owner Name</Label>
+                  <Input
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                    placeholder="Enter owner name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Enter email address"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveEdit}>Save Changes</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

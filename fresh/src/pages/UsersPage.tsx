@@ -55,20 +55,53 @@ const UsersPage = () => {
     fetchUsers();
   }, []);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = 
-      (user.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.community || "").toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesSubscription = 
-      filterSubscription === "all" || user.subscriptionType === filterSubscription;
-    
-    const matchesStatus = 
-      filterStatus === "all" || user.status === filterStatus;
+  const filteredUsers = users
+    .filter((user) => {
+      const matchesSearch =
+        (user.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.community || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch && matchesSubscription && matchesStatus;
-  });
+      const matchesSubscription =
+        filterSubscription === "all" || user.subscriptionType === filterSubscription;
+
+      const matchesStatus =
+        filterStatus === "all" || user.status === filterStatus;
+
+      return matchesSearch && matchesSubscription && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (!searchQuery) return 0;
+
+      const q = searchQuery.toLowerCase();
+      const aName = (a.name || "").toLowerCase();
+      const bName = (b.name || "").toLowerCase();
+
+      // 1. Exact name match
+      if (aName === q && bName !== q) return -1;
+      if (bName === q && aName !== q) return 1;
+
+      // 2. Name starts with query
+      const aStarts = aName.startsWith(q);
+      const bStarts = bName.startsWith(q);
+      if (aStarts && !bStarts) return -1;
+      if (bStarts && !aStarts) return 1;
+
+      // 3. Index of query in name (earlier match is better)
+      const aIndex = aName.indexOf(q);
+      const bIndex = bName.indexOf(q);
+      
+      // If one contains it and the other doesn't (or both do), rank by index
+      const aRank = aIndex !== -1 ? aIndex : Infinity;
+      const bRank = bIndex !== -1 ? bIndex : Infinity;
+
+      if (aRank !== bRank) {
+        return aRank - bRank;
+      }
+
+      // 4. Fallback to alphabetical sorting
+      return aName.localeCompare(bName);
+    });
 
   const getSubscriptionBadgeVariant = (type: string) => {
     if (type === "None") return "secondary";
