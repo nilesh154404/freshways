@@ -25,7 +25,7 @@
   notes?: string;
 }
  */
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateCustomerProductDto {
   @IsNumber()
@@ -54,4 +54,8 @@ export class CreateCustomerProductDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  customizationOptionIds?: number[];
 }

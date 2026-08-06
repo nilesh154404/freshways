@@ -30,4 +30,7 @@ export class CustomerProduct {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string | null;
+
+  @Column({ type: 'simple-array', nullable: true })
+  customizationOptionIds: number[] | null;
 }

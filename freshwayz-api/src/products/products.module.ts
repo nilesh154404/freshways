@@ -8,6 +8,9 @@ import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/ve
 import { Categories } from 'src/categories/categories.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
 
+import { ProductCustomizationGroup } from './entities/product-customization-group.entity';
+import { ProductCustomizationOption } from './entities/product-customization-option.entity';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -15,7 +18,9 @@ import { Vendor } from 'src/vendor/entities/vendor.entity';
       ServiceOffering,
       VendorSubscriptionPlan,
       Categories,
-      Vendor
+      Vendor,
+      ProductCustomizationGroup,
+      ProductCustomizationOption
     ]),
   ],
   controllers: [ProductsController],

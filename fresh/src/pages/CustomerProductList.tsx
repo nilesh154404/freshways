@@ -93,10 +93,13 @@ const CustomerProductList = () => {
     quantity: number;
     amount: number;
     notes?: string;
+    customizationOptionIds?: number[];
   }
   const [tempItems, setTempItems] = useState<TempItem[]>([]);
 
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [customizationData, setCustomizationData] = useState<any>(null);
+  const [selectedCustomizations, setSelectedCustomizations] = useState<Record<number, number[]>>({});
 
   const filteredProducts = formData.productName.trim()
     ? products.filter((product) =>
@@ -130,12 +133,46 @@ const CustomerProductList = () => {
       return;
     }
 
+    let finalAmount = parseFloat(formData.amount) || 0;
+    let additionalNotes = formData.notes ? formData.notes : "";
+    let allSelectedOptionIds: number[] = [];
+
+    // Process Customizations
+    if (customizationData?.hasCustomizations) {
+      let customizationCharges = 0;
+      const selectedNames: string[] = [];
+
+      for (const group of customizationData.groups || []) {
+        if (group.isRequired && (!selectedCustomizations[group.id] || selectedCustomizations[group.id].length === 0)) {
+           toast({
+             title: 'Validation',
+             description: `Please select an option for ${group.name}`,
+             variant: 'destructive',
+           });
+           return;
+        }
+
+        const selectedOptionIds = selectedCustomizations[group.id] || [];
+        allSelectedOptionIds = [...allSelectedOptionIds, ...selectedOptionIds];
+        for (const optionId of selectedOptionIds) {
+          const option = (group.options || []).find((o: any) => o.id === optionId);
+          if (option) {
+            customizationCharges += Number(option.additionalPrice || 0);
+            selectedNames.push(`${group.name}: ${option.name} (₹${option.additionalPrice})`);
+          }
+        }
+      }
+
+      finalAmount = finalAmount + customizationCharges;
+    }
+
     const newItem: TempItem = {
       productId: formData.productId ? parseInt(formData.productId) : undefined,
       productName: formData.productName,
       quantity: parseFloat(formData.quantity) || 1,
-      amount: parseFloat(formData.amount) || 0,
-      notes: formData.notes || undefined,
+      amount: finalAmount,
+      notes: additionalNotes || undefined,
+      customizationOptionIds: allSelectedOptionIds.length > 0 ? allSelectedOptionIds : undefined,
     };
 
     setTempItems((prev) => [...prev, newItem]);
@@ -149,7 +186,10 @@ const CustomerProductList = () => {
       amount: '',
       notes: '',
     }));
+    setCustomizationData(null);
+    setSelectedCustomizations({});
   };
+
 
   const handleRemoveTempItem = (index: number) => {
     setTempItems((prev) => prev.filter((_, i) => i !== index));
@@ -159,7 +199,21 @@ const CustomerProductList = () => {
     const tempTotal = tempItems.reduce((sum, item) => sum + item.quantity * item.amount, 0);
     const currentQty = parseFloat(formData.quantity) || 0;
     const currentPrice = parseFloat(formData.amount) || 0;
-    const currentTotal = formData.productName.trim() ? (currentQty * currentPrice) : 0;
+    
+    let customizationCharges = 0;
+    if (customizationData?.hasCustomizations) {
+       for (const group of customizationData.groups || []) {
+         const selectedOptionIds = selectedCustomizations[group.id] || [];
+         for (const optionId of selectedOptionIds) {
+           const option = (group.options || []).find((o: any) => o.id === optionId);
+           if (option) {
+             customizationCharges += Number(option.additionalPrice || 0);
+           }
+         }
+       }
+    }
+
+    const currentTotal = formData.productName.trim() ? (currentQty * (currentPrice + customizationCharges)) : 0;
     return (tempTotal + currentTotal).toFixed(2);
   };
 
@@ -304,12 +358,42 @@ const CustomerProductList = () => {
 
     // If there is any item currently typed in the input fields, include it too
     if (formData.productName.trim()) {
+      let finalAmount = parseFloat(formData.amount) || 0;
+      let additionalNotes = formData.notes ? formData.notes : "";
+      let allSelectedOptionIds: number[] = [];
+      let customizationCharges = 0;
+      let selectedNames: string[] = [];
+
+      if (customizationData?.hasCustomizations) {
+        for (const group of customizationData.groups || []) {
+          if (group.isRequired && (!selectedCustomizations[group.id] || selectedCustomizations[group.id].length === 0)) {
+             toast({
+               title: 'Validation',
+               description: `Please select an option for ${group.name}`,
+               variant: 'destructive',
+             });
+             return;
+          }
+          const selectedOptionIds = selectedCustomizations[group.id] || [];
+          allSelectedOptionIds = [...allSelectedOptionIds, ...selectedOptionIds];
+          for (const optionId of selectedOptionIds) {
+            const option = (group.options || []).find((o: any) => o.id === optionId);
+            if (option) {
+              customizationCharges += Number(option.additionalPrice || 0);
+              selectedNames.push(`${group.name}: ${option.name} (₹${option.additionalPrice})`);
+            }
+          }
+        }
+        finalAmount = finalAmount + customizationCharges;
+      }
+
       finalItems.push({
         productId: formData.productId ? parseInt(formData.productId) : undefined,
         productName: formData.productName,
         quantity: parseFloat(formData.quantity) || 1,
-        amount: parseFloat(formData.amount) || 0,
-        notes: formData.notes || undefined,
+        amount: finalAmount,
+        notes: additionalNotes || undefined,
+        customizationOptionIds: allSelectedOptionIds.length > 0 ? allSelectedOptionIds : undefined,
       });
     }
 
@@ -333,6 +417,7 @@ const CustomerProductList = () => {
           quantity: item.quantity,
           amount: item.amount,
           notes: item.notes,
+          customizationOptionIds: item.customizationOptionIds,
         };
         return fetch(`${API_URL}/customer-product-list`, {
           method: 'POST',
@@ -434,12 +519,9 @@ const CustomerProductList = () => {
 
   const handlePlaceOrder = async (vendorSubscriptionPlanId: number) => {
     try {
-      const communityId = 1; // Default to main community (Geras)
-
       const payload = {
         customerId,
         vendorSubscriptionPlanId,
-        communityId,
         flatNo: deliveryDetails.flatNo || undefined,
         floorNo: deliveryDetails.floorNo || undefined,
         address: deliveryDetails.address || undefined,
@@ -489,16 +571,35 @@ const CustomerProductList = () => {
     return (qty * price).toFixed(2);
   };
 
-  const handleProductSelect = (productId: string) => {
+  const handleProductSelect = async (productId: string) => {
     try {
       const selectedProduct = products.find((p) => p.id.toString() === productId);
       if (selectedProduct) {
         console.log('Selected product:', selectedProduct);
+        let initialAmount = (selectedProduct.dailyPrices?.[0]?.amount || 0).toString();
+
+        setCustomizationData(null);
+        setSelectedCustomizations({});
+
+        if (selectedProduct.category?.name === 'Healthy Meals' || selectedProduct.category?.label === 'Healthy Meals') {
+           try {
+              const res = await fetch(`${API_URL}/products/${productId}/customizations`);
+              if (res.ok) {
+                 const data = await res.json();
+                 if (data.hasCustomizations) {
+                    setCustomizationData(data);
+                 }
+              }
+           } catch(e) {
+              console.error('Failed to fetch customizations:', e);
+           }
+        }
+
         setFormData({
           ...formData,
           productId,
           productName: selectedProduct.label || '',
-          amount: (selectedProduct.dailyPrices?.[0]?.amount || 0).toString(),
+          amount: initialAmount,
         });
       } else {
         console.log('Product not found for ID:', productId);
@@ -667,19 +768,93 @@ const CustomerProductList = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="amount">Amount (₹)</Label>
+                      <Label htmlFor="amount">{customizationData?.hasCustomizations ? "Base Price (₹)" : "Amount (₹)"}</Label>
                       <Input
                         id="amount"
                         type="number"
                         step="0.01"
                         value={formData.amount}
+                        readOnly={customizationData?.hasCustomizations}
                         onChange={(e) =>
                           setFormData({ ...formData, amount: e.target.value })
                         }
                         placeholder="0.00"
+                        className={customizationData?.hasCustomizations ? "bg-muted" : ""}
                       />
                     </div>
                   </div>
+
+                  {customizationData?.hasCustomizations && (
+                    <div className="space-y-4 pt-3 border-t">
+                      <h4 className="font-semibold text-sm">Customize Your Meal</h4>
+                      {(customizationData.groups || []).map((group: any) => (
+                        <div key={group.id} className="space-y-2">
+                           <Label className="font-medium text-sm flex gap-2">
+                             {group.name}
+                             {group.isRequired && <span className="text-red-500">*</span>}
+                             <span className="text-muted-foreground text-xs font-normal">
+                               ({group.selectionType === 'SINGLE' ? 'Choose 1' : 'Choose multiple'})
+                             </span>
+                           </Label>
+                           <div className="space-y-2 mt-1">
+                             {(group.options || []).map((option: any) => {
+                               const isSelected = (selectedCustomizations[group.id] || []).includes(option.id);
+                               return (
+                                 <label key={option.id} className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-muted/50 border border-transparent hover:border-border transition-colors">
+                                    <input
+                                      type={group.selectionType === 'SINGLE' ? "radio" : "checkbox"}
+                                      name={`group-${group.id}`}
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        setSelectedCustomizations(prev => {
+                                          const groupSelections = prev[group.id] || [];
+                                          if (group.selectionType === 'SINGLE') {
+                                            return { ...prev, [group.id]: [option.id] };
+                                          } else {
+                                            if (groupSelections.includes(option.id)) {
+                                              return { ...prev, [group.id]: groupSelections.filter(id => id !== option.id) };
+                                            } else {
+                                              return { ...prev, [group.id]: [...groupSelections, option.id] };
+                                            }
+                                          }
+                                        });
+                                      }}
+                                      className="h-4 w-4 text-primary rounded-full accent-primary"
+                                    />
+                                    <div className="flex-1 flex justify-between items-center text-sm">
+                                      <span>{option.name}</span>
+                                      {option.additionalPrice > 0 ? (
+                                        <span className="text-muted-foreground">+₹{option.additionalPrice}</span>
+                                      ) : (
+                                        <span className="text-muted-foreground text-xs">Free</span>
+                                      )}
+                                    </div>
+                                 </label>
+                               )
+                             })}
+                           </div>
+                        </div>
+                      ))}
+                      
+                      <div className="bg-primary/5 p-3 rounded-md flex justify-between items-center mt-2 border border-primary/20">
+                         <span className="font-medium text-sm">Item Total (Includes Qty):</span>
+                         <span className="font-bold text-primary">₹{(
+                           (parseFloat(formData.quantity) || 0) * (
+                             (parseFloat(formData.amount) || 0) + 
+                             Object.entries(selectedCustomizations).reduce((sum, [groupId, optionIds]) => {
+                               const group = (customizationData.groups || []).find((g: any) => g.id.toString() === groupId);
+                               if (!group) return sum;
+                               const optionsSum = optionIds.reduce((optSum: number, optId: number) => {
+                                 const option = (group.options || []).find((o: any) => o.id === optId);
+                                 return optSum + (option ? Number(option.additionalPrice || 0) : 0);
+                               }, 0);
+                               return sum + optionsSum;
+                             }, 0)
+                           )
+                         ).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="notes">Notes</Label>

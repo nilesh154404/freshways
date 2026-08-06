@@ -66,4 +66,14 @@ export class CreateListedOrderDto {
   @IsString()
   @MaxLength(50)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Selected customizations',
+  })
+  @IsOptional()
+  customizations?: {
+    groupId: number;
+    optionId: number;
+    additionalPrice: number;
+  }[];
 }

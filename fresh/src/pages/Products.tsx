@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ProductCustomizationsDialog } from "@/components/ProductCustomizationsDialog";
 import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
@@ -95,6 +96,14 @@ const Products = () => {
       isActive: existing?.isActive ?? true,
     });
     setIsDiscountDialogOpen(true);
+  };
+
+  const [isCustomizationDialogOpen, setIsCustomizationDialogOpen] = useState(false);
+  const [customizationProduct, setCustomizationProduct] = useState<Product | null>(null);
+
+  const handleConfigureCustomization = (product: Product) => {
+    setCustomizationProduct(product);
+    setIsCustomizationDialogOpen(true);
   };
 
   const handleDiscountSubmit = async (e: React.FormEvent) => {
@@ -358,7 +367,7 @@ const Products = () => {
 
       await axios.post(`${API_BASE}/daily-price`, payload);
       toast.success("Price saved successfully");
-      
+
       setIsPriceDialogOpen(false);
       getProducts();
     } catch (err) {
@@ -551,13 +560,12 @@ const Products = () => {
                     <TableCell className="max-w-xs truncate">{p.description}</TableCell>
                     <TableCell>{p.measurementValue} {p.measurementUnit}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        p.productType === 'NON-VEG' 
-                          ? 'bg-red-100 text-red-700' 
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${p.productType === 'NON-VEG'
+                          ? 'bg-red-100 text-red-700'
                           : p.productType === 'BOTH'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}>
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}>
                         {p.productType || 'VEG'}
                       </span>
                     </TableCell>
@@ -570,6 +578,11 @@ const Products = () => {
                         <Button variant="outline" size="sm" onClick={() => handleConfigureDiscount(p)}>
                           Configure Discount
                         </Button>
+                        {(p.category?.name === 'Healthy Meals' || p.category?.label === 'Healthy Meals') && (
+                          <Button variant="outline" size="sm" onClick={() => handleConfigureCustomization(p)}>
+                            Customizations
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -726,6 +739,15 @@ const Products = () => {
           </DialogContent>
         </Dialog>
 
+        <ProductCustomizationsDialog
+          product={customizationProduct}
+          open={isCustomizationDialogOpen}
+          onOpenChange={(open) => {
+            setIsCustomizationDialogOpen(open);
+            if (!open) getProducts();
+          }}
+        />
+
         {/* Delete Confirmation Dialog */}
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent className="max-w-xl">
@@ -748,7 +770,7 @@ const Products = () => {
                   </div>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Column 1: Associated Marketing Content */}
                 <div className="border rounded-md p-3 space-y-3 bg-muted/40 max-h-64 overflow-y-auto">

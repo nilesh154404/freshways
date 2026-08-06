@@ -5,6 +5,7 @@ import { ServiceOffering } from "src/service-offering/entities/service-offering.
 import { VendorSubscriptionPlan } from "src/vendor-subscription-plan/entities/vendor-subscription-plan.entity";
 import { Vendor } from "src/vendor/entities/vendor.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { ProductCustomizationGroup } from "./product-customization-group.entity";
 
 @Entity()
 export class Product {
@@ -47,4 +48,7 @@ export class Product {
 
     @OneToMany(() => ProductDiscount, discount => discount.product)
     discounts: ProductDiscount[];
+
+    @OneToMany(() => ProductCustomizationGroup, group => group.product)
+    customizationGroups: ProductCustomizationGroup[];
 }

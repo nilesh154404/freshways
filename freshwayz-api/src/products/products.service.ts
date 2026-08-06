@@ -15,6 +15,9 @@ import { paginate } from 'src/helpers/pagination/pagination';
 import { Categories } from 'src/categories/categories.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { HealthProfile } from 'src/ai/entities/health-profile.entity';
+import { ProductCustomizationGroup } from './entities/product-customization-group.entity';
+import { ProductCustomizationOption } from './entities/product-customization-option.entity';
+import { CreateProductCustomizationGroupDto } from './dto/create-product-customization.dto';
 
 @Injectable()
 export class ProductsService {
@@ -33,6 +36,12 @@ export class ProductsService {
 
     @InjectRepository(Vendor)
     private readonly vendorRepo: Repository<Vendor>,
+
+    @InjectRepository(ProductCustomizationGroup)
+    private readonly customGroupRepo: Repository<ProductCustomizationGroup>,
+
+    @InjectRepository(ProductCustomizationOption)
+    private readonly customOptionRepo: Repository<ProductCustomizationOption>,
   ) { }
 
   // ----------------------------
@@ -165,6 +174,9 @@ export class ProductsService {
       .leftJoinAndSelect('product.vendor', 'vendor')
       .leftJoinAndSelect('product.dailyPrices', 'dailyPrices')
       .leftJoinAndSelect('product.discounts', 'discounts')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.customizationGroups', 'customizationGroups')
+      .leftJoinAndSelect('customizationGroups.options', 'customizationOptions')
       // .where('product.isDeleted = false')
       .orderBy('product.id', 'DESC');
 
@@ -228,7 +240,7 @@ export class ProductsService {
   findOne(id: number) {
     return this.productRepo.findOne({
       where: { id },
-      relations: ['serviceOffering', 'vendorSubscriptionPlan'],
+      relations: ['serviceOffering', 'vendorSubscriptionPlan', 'category', 'customizationGroups', 'customizationGroups.options'],
     });
   }
 
@@ -295,6 +307,90 @@ export class ProductsService {
     Object.assign(product, otherData);
 
     return await this.productRepo.save(product);
+  }
+
+  async upsertCustomizations(productId: number, groupsDto: CreateProductCustomizationGroupDto[]) {
+    const product = await this.productRepo.findOne({
+      where: { id: productId },
+      relations: ['category']
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    if (product.category?.name !== 'Healthy Meals' && product.category?.label !== 'Healthy Meals') {
+      throw new InternalServerErrorException('Customizations are only allowed for Healthy Meals category');
+    }
+
+    // 1. Delete existing customizations for this product
+    await this.customGroupRepo.delete({ product: { id: productId } });
+
+    // 2. Insert new ones
+    for (const groupDto of groupsDto) {
+      const group = this.customGroupRepo.create({
+        product: product,
+        name: groupDto.name,
+        selectionType: groupDto.selectionType,
+        isRequired: groupDto.isRequired,
+        displayOrder: groupDto.displayOrder,
+        status: groupDto.status
+      });
+
+      const savedGroup = await this.customGroupRepo.save(group);
+
+      if (groupDto.options && groupDto.options.length > 0) {
+        const options = groupDto.options.map(optDto => this.customOptionRepo.create({
+          group: savedGroup,
+          name: optDto.name,
+          additionalPrice: optDto.additionalPrice,
+          displayOrder: optDto.displayOrder,
+          status: optDto.status
+        }));
+        await this.customOptionRepo.save(options);
+      }
+    }
+
+    return this.findOne(productId);
+  }
+
+  async getCustomizations(productId: number) {
+    const product = await this.productRepo.findOne({
+      where: { id: productId },
+      relations: ['customizationGroups', 'customizationGroups.options']
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    // Filter and sort active groups and options
+    const activeGroups = (product.customizationGroups || [])
+      .filter(g => g.status === true)
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map(g => ({
+        id: g.id,
+        name: g.name,
+        selectionType: g.selectionType,
+        isRequired: g.isRequired,
+        displayOrder: g.displayOrder,
+        options: (g.options || [])
+          .filter(o => o.status === true)
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map(o => ({
+            id: o.id,
+            name: o.name,
+            additionalPrice: Number(o.additionalPrice),
+            displayOrder: o.displayOrder
+          }))
+      }));
+
+    return {
+      productId: product.id,
+      productName: product.label,
+      hasCustomizations: activeGroups.length > 0,
+      groups: activeGroups
+    };
   }
 
   async remove(id: number) {

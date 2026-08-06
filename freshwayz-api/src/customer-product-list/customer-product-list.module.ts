@@ -8,6 +8,9 @@ import { CustomerProductListController } from './customer-product-list.controlle
 import { Customer } from '../customer/entities/customer.entity';
 import { Product } from '../products/entities/product.entity';
 import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/vendor-subscription-plan.entity';
+import { ProductCustomizationOption } from '../products/entities/product-customization-option.entity';
+import { ProductCustomizationGroup } from '../products/entities/product-customization-group.entity';
+import { DailyPrice } from '../daily-price/entities/daily-price.entity';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/ven
       Customer,
       Product,
       VendorSubscriptionPlan,
+      ProductCustomizationOption,
+      ProductCustomizationGroup,
+      DailyPrice
     ]),
   ],
   controllers: [CustomerProductListController],

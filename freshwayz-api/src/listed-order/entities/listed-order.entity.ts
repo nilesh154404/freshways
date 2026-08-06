@@ -4,7 +4,8 @@ import { IsNotEmpty } from "class-validator";
 import { Order } from "src/orders/entities/order.entity";
 import { ProductDiscount } from "src/product-discount/entities/product-discount.entity";
 import { Product } from "src/products/entities/product.entity";
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from "typeorm";
+import { ListedOrderCustomization } from "./listed-order-customization.entity";
 
 @Entity()
 export class ListedOrder {
@@ -35,6 +36,9 @@ export class ListedOrder {
     @ManyToOne(() => ProductDiscount, { nullable: true })
     productDiscount: ProductDiscount | null;
 
-    @Column({ type: 'varchar', length: 50, nullable: true })
+    @Column({ type: 'varchar', length: 255, nullable: true })
     notes: string | null;
+
+    @OneToMany(() => ListedOrderCustomization, customization => customization.listedOrder, { cascade: true })
+    customizations: ListedOrderCustomization[];
 }

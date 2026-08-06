@@ -196,7 +196,7 @@ export default function OrdersReport() {
                     : true
             )
             .filter((o) => (statusFilter ? o.orderStatus === statusFilter : true))
-            .filter((o) => (communityFilter ? o.community.name === communityFilter : true))
+            .filter((o) => (communityFilter ? o.community?.name === communityFilter : true))
             .filter((o) => {
                 if (!dateFrom && !dateTo) return true;
 
@@ -332,7 +332,7 @@ export default function OrdersReport() {
                                         </div>
                                     </TableCell>
 
-                                    <TableCell>{order.community.name}</TableCell>
+                                    <TableCell>{order.community?.name || "N/A"}</TableCell>
 
                                     <TableCell>
                                         <Badge>{order.orderStatus}</Badge>
@@ -456,10 +456,28 @@ export default function OrdersReport() {
                                             <p className="text-sm text-muted-foreground">
                                                 ₹{unitPrice.toFixed(2)} × {quantity}
                                             </p>
+                                            
+                                            {item.customizations && item.customizations.length > 0 && (
+                                                <div className="mt-2 text-sm">
+                                                    <p className="font-semibold text-foreground border-b pb-1 mb-1">Customizations</p>
+                                                    <ul className="space-y-1">
+                                                        {item.customizations.map((cust: any) => (
+                                                            <li key={cust.id} className="text-muted-foreground flex items-start gap-1.5">
+                                                                <span className="text-emerald-500 mt-0.5">✓</span>
+                                                                <span>{cust.customizationOption?.name || 'Unknown'} (+₹{cust.additionalPrice})</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
                                             {item.notes && (
-                                                <p className="text-xs italic text-muted-foreground bg-muted p-1.5 rounded mt-2 inline-block">
-                                                    Notes: {item.notes}
-                                                </p>
+                                                <div className="mt-2 text-sm">
+                                                    <p className="font-semibold text-foreground border-b pb-1 mb-1">Notes</p>
+                                                    <p className="text-muted-foreground italic bg-muted/50 p-2 rounded">
+                                                        {item.notes}
+                                                    </p>
+                                                </div>
                                             )}
                                         </div>
                                         <div className="text-right font-bold text-base text-primary pl-4 shrink-0">
@@ -536,7 +554,7 @@ export default function OrdersReport() {
 
                         {/* STATUS UPDATE BUTTONS */}
                         <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                            {selectedOrder.orderStatus === "DRAFTED" && (
+                            {(selectedOrder.orderStatus === "DRAFTED" || selectedOrder.orderStatus === "PENDING") && (
                                 <Button
                                     className="flex-1"
                                     onClick={() => handleStatusUpdate(selectedOrder.id, "CONFIRMED")}

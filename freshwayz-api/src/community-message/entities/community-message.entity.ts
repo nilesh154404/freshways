@@ -10,7 +10,7 @@ export class CommunityMessage {
     @Column()
     message: string;
 
-    @ManyToOne(() => Community, community => community.id)
+    @ManyToOne(() => Community, community => community.id, { onDelete: 'CASCADE' })
     community: Community;
 
     @ManyToOne(() => Customer, customer => customer.id)

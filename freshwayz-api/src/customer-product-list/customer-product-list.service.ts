@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 
 import { CustomerProduct } from './entities/customer-product.entity';
 import { CreateCustomerProductDto } from './dto/create-customer-product.dto';
@@ -9,6 +9,8 @@ import { UpdateCustomerProductDto } from './dto/update-customer-product.dto';
 import { Customer } from '../customer/entities/customer.entity';
 import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 import { Product } from '../products/entities/product.entity';
+import { ProductCustomizationOption } from '../products/entities/product-customization-option.entity';
+import { DailyPrice } from '../daily-price/entities/daily-price.entity';
 
 @Injectable()
 export class CustomerProductListService {
@@ -24,6 +26,12 @@ export class CustomerProductListService {
 
     @InjectRepository(VendorSubscriptionPlan)
     private readonly planRepo: Repository<VendorSubscriptionPlan>,
+
+    @InjectRepository(ProductCustomizationOption)
+    private readonly customOptionRepo: Repository<ProductCustomizationOption>,
+
+    @InjectRepository(DailyPrice)
+    private readonly dailyPriceRepo: Repository<DailyPrice>,
   ) {}
 
   // CREATE
@@ -33,16 +41,48 @@ export class CustomerProductListService {
 
     let plan: VendorSubscriptionPlan | null = null;
     if (dto.vendorSubscriptionPlanId != null) {
-      plan = await this.planRepo.findOneBy({
-        id: dto.vendorSubscriptionPlanId,
+      plan = await this.planRepo.findOne({
+        where: { id: dto.vendorSubscriptionPlanId },
+        relations: ['vendor']
       });
       if (!plan) throw new NotFoundException('Subscription plan not found');
     }
 
     let product: Product | null = null;
+    let basePrice = 0;
     if (dto.productId != null) {
       product = await this.productRepo.findOneBy({ id: dto.productId });
       if (!product) throw new NotFoundException('Product not found');
+      
+      // Fetch base product price (dailyPrice)
+      const whereCondition: any = { product: { id: product.id }, isActive: true };
+      if (plan && plan.vendor) {
+        whereCondition.vendor = { id: plan.vendor.id };
+      }
+      const dailyPrice = await this.dailyPriceRepo.findOne({
+        where: whereCondition,
+        order: { id: 'DESC' }
+      });
+      if (dailyPrice) {
+        basePrice = Number(dailyPrice.amount);
+      }
+    }
+
+    let finalAmount = basePrice;
+    
+    // Process customization options
+    if (dto.customizationOptionIds && dto.customizationOptionIds.length > 0 && product) {
+      const options = await this.customOptionRepo.find({
+        where: { id: In(dto.customizationOptionIds) },
+        relations: ['group', 'group.product']
+      });
+      
+      for (const option of options) {
+        if (option.group?.product?.id !== product.id) {
+           throw new BadRequestException(`Customization option ID ${option.id} does not belong to the selected product`);
+        }
+        finalAmount += Number(option.additionalPrice);
+      }
     }
 
     const customerProduct = this.customerProductRepo.create({
@@ -52,8 +92,9 @@ export class CustomerProductListService {
 
       productName: dto.productName ?? null,
       quantity: dto.quantity ?? null,
-      amount: dto.amount ?? null,
+      amount: finalAmount, // Use recalculated amount instead of trusting frontend
       notes: dto.notes ?? null,
+      customizationOptionIds: dto.customizationOptionIds ?? null,
     });
 
     return this.customerProductRepo.save(customerProduct);

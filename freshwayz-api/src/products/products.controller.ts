@@ -13,9 +13,10 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateProductCustomizationGroupDto } from './dto/create-product-customization.dto';
 import { AuthGuard } from '@nestjs/passport';
 
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiOkResponse, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Pagination } from 'src/helpers/pagination/dto/pagination.dto';
 import { Product } from './entities/product.entity';
 import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
@@ -90,11 +91,62 @@ export class ProductsController {
     return this.productsService.update(+id, updateProductDto);
   }
 
+  // UPSERT PRODUCT CUSTOMIZATIONS
+  @Post(':id/customizations')
+  @ApiOperation({ summary: 'Upsert product customizations (Healthy Meals Only)' })
+  @ApiParam({ name: 'id', type: Number })
+  upsertCustomizations(
+    @Param('id') id: string,
+    @Body() groupsDto: CreateProductCustomizationGroupDto[]
+  ) {
+    return this.productsService.upsertCustomizations(+id, groupsDto);
+  }
+
   // DELETE PRODUCT
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a product' })
   @ApiParam({ name: 'id', type: Number })
   remove(@Param('id') id: string) {
     return this.productsService.remove(+id);
+  }
+
+  // GET PRODUCT CUSTOMIZATIONS (CUSTOMER FACING)
+  @Get(':id/customizations')
+  @ApiOperation({ summary: 'Get product customizations for customer view' })
+  @ApiParam({ name: 'id', type: Number, description: 'Product ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Customizations retrieved successfully',
+    schema: {
+      example: {
+        productId: 60,
+        productName: "Paneer Palak",
+        hasCustomizations: true,
+        groups: [
+          {
+            id: 1,
+            name: "Cooking Preference",
+            selectionType: "SINGLE",
+            isRequired: true,
+            displayOrder: 0,
+            options: [
+              {
+                id: 1,
+                name: "Cook in Olive Oil",
+                additionalPrice: 40,
+                displayOrder: 0
+              }
+            ]
+          }
+        ]
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Product not found'
+  })
+  getCustomizations(@Param('id') id: string) {
+    return this.productsService.getCustomizations(+id);
   }
 }

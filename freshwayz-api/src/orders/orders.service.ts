@@ -17,6 +17,9 @@ import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/ve
 import { ProductDiscountService } from 'src/product-discount/product-discount.service';
 import { DailyPrice } from 'src/daily-price/entities/daily-price.entity';
 import { CustomerProduct } from 'src/customer-product-list/entities/customer-product.entity';
+import { ListedOrderCustomization } from 'src/listed-order/entities/listed-order-customization.entity';
+import { ProductCustomizationOption } from 'src/products/entities/product-customization-option.entity';
+import { In } from 'typeorm';
 
 interface OrderFilter {
   customerId?: number;
@@ -43,6 +46,11 @@ export class OrderService {
     @InjectRepository(CustomerProduct) private readonly customerProductRepo: Repository<CustomerProduct>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
+    @InjectRepository(ListedOrderCustomization)
+    private readonly listedOrderCustomizationRepo: Repository<ListedOrderCustomization>,
+
+    @InjectRepository(ProductCustomizationOption)
+    private readonly customOptionRepo: Repository<ProductCustomizationOption>,
 
     private readonly discountService: ProductDiscountService,
 
@@ -135,7 +143,21 @@ export class OrderService {
         });
         if (!dailyPrice) throw new NotFoundException(`Active price for product ${item.productId} not found`);
 
-        const basePrice = Number(dailyPrice.amount);
+        // Calculate customizations total
+        let customizationsTotal = 0;
+        listedOrder.customizations = [];
+        if (item.customizations && item.customizations.length > 0) {
+          for (const cust of item.customizations) {
+            const loc = new ListedOrderCustomization();
+            loc.customizationGroup = { id: cust.groupId } as any;
+            loc.customizationOption = { id: cust.optionId } as any;
+            loc.additionalPrice = cust.additionalPrice;
+            listedOrder.customizations.push(loc);
+            customizationsTotal += Number(cust.additionalPrice);
+          }
+        }
+
+        const basePrice = Number(dailyPrice.amount) + customizationsTotal;
         listedOrder.amount = basePrice;
 
         // Find applicable discount
@@ -283,6 +305,24 @@ export class OrderService {
       await this.listedOrderRepo.save(listedOrder);
       listedOrders.push(listedOrder);
       
+      // Process Customizations
+      if (item.customizationOptionIds && item.customizationOptionIds.length > 0) {
+        const options = await this.customOptionRepo.find({
+          where: { id: In(item.customizationOptionIds) },
+          relations: ['group']
+        });
+        
+        for (const option of options) {
+          const loCustomization = this.listedOrderCustomizationRepo.create({
+            listedOrder: listedOrder,
+            customizationGroup: option.group,
+            customizationOption: option,
+            additionalPrice: option.additionalPrice, // snapshot the price at order time
+          });
+          await this.listedOrderCustomizationRepo.save(loCustomization);
+        }
+      }
+
       totalAmount += lineTotal;
     }
 
@@ -294,7 +334,11 @@ export class OrderService {
 
     const found = await this.orderRepo.findOne({
       where: { id: finalOrder.id },
-      relations: ['customer', 'vendor', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'],
+      relations: [
+        'customer', 'vendor', 'listedOrders', 'listedOrders.product', 
+        'listedOrders.customizations', 'listedOrders.customizations.customizationGroup', 'listedOrders.customizations.customizationOption',
+        'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'
+      ],
     });
     if (!found) {
       throw new NotFoundException(`Order with ID ${finalOrder.id} not found`);
@@ -305,7 +349,11 @@ export class OrderService {
   async findByCustomerId(customerId: number): Promise<Order[]> {
     const orders = await this.orderRepo.find({
       where: { customer: { id: customerId } },
-      relations: ['customer', 'vendor', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'],
+      relations: [
+        'customer', 'vendor', 'listedOrders', 'listedOrders.product', 
+        'listedOrders.customizations', 'listedOrders.customizations.customizationGroup', 'listedOrders.customizations.customizationOption',
+        'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'
+      ],
       order: { createdAt: 'DESC' },
     });
 
@@ -378,6 +426,9 @@ export class OrderService {
       .leftJoinAndSelect('order.community', 'community')
       .leftJoinAndSelect('order.listedOrders', 'listedOrders')
       .leftJoinAndSelect('listedOrders.product', 'product')
+      .leftJoinAndSelect('listedOrders.customizations', 'customizations')
+      .leftJoinAndSelect('customizations.customizationGroup', 'customizationGroup')
+      .leftJoinAndSelect('customizations.customizationOption', 'customizationOption')
       .leftJoinAndSelect('order.deliverySlot', 'deliverySlot')
       .leftJoinAndSelect('order.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
       .leftJoinAndSelect('order.payments', 'payments')
@@ -422,7 +473,7 @@ export class OrderService {
   async findOne(id: number): Promise<Order> {
     const order = await this.orderRepo.findOne({
       where: { id },
-      relations: ['customer', 'vendor', 'community', 'listedOrders', 'listedOrders.product', 'payments', 'deliverySlot', 'vendorSubscriptionPlan'],
+      relations: ['customer', 'vendor', 'community', 'listedOrders', 'listedOrders.product', 'listedOrders.customizations', 'listedOrders.customizations.customizationGroup', 'listedOrders.customizations.customizationOption', 'payments', 'deliverySlot', 'vendorSubscriptionPlan'],
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
@@ -442,6 +493,9 @@ export class OrderService {
         // 'community',
         'listedOrders',
         'listedOrders.product',
+        'listedOrders.customizations',
+        'listedOrders.customizations.customizationGroup',
+        'listedOrders.customizations.customizationOption',
         // 'payments',
       ],
       order: {
