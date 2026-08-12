@@ -117,6 +117,8 @@ export class OrderService {
     let total = 0;
     const now = new Date();
 
+    const allCustomizationsToSave: ListedOrderCustomization[] = [];
+
     if (listedOrders && listedOrders.length > 0) {
       for (const item of listedOrders) {
         const listedOrder = new ListedOrder();
@@ -145,14 +147,8 @@ export class OrderService {
 
         // Calculate customizations total
         let customizationsTotal = 0;
-        listedOrder.customizations = [];
         if (item.customizations && item.customizations.length > 0) {
           for (const cust of item.customizations) {
-            const loc = new ListedOrderCustomization();
-            loc.customizationGroup = { id: cust.groupId } as any;
-            loc.customizationOption = { id: cust.optionId } as any;
-            loc.additionalPrice = cust.additionalPrice;
-            listedOrder.customizations.push(loc);
             customizationsTotal += Number(cust.additionalPrice);
           }
         }
@@ -193,9 +189,43 @@ export class OrderService {
     order.grandTotal = createDto.grandTotal ?? total;
 
     const saved = await this.orderRepo.save(order);
+    
+    // Explicitly save customizations now that ListedOrders have generated IDs
+    if (listedOrders && listedOrders.length > 0 && saved.listedOrders && saved.listedOrders.length > 0) {
+      for (let i = 0; i < listedOrders.length; i++) {
+        const originalItem = listedOrders[i];
+        const savedListedOrder = saved.listedOrders[i]; // TypeORM preserves array order on save
+        
+        if (originalItem.customizations && originalItem.customizations.length > 0) {
+          const optionIds = originalItem.customizations.map(c => c.optionId);
+          const options = await this.customOptionRepo.find({
+            where: { id: In(optionIds) },
+            relations: ['group']
+          });
+
+          for (const cust of originalItem.customizations) {
+            const option = options.find(o => o.id === cust.optionId);
+            if (!option) continue;
+
+            const loc = this.listedOrderCustomizationRepo.create({
+              customizationGroup: option.group,
+              customizationOption: option,
+              additionalPrice: cust.additionalPrice,
+              listedOrder: { id: savedListedOrder.id } as any, // Prevent circular graph traversal during save
+            });
+            await this.listedOrderCustomizationRepo.save(loc);
+          }
+        }
+      }
+    }
+
     const found = await this.orderRepo.findOne({
       where: { id: saved.id },
-      relations: ['customer', 'vendor', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'],
+      relations: [
+        'customer', 'vendor', 'listedOrders', 'listedOrders.product',
+        'listedOrders.customizations', 'listedOrders.customizations.customizationGroup', 'listedOrders.customizations.customizationOption',
+        'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'
+      ],
     });
     if (!found) {
       throw new NotFoundException(`Order with ID ${saved.id} not found`);
