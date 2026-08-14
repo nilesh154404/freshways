@@ -74,7 +74,10 @@ export class PaymentsService {
       );
     }
 
-    const txnId = createPaymentDto.transactionId || `TXN${Date.now()}`;
+    // Always generate a completely unique transaction ID to prevent Dexpert "resubmitted" errors 
+    // in case the frontend retries with the same transactionId.
+    const baseTxnId = createPaymentDto.transactionId ? createPaymentDto.transactionId + '_' : 'TXN';
+    const txnId = `${baseTxnId}${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     const txnAmt = createPaymentDto.amount;
 
     // Save pending payment to DB
@@ -87,6 +90,7 @@ export class PaymentsService {
         transactionId: txnId,
       });
       await this.paymentRepository.save(newPayment);
+      this.logger.log(`Created pending payment for order ${createPaymentDto.orderId} with txnId ${txnId}`);
     } catch (error: any) {
       this.logger.error(
         `Failed to create pending payment record: ${error.message}`,
@@ -104,7 +108,8 @@ export class PaymentsService {
     const settlement_split = `online_${txnAmt}~`;
 
     const routerUrl = `?mcode=${this.merchantCode}&uname=${this.username}&psw=${this.password}&amount=${txnAmt}&settlement_split=${settlement_split}&mtxnId=${txnId}&pfname=${pfname}&plname=${plname}&pmno=${pmno}&pemail=${pemail}&padd=&surl=${this.urlSuccess}&furl=${this.urlFail}&udf6=`;
-    console.log(routerUrl);
+    this.logger.log(`Generated Dexpert routerUrl for txnId ${txnId}`);
+    
     const encryptedUrl = DexpertCryptoUtil.encrypt(
       routerUrl,
       this.privateValue,
@@ -124,6 +129,7 @@ export class PaymentsService {
   }
 
   async verifyPaymentResponse(encryptedQuery: string) {
+    this.logger.log(`Received encryptedQuery from Dexpert for verification.`);
     try {
       // Browsers often convert '+' to ' ' in query parameters.
       // We must revert spaces back to '+' for base64 decryption to work!
@@ -143,6 +149,8 @@ export class PaymentsService {
           responseData[key] = value || '';
         }
       });
+      
+      this.logger.log(`Decrypted Dexpert Response: ${JSON.stringify(responseData)}`);
 
       const orderStatusStr =
         responseData['status'] || responseData['order_status'] || '';
@@ -152,6 +160,8 @@ export class PaymentsService {
       const isSuccess = orderStatusStr.toLowerCase() === 'success';
       let receiptNumber: string | undefined;
 
+      this.logger.log(`Verifying payment - TxnId: ${transactionId}, Status: ${orderStatusStr}, IsSuccess: ${isSuccess}`);
+
       if (transactionId) {
         // Update DB status
         const payment = await this.paymentRepository.findOne({
@@ -159,6 +169,7 @@ export class PaymentsService {
           relations: ['order'],
         });
         if (payment) {
+          this.logger.log(`Found payment record for TxnId: ${transactionId}. Updating status...`);
           payment.status = isSuccess
             ? PaymentStatus.SUCCESS
             : PaymentStatus.FAILED;
@@ -171,6 +182,7 @@ export class PaymentsService {
           }
 
           await this.paymentRepository.save(payment);
+          this.logger.log(`Payment record updated successfully. Receipt: ${receiptNumber}`);
 
           const orderId = payment.order?.id;
           if (orderId) {
@@ -180,17 +192,22 @@ export class PaymentsService {
             if (order) {
               order.paymentStatus = isSuccess ? 'PAID' : 'FAILED';
               await this.orderRepository.save(order);
+              this.logger.log(`Order ${orderId} paymentStatus updated to ${order.paymentStatus}`);
             } else {
               this.logger.warn(
                 `Payment ${transactionId} saved, but order ${orderId} was not found for status update`,
               );
             }
+          } else {
+             this.logger.warn(`Payment ${transactionId} has no associated order to update.`);
           }
         } else {
           this.logger.warn(
             `Received payment response for unknown transactionId: ${transactionId}`,
           );
         }
+      } else {
+        this.logger.warn(`No transactionId found in the decrypted response.`);
       }
 
       return {
@@ -204,7 +221,7 @@ export class PaymentsService {
         receiptNumber,
       };
     } catch (error: any) {
-      this.logger.error(`Error verifying payment response: ${error.message}`);
+      this.logger.error(`Error verifying payment response: ${error.message}\nStack: ${error.stack}`);
       return {
         success: false,
         message: 'Invalid payment response signature or data',
