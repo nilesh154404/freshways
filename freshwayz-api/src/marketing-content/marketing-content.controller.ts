@@ -10,13 +10,17 @@ import {
   Query,
   UploadedFiles,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiConsumes, ApiBody, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { MarketingContentService } from './marketing-content.service';
 import { CreateMarketingContentDto } from './dto/create-marketing-content.dto';
 import { UpdateMarketingContentDto } from './dto/update-marketing-content.dto';
 import { multerConfig } from './multer.config';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @ApiTags('Marketing Content')
 @Controller('marketing')
@@ -126,8 +130,13 @@ export class MarketingContentController {
     return this.marketingService.remove(id);
   }
 
-  // Save/Unsave post
+  // Save/Unsave post — Customer only
   @Post(':id/save')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
+  @ApiOperation({ summary: 'Save or unsave a marketing post (Customer only)' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot save posts' })
   async toggleSave(
     @Param('id') id: number,
     @Body() body: { userId: number; userType?: string }
@@ -135,8 +144,13 @@ export class MarketingContentController {
     return this.marketingService.toggleSave(id, body.userId, body.userType || 'Customer');
   }
 
-  // Add comment
+  // Add comment — Customer only
   @Post(':id/comment')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
+  @ApiOperation({ summary: 'Add a comment to a marketing post (Customer only)' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot comment' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -155,8 +169,12 @@ export class MarketingContentController {
     return this.marketingService.addComment(id, body.text, body.userId, body.userType || 'Customer');
   }
 
-  // Delete comment
+  // Delete comment — Customer only
   @Delete('comment/:commentId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
+  @ApiOperation({ summary: 'Delete a comment (Customer only)' })
   async deleteComment(@Param('commentId') commentId: number) {
     return this.marketingService.deleteComment(commentId);
   }

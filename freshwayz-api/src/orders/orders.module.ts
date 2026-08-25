@@ -16,9 +16,13 @@ import { ProductDiscount } from 'src/product-discount/entities/product-discount.
 import { CustomerProduct } from 'src/customer-product-list/entities/customer-product.entity';
 import { ListedOrderCustomization } from 'src/listed-order/entities/listed-order-customization.entity';
 import { ProductCustomizationOption } from 'src/products/entities/product-customization-option.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Customer, Vendor, Community, Product, ListedOrder, ListedOrderCustomization, DeliverySlot, VendorSubscriptionPlan, DailyPrice, ProductDiscount, CustomerProduct, ProductCustomizationOption])],
+  imports: [
+    TypeOrmModule.forFeature([Order, Customer, Vendor, Community, Product, ListedOrder, ListedOrderCustomization, DeliverySlot, VendorSubscriptionPlan, DailyPrice, ProductDiscount, CustomerProduct, ProductCustomizationOption]),
+    AuthModule,
+  ],
   controllers: [OrderController],
   providers: [OrderService, ProductDiscountService],
 })

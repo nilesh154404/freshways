@@ -112,6 +112,7 @@ import {
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -119,6 +120,7 @@ import {
   ApiOkResponse,
   ApiQuery,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
@@ -129,6 +131,9 @@ import {
   HealthInsightsResponseDto,
   HealthProfileResponseDto,
 } from './dto/health-response.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 
 @ApiTags('AI')
@@ -153,6 +158,9 @@ export class AiController {
   }
 
   @Post('health/profile')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
   @ApiBody({ type: UpsertHealthProfileDto })
   @ApiOkResponse({ type: HealthAnalysisResponseDto })
   async upsertHealthProfile(@Body() body: UpsertHealthProfileDto) {
@@ -170,6 +178,9 @@ export class AiController {
   }
 
   @Get('health/profile')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
   @ApiQuery({
     name: 'userId',
     required: true,
@@ -181,6 +192,9 @@ export class AiController {
   }
 
   @Get('health/insights')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
   @ApiQuery({
     name: 'userId',
     required: true,

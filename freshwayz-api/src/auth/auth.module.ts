@@ -14,6 +14,9 @@ import { Categories } from 'src/categories/categories.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { HealthProfile } from 'src/ai/entities/health-profile.entity';
 import { AiService } from 'src/ai/ai.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories, HealthProfile]),
@@ -26,7 +29,7 @@ import { AiService } from 'src/ai/ai.service';
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, AiService],
-  exports: [AuthService]
+  providers: [AuthService, JwtStrategy, GoogleStrategy, AiService, JwtAuthGuard, RolesGuard],
+  exports: [AuthService, JwtAuthGuard, RolesGuard],
 })
 export class AuthModule { }

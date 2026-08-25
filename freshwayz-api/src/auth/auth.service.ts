@@ -424,6 +424,13 @@ Provide concise, actionable insights specific to this person's combined health p
 
         if (!auth) throw new UnauthorizedException('Invalid credentials');
 
+        // Check if the customer account has been soft-deleted / deactivated
+        if (auth.customer && auth.customer.isActive === false) {
+            throw new UnauthorizedException(
+                'This account has been deactivated. Please contact support if you believe this is a mistake.',
+            );
+        }
+
         const isMatch = await bcrypt.compare(dto.password, auth.password);
         if (!isMatch) throw new UnauthorizedException('Invalid credentials');
 
@@ -522,8 +529,27 @@ Provide concise, actionable insights specific to this person's combined health p
         return deepLink; // <-- string for redirect
     }
 
+
+    // ---------------------- GUEST LOGIN ----------------------
+    /**
+     * Issues a short-lived JWT for guest users.
+     * No database record is created — completely stateless.
+     * Guests get limited read-only access based on RolesGuard.
+     */
+    async guestLogin(): Promise<{ accessToken: string; role: string }> {
+        const payload = {
+            username: 'guest',
+            sub: 0,
+            role: 'Guest',
+            profileId: null,
+        };
+        const accessToken = this.jwtService.sign(payload, { expiresIn: '24h' });
+        return { accessToken, role: 'Guest' };
+    }
+
     // (username:string){}
     async findOneCustomer(username: string) {
+
         // const auth = await this.customerRepo.findOne({
         //     where: { phone: username },
         //     // relations: ['customer',],

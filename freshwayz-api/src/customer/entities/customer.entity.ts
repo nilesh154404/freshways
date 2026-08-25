@@ -1,3 +1,4 @@
+import { ApiProperty } from "@nestjs/swagger";
 import { Auth } from "src/auth/entities/auth.entity";
 import { Community } from "src/community/entities/community.entity";
 import { Order } from "src/orders/entities/order.entity";
@@ -34,6 +35,14 @@ export class Customer {
 
     @Column({ nullable: true })
     address: string;
+
+    @ApiProperty({ description: 'Whether the customer account is active', default: true })
+    @Column({ default: true })
+    isActive: boolean;
+
+    @ApiProperty({ description: 'Soft-delete timestamp. Null if account is active.', nullable: true })
+    @Column({ type: 'timestamp', nullable: true, default: null })
+    deletedAt: Date | null;
 
     @ManyToOne(() => UserType, userType => userType.users, { nullable: false })
     userType: UserType;

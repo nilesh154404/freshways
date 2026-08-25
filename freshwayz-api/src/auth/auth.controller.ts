@@ -47,6 +47,29 @@ export class AuthController {
         return this.authService.login(dto);
     }
 
+    @Post('guest-login')
+    @ApiOperation({
+        summary: 'Guest Login',
+        description:
+            'Issues a 24-hour JWT for unauthenticated (guest) users. ' +
+            'No account is created. Guest tokens allow read-only access to products, ' +
+            'marketing content, vendors, subscription plans, communities, and generic AI recommendations. ' +
+            'Placing orders, subscribing, and managing profiles require a registered account.',
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'Guest token issued successfully',
+        schema: {
+            example: {
+                accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                role: 'Guest',
+            },
+        },
+    })
+    async guestLogin() {
+        return this.authService.guestLogin();
+    }
+
     @Get('customer/:username')
     findOne(@Param('username') username: string) {
         return this.authService.findOneCustomer(username);
@@ -70,17 +93,6 @@ export class AuthController {
         try {
             const url = await this.authService.googleLogin(req.user);
 
-            // Use a simple HTML redirect to avoid mobile browser blocks
-            //     const html = `
-            //   <html>
-            //     <body onload="window.location.href='${url}'">
-            //       <p>Redirecting to Freshways App...</p>
-            //       <script>
-            //         setTimeout(() => { window.location.href = "${url}"; }, 100);
-            //       </script>
-            //     </body>
-            //   </html>
-            // `;
             const html = `
               <html>
                 <body onload="window.location.href='${url}'">

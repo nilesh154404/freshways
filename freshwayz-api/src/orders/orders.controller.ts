@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
@@ -7,6 +7,9 @@ import { OrderService } from './orders.service';
 import { CreateNewOrderDto } from './dto/create-new-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { PlaceOrderFromProductListDto } from './dto/place-order-from-product-list.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -14,15 +17,23 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
   @Post('place-from-product-list')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
   @ApiOperation({ summary: 'Create order from customer product list' })
   @ApiResponse({ status: 201, description: 'Order created from product list' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
   placeOrderFromProductList(@Body() dto: PlaceOrderFromProductListDto) {
     return this.orderService.placeOrderFromProductList(dto);
   }
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Customer')
   @ApiOperation({ summary: 'Create a new order with listed items' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
   createNew(@Body() createDto: CreateNewOrderDto) {
     return this.orderService.createNew(createDto);
   }
