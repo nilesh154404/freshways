@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, Param, Res, Req, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PaymentsService } from './payments.service';
+import { PaymentsService, paymentDebugLogs } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import type { Request, Response } from 'express';
 import PDFDocument from 'pdfkit';
@@ -11,6 +11,11 @@ export class PaymentsController {
   @Post('initiate')
   async initiatePayment(@Body() createPaymentDto: CreatePaymentDto) {
     return await this.paymentsService.initiatePayment(createPaymentDto);
+  }
+
+  @Get('debug-logs')
+  getDebugLogs() {
+    return paymentDebugLogs;
   }
 
   @Get('response')

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Bookmark, MessageCircle, Share2, Send, MoreVertical, Trash2, ShoppingCart } from "lucide-react";
+import { Bookmark, MessageCircle, Share2, Send, MoreVertical, Trash2, ShoppingCart, Flag, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -68,6 +68,11 @@ const Feed = () => {
   const [vendorPlans, setVendorPlans] = useState<any[]>([]);
   const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
   const [submittingBuy, setSubmittingBuy] = useState(false);
+
+  // Report Post States
+  const [reportPostId, setReportPostId] = useState<number | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
   
   const { toast } = useToast();
   
@@ -79,7 +84,9 @@ const Feed = () => {
   const fetchPosts = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`${API_BASE_URL}/marketing`, {
+      // Pass customerId so the backend excludes posts this customer has reported
+      const customerParam = userRole === "Customer" && userId ? `&customerId=${userId}` : "";
+      const response = await fetch(`${API_BASE_URL}/marketing?page=1&limit=500${customerParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -407,6 +414,67 @@ const Feed = () => {
     }
   };
 
+  const handleReport = async () => {
+    if (!reportPostId || !reportReason.trim()) {
+      toast({ title: "Error", description: "Please enter a reason for the report", variant: "destructive" });
+      return;
+    }
+    setSubmittingReport(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_BASE_URL}/marketing/${reportPostId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ customerId: userId, reason: reportReason }),
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Failed to report post");
+      }
+      toast({ title: "Reported!", description: "Post reported. It will no longer appear in your feed." });
+      setReportPostId(null);
+      setReportReason("");
+      fetchPosts();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to report post", variant: "destructive" });
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  const handleBlockVendor = async (vendorId: number) => {
+    if (!confirm("Are you sure you want to block this vendor? You will no longer see their posts.")) return;
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_BASE_URL}/marketing/vendor/${vendorId}/block`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ customerId: userId }),
+      });
+
+      if (response.ok) {
+        fetchPosts();
+        toast({
+          title: "Vendor Blocked",
+          description: "You will no longer see posts from this vendor.",
+        });
+      } else {
+        throw new Error("Failed to block vendor");
+      }
+    } catch (error) {
+      console.error("Error blocking vendor:", error);
+      toast({
+        title: "Error",
+        description: "Failed to block vendor",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getAuthorName = (post: MarketingContent) => {
     if (post.vendor) {
       return post.vendor.businessName || post.vendor.ownerName || post.vendor.name || "Vendor";
@@ -495,7 +563,7 @@ const Feed = () => {
                               Buy Now
                             </Button>
                           )}
-                          {isAdminOrVendor && (
+                          {(isAdminOrVendor || (isCustomer && post.vendor)) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -503,13 +571,24 @@ const Feed = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => handleDeletePost(post.id)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete Post
-                                </DropdownMenuItem>
+                                {isAdminOrVendor && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeletePost(post.id)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Post
+                                  </DropdownMenuItem>
+                                )}
+                                {isCustomer && post.vendor && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleBlockVendor(post.vendor!.id)}
+                                    className="text-red-600"
+                                  >
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Block Vendor
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -583,6 +662,15 @@ const Feed = () => {
                             <Button variant="ghost" size="sm" className="flex-1 hover:bg-teal-50 hover:text-teal-700" onClick={() => handleShare(post.id)}>
                               <Share2 className="h-4 w-4 mr-2" />
                               Share
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="flex-1 hover:bg-red-50 hover:text-red-600"
+                              onClick={() => { setReportPostId(post.id); setReportReason(""); }}
+                            >
+                              <Flag className="h-4 w-4 mr-2" />
+                              Report
                             </Button>
                           </>
                         )}
@@ -696,6 +784,47 @@ const Feed = () => {
                 <p className="text-gray-500 text-sm">No saves yet</p>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* REPORT POST DIALOG */}
+      <Dialog open={reportPostId !== null} onOpenChange={(o) => { if (!o) { setReportPostId(null); setReportReason(""); } }}>
+        <DialogContent className="max-w-md border-red-200">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Flag className="h-5 w-5" />
+              Report Post
+            </DialogTitle>
+            <DialogDescription>
+              Let us know why this post is inappropriate. It will be hidden from your feed immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="text-sm font-medium text-gray-700">Reason for report</label>
+            <Textarea
+              placeholder="e.g. Misleading content, Spam, Inappropriate..."
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              rows={4}
+              className="border-red-100 focus:ring-red-300"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setReportPostId(null); setReportReason(""); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              disabled={submittingReport || !reportReason.trim()}
+              onClick={handleReport}
+            >
+              {submittingReport ? "Submitting..." : "Submit Report"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
