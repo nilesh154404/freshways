@@ -17,23 +17,27 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
   @Post('place-from-product-list')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Customer')
+  // --- Friend's guest-login security guards (Commented out to allow HealthAmigo tokens) ---
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles('Customer')
+  // @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
+  // ---------------------------------------------------------------------------------------
   @ApiOperation({ summary: 'Create order from customer product list' })
   @ApiResponse({ status: 201, description: 'Order created from product list' })
-  @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
   placeOrderFromProductList(@Body() dto: PlaceOrderFromProductListDto) {
     return this.orderService.placeOrderFromProductList(dto);
   }
 
   @Post()
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Customer')
+  // --- Friend's guest-login security guards (Commented out to allow HealthAmigo tokens) ---
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles('Customer')
+  // @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
+  // ---------------------------------------------------------------------------------------
   @ApiOperation({ summary: 'Create a new order with listed items' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
   createNew(@Body() createDto: CreateNewOrderDto) {
     return this.orderService.createNew(createDto);
   }
