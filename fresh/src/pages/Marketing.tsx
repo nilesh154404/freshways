@@ -3,7 +3,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Heart, MessageSquare, Share2, Send, X, User, Bookmark } from "lucide-react";
+import { Plus, Edit, Trash2, MessageSquare, Share2, Send, User, Bookmark, Flag, AlertTriangle } from "lucide-react";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,9 @@ const Marketing = () => {
   const [commentsOpen, setCommentsOpen] = useState<number | null>(null);
   const [likesOpen, setLikesOpen] = useState<number | null>(null);
   const [savesOpen, setSavesOpen] = useState<number | null>(null);
+  const [reportsOpen, setReportsOpen] = useState<number | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
   const [newComment, setNewComment] = useState("");
 
   const role = localStorage.getItem("role");
@@ -158,6 +161,23 @@ const Marketing = () => {
     } catch {
       toast.error("Failed to load marketing items");
     }
+  };
+
+  const fetchReports = async (postId: number) => {
+    setLoadingReports(true);
+    try {
+      const res = await axios.get(`${API_BASE}/marketing/${postId}/reports`);
+      setReports(res.data);
+    } catch {
+      toast.error("Failed to load reports");
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  const openReports = (postId: number) => {
+    setReportsOpen(postId);
+    fetchReports(postId);
   };
 
   /* ================= HELPERS ================= */
@@ -499,6 +519,13 @@ const Marketing = () => {
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => openReports(item.id)}
+                      title="View Reports"
+                      className="h-9 w-9 rounded-full flex items-center justify-center bg-white/90 hover:bg-white text-orange-600 border border-orange-100 shadow-sm"
+                    >
+                      <Flag className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
               </div>
@@ -658,6 +685,77 @@ const Marketing = () => {
                 </div>
               )}
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* REPORTS DIALOG */}
+        <Dialog open={reportsOpen !== null} onOpenChange={(o) => { if (!o) { setReportsOpen(null); setReports([]); } }}>
+          <DialogContent className="max-w-2xl border-orange-200">
+            <DialogHeader>
+              <DialogTitle className="text-orange-700 flex items-center gap-2">
+                <Flag className="h-5 w-5" />
+                Post Reports ({reports.length})
+              </DialogTitle>
+              <DialogDescription>
+                Complaints raised by customers on this post
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[55vh] overflow-y-auto space-y-3 p-1">
+              {loadingReports ? (
+                <div className="text-center py-10 text-gray-400">Loading reports...</div>
+              ) : reports.length === 0 ? (
+                <div className="text-center py-12">
+                  <Flag className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500 text-sm">No reports on this post</p>
+                </div>
+              ) : (
+                reports.map((r: any) => (
+                  <div key={r.id} className="flex items-start gap-3 p-4 border border-orange-100 rounded-xl bg-orange-50/40 hover:bg-orange-50 transition-colors">
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
+                        <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-sm text-gray-800">
+                          {r.customer?.fullName || `Customer #${r.customer?.id}`}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 bg-white border border-orange-100 rounded-lg px-3 py-2">
+                        {r.reason}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {role === "Admin" && reportsOpen !== null && reports.length > 0 && (
+              <div className="pt-4 border-t border-orange-100">
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={async () => {
+                    if (!window.confirm('Are you sure you want to DELETE this post and all its reports?')) return;
+                    try {
+                      await axios.delete(`${API_BASE}/marketing/${reportsOpen}`);
+                      toast.success('Post deleted successfully');
+                      setReportsOpen(null);
+                      setReports([]);
+                      fetchMarketingItems();
+                    } catch {
+                      toast.error('Failed to delete post');
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete This Post
+                </Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

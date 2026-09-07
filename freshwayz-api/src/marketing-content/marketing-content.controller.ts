@@ -85,13 +85,16 @@ export class MarketingContentController {
   }
 
   @Get()
-  async findAll(@Query('vendorId') vendorId?: number,
+  async findAll(
+    @Query('vendorId') vendorId?: number,
     @Query('categoryId') categoryId?: number,
-    @Query('productId') productId?: number) {
+    @Query('productId') productId?: number,
+    @Query('customerId') customerId?: number,
+  ) {
     if (vendorId || categoryId || productId) {
-      return this.marketingService.filter({ vendorId, categoryId, productId });
+      return this.marketingService.filter({ vendorId, categoryId, productId, customerId: customerId ? Number(customerId) : undefined });
     }
-    return this.marketingService.findAll();
+    return this.marketingService.findAll(customerId ? Number(customerId) : undefined);
   }
 
   @Get(':id')
@@ -180,5 +183,66 @@ async sharePost(@Param('id') id: number) {
   @Get('user/:userId/comments')
   async getCommentsByCustomer(@Param('userId') userId: number) {
     return this.marketingService.getCommentsByCustomer(userId);
+  }
+
+  // ======================== REPORT ENDPOINTS ========================
+
+  // Customer reports a post — POST /marketing/:id/report
+  @Post(':id/report')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        customerId: { type: 'number', example: 5, description: 'ID of the customer reporting the post' },
+        reason: { type: 'string', example: 'Inappropriate content', description: 'Reason for the report' },
+      },
+      required: ['customerId', 'reason'],
+    },
+  })
+  async reportPost(
+    @Param('id') id: number,
+    @Body() body: { customerId: number; reason: string },
+  ) {
+    return this.marketingService.reportPost(Number(id), body.customerId, body.reason);
+  }
+
+  // Vendor: see all reports on their posts — GET /marketing/reports/vendor/:vendorId
+  @Get('reports/vendor/:vendorId')
+  async getReportsByVendor(@Param('vendorId') vendorId: number) {
+    return this.marketingService.getReportsByVendor(Number(vendorId));
+  }
+
+  // Admin: see all reports on all posts — GET /marketing/reports/all
+  @Get('reports/all')
+  async getAllReports() {
+    return this.marketingService.getAllReports();
+  }
+
+  // Vendor or Admin: see all reports on a specific post — GET /marketing/:id/reports
+  @Get(':id/reports')
+  async getReportsByPost(@Param('id') id: number) {
+    return this.marketingService.getReportsByPost(Number(id));
+  }
+
+  // Admin: delete a reported post — DELETE /marketing/:id
+  // (already exists as remove(), reused here for clarity)
+
+  // ======================== BLOCK VENDOR ========================
+
+  @Post('vendor/:vendorId/block')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        customerId: { type: 'number', example: 5 },
+      },
+      required: ['customerId'],
+    },
+  })
+  async blockVendor(
+    @Param('vendorId') vendorId: number,
+    @Body() body: { customerId: number },
+  ) {
+    return this.marketingService.blockVendor(Number(vendorId), body.customerId);
   }
 }

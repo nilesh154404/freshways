@@ -6,6 +6,7 @@ import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { MarketingComment } from './marketing-comment.entity';
 import { MarketingLike } from './marketing-like.entity';
 import { MarketingSave } from './marketing-save.entity';
+import { MarketingReport } from './marketing-report.entity';
 import {
     Entity,
     PrimaryGeneratedColumn,
@@ -51,4 +52,7 @@ export class MarketingContent {
 
     @OneToMany(() => MarketingSave, (save) => save.marketingContent)
     saves: MarketingSave[];
+
+    @OneToMany(() => MarketingReport, (report) => report.marketingContent)
+    reports: MarketingReport[];
 }

@@ -14,6 +14,9 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from './entities/payment.entity';
+import * as crypto from 'crypto';
+
+export const paymentDebugLogs: any[] = [];
 
 @Injectable()
 export class PaymentsService {
@@ -77,7 +80,8 @@ export class PaymentsService {
     // Always generate a completely unique transaction ID to prevent Dexpert "resubmitted" errors 
     // in case the frontend retries with the same transactionId.
     const baseTxnId = createPaymentDto.transactionId ? createPaymentDto.transactionId + '_' : 'TXN';
-    const txnId = `${baseTxnId}${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    const randomHex = crypto.randomBytes(6).toString('hex').toUpperCase();
+    const txnId = `${baseTxnId}${randomHex}`;
     const txnAmt = createPaymentDto.amount;
 
     // Save pending payment to DB
@@ -150,24 +154,32 @@ export class PaymentsService {
         }
       });
       
+      paymentDebugLogs.push({
+        time: new Date().toISOString(),
+        encryptedQuery: sanitizedQuery,
+        responseData
+      });
+      if (paymentDebugLogs.length > 20) paymentDebugLogs.shift();
+
       this.logger.log(`Decrypted Dexpert Response: ${JSON.stringify(responseData)}`);
 
       const orderStatusStr =
         responseData['status'] || responseData['order_status'] || '';
       const transactionId =
-        responseData['mtxnId'] || responseData['pg_transt_id'];
+        responseData['mtxnId'] || responseData['txnid'] || responseData['txnId'] || responseData['pg_transt_id'];
 
-      const isSuccess = orderStatusStr.toLowerCase() === 'success';
+      const isSuccess = orderStatusStr.toLowerCase().trim() === 'success';
       let receiptNumber: string | undefined;
 
       this.logger.log(`Verifying payment - TxnId: ${transactionId}, Status: ${orderStatusStr}, IsSuccess: ${isSuccess}`);
 
       if (transactionId) {
-        // Update DB status
-        const payment = await this.paymentRepository.findOne({
-          where: { transactionId },
-          relations: ['order'],
-        });
+        // Update DB status with a case-insensitive search to prevent issues
+        const payment = await this.paymentRepository.createQueryBuilder('payment')
+          .leftJoinAndSelect('payment.order', 'order')
+          .where('LOWER(payment.transactionId) = LOWER(:transactionId)', { transactionId })
+          .getOne();
+          
         if (payment) {
           this.logger.log(`Found payment record for TxnId: ${transactionId}. Updating status...`);
           payment.status = isSuccess
