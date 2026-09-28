@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Upload } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
+import { Package } from "lucide-react";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,12 @@ const Categories = () => {
   });
 
   const [uploading, setUploading] = useState(false);
+
+  // View Products state
+  const [isProductsModalOpen, setIsProductsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categoryProducts, setCategoryProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -147,6 +154,20 @@ const Categories = () => {
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete category");
+    }
+  };
+
+  const handleViewProducts = async (category: Category) => {
+    setSelectedCategory(category);
+    setIsProductsModalOpen(true);
+    setIsLoadingProducts(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/products?categoryId=${category.id}&page=1&limit=500`);
+      setCategoryProducts(res.data.items || []);
+    } catch (err) {
+      toast.error("Failed to load products for this category");
+    } finally {
+      setIsLoadingProducts(false);
     }
   };
 
@@ -267,7 +288,11 @@ const Categories = () => {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {categories.map((category) => (
-              <Card key={category.id} className="relative">
+              <Card 
+                key={category.id} 
+                className="relative cursor-pointer hover:shadow-md hover:border-green-300 transition-all"
+                onClick={() => handleViewProducts(category)}
+              >
                 {category.img_link && (
                   <img
                     src={category.img_link}
@@ -290,14 +315,14 @@ const Categories = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(category)}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(category); }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(category.id)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(category.id); }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -308,6 +333,57 @@ const Categories = () => {
             ))}
           </div>
         )}
+
+        {/* View Products Dialog */}
+        <Dialog open={isProductsModalOpen} onOpenChange={setIsProductsModalOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-green-600" />
+                Products in '{selectedCategory?.name}'
+              </DialogTitle>
+              <DialogDescription>
+                Viewing all products mapped to this category.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {isLoadingProducts ? (
+                <div className="text-center py-10 text-muted-foreground">Loading products...</div>
+              ) : categoryProducts.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  No products found in this category.
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {categoryProducts.map(product => (
+                    <div key={product.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                      {product.productUrl ? (
+                        <img src={product.productUrl} alt={product.label} className="w-12 h-12 rounded-md object-cover border" />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center border">
+                          <Package className="h-5 w-5 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{product.label}</p>
+                        <p className="text-xs text-muted-foreground truncate">{product.description}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs font-medium">{product.measurementValue} {product.measurementUnit}</p>
+                          {product.vendor && (
+                            <span className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded border border-green-200 truncate max-w-[80px]">
+                              {product.vendor.businessName || 'Vendor'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

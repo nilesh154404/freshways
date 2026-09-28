@@ -456,6 +456,7 @@ export class OrderService {
       .leftJoinAndSelect('order.community', 'community')
       .leftJoinAndSelect('order.listedOrders', 'listedOrders')
       .leftJoinAndSelect('listedOrders.product', 'product')
+      .leftJoinAndSelect('product.vendor', 'productVendor')
       .leftJoinAndSelect('listedOrders.customizations', 'customizations')
       .leftJoinAndSelect('customizations.customizationGroup', 'customizationGroup')
       .leftJoinAndSelect('customizations.customizationOption', 'customizationOption')
@@ -469,7 +470,7 @@ export class OrderService {
     }
 
     if (filters.vendorId) {
-      qb.andWhere('order.vendorId = :vendorId', { vendorId: filters.vendorId });
+      qb.andWhere('(order.vendorId = :vendorId OR productVendor.id = :vendorId)', { vendorId: filters.vendorId });
     }
 
     if (filters.communityId) {
@@ -498,7 +499,29 @@ export class OrderService {
 
     qb.orderBy('order.createdAt', 'DESC');
 
-    return qb.getMany();
+    const orders = await qb.getMany();
+
+    if (filters.vendorId) {
+      const vendorIdNum = Number(filters.vendorId);
+      orders.forEach(order => {
+        // If the order itself doesn't belong strictly to this vendor,
+        // it means we are in a mixed order scenario. We only want to show
+        // the grandTotal for the items this vendor is responsible for.
+        if (order.vendor?.id !== vendorIdNum && order.listedOrders) {
+          let vendorTotal = 0;
+          for (const item of order.listedOrders) {
+            // Note: The WHERE clause already filters out the other vendor's items from the joined result,
+            // so order.listedOrders should only contain this vendor's items at this point.
+            // But we can double check just in case, or simply sum what was returned.
+            const itemTotal = Number(item.discountedAmount !== null ? item.discountedAmount : item.amount) || 0;
+            vendorTotal += itemTotal;
+          }
+          order.grandTotal = vendorTotal; // Override the total so the vendor only sees their share
+        }
+      });
+    }
+
+    return orders;
   }
   async findOne(id: number): Promise<Order> {
     const order = await this.orderRepo.findOne({

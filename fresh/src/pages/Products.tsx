@@ -23,8 +23,14 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ProductCustomizationsDialog } from "@/components/ProductCustomizationsDialog";
-import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
 import { API_BASE_URL } from "@/lib/api";
@@ -556,7 +562,14 @@ const Products = () => {
                 {products.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell><img src={p.productUrl} className="h-10 w-10 rounded" /></TableCell>
-                    <TableCell>{p.label}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{p.label}</div>
+                      {role === "Admin" && p.vendor && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          By: {p.vendor.businessName || "Unknown"}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-xs truncate">{p.description}</TableCell>
                     <TableCell>{p.measurementValue} {p.measurementUnit}</TableCell>
                     <TableCell>
@@ -574,15 +587,27 @@ const Products = () => {
                       <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => triggerDelete(p)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                        <Button variant="outline" size="sm" onClick={() => handleConfigurePrice(p)}>Configure Price</Button>
-                        <Button variant="outline" size="sm" onClick={() => handleConfigureDiscount(p)}>
-                          Configure Discount
-                        </Button>
-                        {(p.category?.name === 'Healthy Meals' || p.category?.label === 'Healthy Meals') && (
-                          <Button variant="outline" size="sm" onClick={() => handleConfigureCustomization(p)}>
-                            Customizations
-                          </Button>
-                        )}
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleConfigurePrice(p)}>
+                              Configure Price
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleConfigureDiscount(p)}>
+                              Configure Discount
+                            </DropdownMenuItem>
+                            {(p.category?.name === 'Healthy Meals' || p.category?.label === 'Healthy Meals') && (
+                              <DropdownMenuItem onClick={() => handleConfigureCustomization(p)}>
+                                Customizations
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>

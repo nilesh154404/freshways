@@ -137,7 +137,7 @@ const Marketing = () => {
       const normalized: MarketingItem[] = res.data.map((item: any) => {
         // Get vendorId and vendor name from the API response
         const vendorId = item.vendor?.id || item.vendorId;
-        const vendorName = item.vendor?.businessName || item.vendor?.ownerName || 'Unknown Vendor';
+        const vendorName = item.vendor?.businessName || item.vendor?.ownerName || (vendorId ? 'Unknown Vendor' : 'Admin');
         
         return {
           id: item.id,

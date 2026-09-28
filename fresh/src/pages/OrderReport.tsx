@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -32,7 +32,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { Eye } from "lucide-react";
+import { Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "@/lib/api";
 
@@ -204,6 +204,9 @@ export default function OrdersReport() {
                 const from = dateFrom ? new Date(dateFrom) : null;
                 const to = dateTo ? new Date(dateTo) : null;
 
+                if (from) from.setHours(0, 0, 0, 0);
+                if (to) to.setHours(23, 59, 59, 999);
+
                 if (from && d < from) return false;
                 if (to && d > to) return false;
 
@@ -222,6 +225,21 @@ export default function OrdersReport() {
         (page - 1) * rowsPerPage,
         page * rowsPerPage
     );
+
+    // Grouping pageOrders by date
+    const groupedOrders = pageOrders.reduce((acc, order) => {
+        // Use a consistent date format (e.g. DD/MM/YYYY)
+        const dateStr = new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if (!acc[dateStr]) {
+            acc[dateStr] = { date: dateStr, orders: [], totalAmount: 0, count: 0 };
+        }
+        acc[dateStr].orders.push(order);
+        acc[dateStr].count += 1;
+        acc[dateStr].totalAmount += parseFloat(order.grandTotal) || 0;
+        return acc;
+    }, {} as Record<string, { date: string, orders: APIOrder[], totalAmount: number, count: number }>);
+    
+    const groupedOrdersArray = Object.values(groupedOrders);
 
     const showingFrom = totalRecords === 0 ? 0 : (page - 1) * rowsPerPage + 1;
     const showingTo = Math.min(page * rowsPerPage, totalRecords);
@@ -242,6 +260,41 @@ export default function OrdersReport() {
     };
 
     //
+    // EXPORT
+    //
+
+    const handleExportCSV = () => {
+        if (filteredOrders.length === 0) {
+            toast.error("No orders to export");
+            return;
+        }
+
+        const headers = ["Order ID", "Date", "Customer Name", "Customer Phone", "Community", "Status", "Payment Status", "Total Amount"];
+        
+        const rows = filteredOrders.map(order => [
+            order.id,
+            new Date(order.createdAt).toLocaleDateString(),
+            `"${order.customer.fullName || ''}"`,
+            order.customer.phone || '',
+            `"${order.community?.name || ''}"`,
+            order.orderStatus,
+            order.paymentStatus,
+            order.grandTotal
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `orders_report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Exported to CSV successfully");
+    };
+
+    //
     // RENDER
     //
 
@@ -250,7 +303,12 @@ export default function OrdersReport() {
             <DashboardHeader />
 
             <div className="p-6 space-y-6">
-                <h2 className="text-3xl font-bold">Orders Report</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 className="text-3xl font-bold">Orders Report</h2>
+                    <Button onClick={handleExportCSV} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                        <Download className="h-4 w-4" /> Export CSV
+                    </Button>
+                </div>
 
                 {/* FILTER BAR */}
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg bg-white">
@@ -321,39 +379,55 @@ export default function OrdersReport() {
                         </TableHeader>
 
                         <TableBody>
-                            {pageOrders.map((order) => (
-                                <TableRow key={order.id}>
-                                    <TableCell>#{order.id}</TableCell>
+                            {groupedOrdersArray.map((group) => (
+                                <React.Fragment key={group.date}>
+                                    <TableRow className="bg-emerald-50/70 hover:bg-emerald-50/70 font-semibold border-t-8 border-white shadow-sm">
+                                        <TableCell colSpan={5} className="text-emerald-800 rounded-tl-lg rounded-bl-lg">
+                                            📅 Date: {group.date}
+                                        </TableCell>
+                                        <TableCell className="text-emerald-800">
+                                            Orders: {group.count}
+                                        </TableCell>
+                                        <TableCell colSpan={2} className="text-emerald-800 rounded-tr-lg rounded-br-lg">
+                                            Total: ₹{group.totalAmount.toFixed(2)}
+                                        </TableCell>
+                                    </TableRow>
 
-                                    <TableCell>
-                                        {order.customer.fullName}
-                                        <div className="text-xs text-muted-foreground">
-                                            {order.customer.phone}
-                                        </div>
-                                    </TableCell>
+                                    {group.orders.map((order) => (
+                                        <TableRow key={order.id}>
+                                            <TableCell>#{order.id}</TableCell>
 
-                                    <TableCell>{order.community?.name || "N/A"}</TableCell>
+                                            <TableCell>
+                                                {order.customer.fullName}
+                                                <div className="text-xs text-muted-foreground">
+                                                    {order.customer.phone}
+                                                </div>
+                                            </TableCell>
 
-                                    <TableCell>
-                                        <Badge>{order.orderStatus}</Badge>
-                                    </TableCell>
+                                            <TableCell>{order.community?.name || "N/A"}</TableCell>
 
-                                    <TableCell>
-                                        <Badge variant="outline">{order.paymentStatus}</Badge>
-                                    </TableCell>
+                                            <TableCell>
+                                                <Badge>{order.orderStatus}</Badge>
+                                            </TableCell>
 
-                                    <TableCell>₹{order.grandTotal}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{order.paymentStatus}</Badge>
+                                            </TableCell>
 
-                                    <TableCell>
-                                        {new Date(order.createdAt).toLocaleString()}
-                                    </TableCell>
+                                            <TableCell>₹{parseFloat(order.grandTotal).toFixed(2)}</TableCell>
 
-                                    <TableCell className="text-center">
-                                        <Button variant="ghost" onClick={() => setSelectedOrder(order)}>
-                                            <Eye className="h-5 w-5" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
+                                            <TableCell>
+                                                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </TableCell>
+
+                                            <TableCell className="text-center">
+                                                <Button variant="ghost" onClick={() => setSelectedOrder(order)}>
+                                                    <Eye className="h-5 w-5" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </React.Fragment>
                             ))}
 
                             {pageOrders.length === 0 && (
