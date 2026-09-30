@@ -82,6 +82,9 @@ export class MarketingContentService {
 
     content.description = dto.description;
 
+    // Persist medical/health source citations (Apple App Store Guideline 1.4.1)
+    content.sources = dto.sources ?? null;
+
     await this.marketingRepo.save(content);
 
     if (files?.length) {
@@ -141,6 +144,11 @@ export class MarketingContentService {
   async update(id: number, dto: UpdateMarketingContentDto, files?: Express.Multer.File[]) {
     const content = await this.marketingRepo.preload({ id, ...dto });
     if (!content) throw new NotFoundException('Marketing content not found');
+
+    // Explicitly handle sources so callers can clear citations by passing []
+    if (dto.sources !== undefined) {
+      content.sources = dto.sources.length > 0 ? dto.sources : null;
+    }
 
     await this.marketingRepo.save(content);
 

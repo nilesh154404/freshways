@@ -108,6 +108,11 @@ export interface ReportSummaryFinding {
   notes: string;
 }
 
+export interface ReportSource {
+  name: string;
+  url: string;
+}
+
 export interface ReportSummaryPayload {
   patient: ReportSummaryPatient;
   overview: string;
@@ -116,6 +121,11 @@ export interface ReportSummaryPayload {
   abnormalValues: string[];
   recommendations: string[];
   disclaimer: string;
+  /**
+   * Medical sources cited by the AI for the findings and recommendations.
+   * Required for Apple App Store Guideline 1.4.1 compliance.
+   */
+  sources: ReportSource[];
 }
 
 export interface StructuredReportSummary extends ReportSummaryPayload {
@@ -550,10 +560,17 @@ export class AiService {
                       abnormalValues: [''],
                       recommendations: [''],
                       disclaimer: '',
+                      sources: [
+                        {
+                          name: 'Example: NIH Office of Dietary Supplements',
+                          url: 'https://ods.od.nih.gov/',
+                        },
+                      ],
                     },
                     null,
                     2,
                   ),
+                  'IMPORTANT for `sources`: For every recommendation or abnormal finding you identify, cite the real, publicly accessible medical reference you used (e.g. NIH, WHO, Mayo Clinic, PubMed, CDC, ICMR). Each source must have a `name` (organization/publication name) and a `url` (direct link to the relevant page). Only include sources that are genuinely relevant to the findings in this specific report. Do not fabricate URLs.',
                   `User prompt: ${normalizedPrompt}`,
                   'Report text:',
                   textForModel,
@@ -643,12 +660,22 @@ export class AiService {
       abnormalValues: [],
       recommendations: [],
       disclaimer: 'These are the insights from the report. This summary was generated from extracted report text and should be reviewed by a clinician.',
+      sources: [],
     };
   }
 
   private normalizeReportSummaryPayload(rawPayload: any): ReportSummaryPayload {
     const patient = rawPayload?.patient ?? {};
     const keyFindings = Array.isArray(rawPayload?.keyFindings) ? rawPayload.keyFindings : [];
+
+    // Normalize the sources array returned by Gemini
+    const rawSources = Array.isArray(rawPayload?.sources) ? rawPayload.sources : [];
+    const sources: ReportSource[] = rawSources
+      .filter((s: any) => s && typeof s === 'object' && s.name && s.url)
+      .map((s: any) => ({
+        name: this.cleanText(s.name),
+        url: this.cleanText(s.url),
+      }));
 
     return {
       patient: {
@@ -670,6 +697,7 @@ export class AiService {
       abnormalValues: this.toCleanStringArray(rawPayload?.abnormalValues),
       recommendations: this.toCleanStringArray(rawPayload?.recommendations),
       disclaimer: this.cleanText(rawPayload?.disclaimer),
+      sources,
     };
   }
 
@@ -724,6 +752,13 @@ export class AiService {
 
     if (payload.disclaimer) {
       lines.push('', '### Note', payload.disclaimer);
+    }
+
+    if (payload.sources && payload.sources.length > 0) {
+      lines.push('', '### Sources / References');
+      payload.sources.forEach((src) => {
+        lines.push(`- [${src.name}](${src.url})`);
+      });
     }
 
     return lines.join('\n');
@@ -1661,7 +1696,13 @@ ${reportText || "No reports uploaded"}
   "extractedCholesterol": 0.0,
   "extractedFastingSugar": 0.0,
   "extractedHba1c": 0.0,
-  "extractedBloodReportsSummary": "string"
+  "extractedBloodReportsSummary": "string",
+  "sources": [
+    {
+      "name": "string — name of the medical authority or publication (e.g. NIH, WHO, Mayo Clinic, PubMed)",
+      "url": "string — direct URL to the relevant page"
+    }
+  ]
 }
 
 ----------------------------------------
@@ -1700,6 +1741,12 @@ Step 6: Risk alerts
 - Highlight possible risks (e.g. diabetes, low sleep)
 - Preventive Alerts: Early warnings and preventive measures based on health risks.
 
+Step 7: Sources
+- For every recommendation, risk alert, or nutritional insight you generate, cite the real medical authority or publication you drew it from.
+- Each source must have: \`name\` (e.g. "NIH", "WHO", "Mayo Clinic", "PubMed") and \`url\` (a direct link to the relevant page).
+- Only cite sources that are genuinely relevant to the specific findings in this report. Do NOT invent or hallucinate URLs.
+- Minimum 1 source, maximum 5 sources.
+
 ----------------------------------------
 🚫 DO NOT DO
 ----------------------------------------
@@ -1708,6 +1755,7 @@ Step 6: Risk alerts
 - Do not include explanation outside JSON
 - Do not skip report findings
 - Do not assume missing lab values
+- Do not skip the \`sources\` field — it is mandatory for compliance
 - ⚠️ IMPORTANT: Diet Guide and Fitness MUST contain ONLY lifestyle and food recommendations. DO NOT put medical risks, warnings, or disease progression alerts here.
 - Do not put medical jargon or complex risks in the Diet or Fitness sections. Keep them simple, meal-based, and actionable.
 `;

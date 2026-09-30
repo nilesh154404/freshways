@@ -41,6 +41,13 @@ export class MarketingContent {
     @Column({ default: 0 })
     shareCount: number;
 
+    /**
+     * Medical/health source citations required by Apple App Store Guideline 1.4.1.
+     * Each entry has a `name` (e.g. "NIH") and a `url` (e.g. "https://ods.od.nih.gov/").
+     */
+    @Column({ type: 'json', nullable: true })
+    sources: { name: string; url: string }[] | null;
+
     @OneToMany(() => FileUpload, (file) => file.marketingContent)
     media: FileUpload[];
 
