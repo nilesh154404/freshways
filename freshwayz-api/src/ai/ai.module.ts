@@ -5,10 +5,11 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthProfile } from './entities/health-profile.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { Product } from 'src/products/entities/product.entity';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forFeature([HealthProfile, Customer]), AuthModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([HealthProfile, Customer, Product]), AuthModule],
   controllers: [AiController],
   providers: [AiService],
   exports: [AiService],

@@ -89,6 +89,7 @@ import { UpsertHealthProfileDto } from './dto/upsert-health-profile.dto';
 import { analyzeHealthProfile } from './helpers/rule-based-health-analysis';
 import { HealthProfile } from './entities/health-profile.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { Product } from 'src/products/entities/product.entity';
 
 export type ReportFindingStatus = 'normal' | 'abnormal' | 'unknown';
 
@@ -153,13 +154,15 @@ export class AiService {
     private readonly healthProfileRepo: Repository<HealthProfile>,
     @InjectRepository(Customer)
     private readonly customerRepo: Repository<Customer>,
+    @InjectRepository(Product)
+    private readonly productRepo: Repository<Product>,
   ) {
     this.baseUrl =
       this.config.get<string>('AI_BASE_URL') ||
       'https://ai.engine.freshwayz.dexpertsystems.com/api';
     this.healthAnalyzePath =
       this.config.get<string>('AI_HEALTH_ANALYZE_PATH') || '/health/analyze';
-    this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || '';
+    this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || 'AIzaSyBIkTTAV9qNwVV-SsqcAABm7MLIg7xfmHE';
     this.geminiModel = this.config.get<string>('GEMINI_MODEL') || 'gemini-2.5-flash';
 
     this.username = this.config.get<string>('AI_USERNAME') || 'admin';
@@ -188,103 +191,138 @@ export class AiService {
     }
   }
 
-//   // 💬 CHAT
-//   async sendChat(message: string) {
-//     const url = `${this.baseUrl}/chat`;
+  //   // 💬 CHAT
+  //   async sendChat(message: string) {
+  //     const url = `${this.baseUrl}/chat`;
 
-//     try {
-//       // ensure login
-//       if (!this.sessionKey) {
-//         await this.login();
-//       }
+  //     try {
+  //       // ensure login
+  //       if (!this.sessionKey) {
+  //         await this.login();
+  //       }
 
-//       const res = await axios.post(
-//         url,
-//         { message },
-//         {
-//           headers: {
-//             'Content-Type': 'application/json',
-//             Authorization: `Bearer ${this.sessionKey}`,
-//           },
-//           timeout: 15000,
-//         },
-//       );
+  //       const res = await axios.post(
+  //         url,
+  //         { message },
+  //         {
+  //           headers: {
+  //             'Content-Type': 'application/json',
+  //             Authorization: `Bearer ${this.sessionKey}`,
+  //           },
+  //           timeout: 15000,
+  //         },
+  //       );
 
-//       return res.data;
-//     } catch (err: any) {
-//       this.logger.error(`❌ AI chat failed -> ${this.baseUrl}`, err?.message || err);
+  //       return res.data;
+  //     } catch (err: any) {
+  //       this.logger.error(`❌ AI chat failed -> ${this.baseUrl}`, err?.message || err);
 
-//       // retry once if session expired
-//       if (err?.response?.status === 401) {
-//         this.logger.warn('🔁 Session expired, re-login...');
-//         await this.login();
+  //       // retry once if session expired
+  //       if (err?.response?.status === 401) {
+  //         this.logger.warn('🔁 Session expired, re-login...');
+  //         await this.login();
 
-//         return this.sendChat(message);
-//       }
+  //         return this.sendChat(message);
+  //       }
 
-//       if (this.fallbackMock) {
-//         return {
-//           reply: `Mock AI response for: ${message}`,
-//         };
-//       }
+  //       if (this.fallbackMock) {
+  //         return {
+  //           reply: `Mock AI response for: ${message}`,
+  //         };
+  //       }
 
-//       throw new HttpException(
-//         { message: err?.message || 'AI chat error' },
-//         HttpStatus.BAD_GATEWAY,
-//       );
-//     }
-//   }
+  //       throw new HttpException(
+  //         { message: err?.message || 'AI chat error' },
+  //         HttpStatus.BAD_GATEWAY,
+  //       );
+  //     }
+  //   }
 
   async sendChat(message: string) {
-    const url = `${this.baseUrl}/chat`;
+    if (!this.geminiApiKey) {
+      if (this.fallbackMock) {
+        return { reply: `Mock AI response for: ${message}` };
+      }
+      throw new HttpException(
+        { message: 'GEMINI_API_KEY is not configured on server' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
 
     try {
-      if (!this.sessionKey) {
-        await this.login();
-      }
+      // Fetch available products to provide context to the AI
+      const products = await this.productRepo.find({
+        select: ['id', 'label', 'description', 'productType'],
+        take: 100, // Limit to top 100 to avoid exceeding token limits
+      });
+
+      const productContext = products
+        .map(p => `- ${p.label} (Type: ${p.productType}): ${p.description}`)
+        .join('\n');
+
+      const systemPrompt = `You are a helpful assistant for Freshwayz, an online store. 
+The user is asking a question or making a statement. Please give them a helpful and conversational reply. 
+If they mention any health issues (like fever, cold, etc.) or explicitly ask for recommendations, you MUST recommend relevant products from our available product list below.
+Format any recommended product names in **bold**. Do NOT recommend products that are not in this list.
+
+Available Products:
+${productContext}
+
+User message: ${message.trim()}`;
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
 
       const res = await axios.post(
         url,
         {
-          message: message.trim(),
+          contents: [
+            {
+              parts: [
+                {
+                  text: systemPrompt,
+                },
+              ],
+            },
+          ],
         },
         {
           headers: {
-            Authorization: `Bearer ${this.sessionKey}`,
             'Content-Type': 'application/json',
           },
           timeout: 15000,
+          validateStatus: () => true,
         },
       );
 
-      return res.data;
+      if (res.status < 200 || res.status >= 300) {
+        throw new HttpException(
+          {
+            message: 'Gemini API request failed',
+            geminiStatus: res.status,
+            geminiBody: res.data,
+          },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+      const replyText = this.extractGeminiText(res.data);
+      if (!replyText) {
+        throw new HttpException(
+          { message: 'Gemini response did not contain text output' },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+      return { reply: replyText };
     } catch (err: any) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
       this.logger.error(
-        `AI chat failed -> ${url}`,
+        `AI chat failed -> Gemini API`,
         err?.response?.data || err?.message || err,
       );
-
-      if (err?.response?.status === 401) {
-        this.logger.warn('AI session expired, re-authenticating');
-        await this.login();
-        return this.sendChat(message);
-      }
-
-      if (err?.response) {
-        const aiBody = err.response.data;
-        const aiStatus = err.response.status || 502;
-        if (aiStatus >= 500 && this.fallbackMock) {
-          this.logger.warn('AI returned server error, returning chat mock');
-          return { reply: `Mock AI response for: ${message}` };
-        }
-        throw new HttpException({ aiStatus, aiBody }, HttpStatus.BAD_GATEWAY);
-      }
-
-      const code = err?.code;
-      if (code === 'ECONNREFUSED' && this.fallbackMock) {
-        this.logger.warn('AI unreachable, returning fallback mock response');
-        return { reply: `AI unavailable, mock reply for message: ${message}` };
-      }
 
       throw new HttpException(
         { message: err?.message || 'AI error' },
@@ -352,7 +390,7 @@ export class AiService {
       );
     }
   }
-  
+
 
   async upsertHealthProfile(dto: UpsertHealthProfileDto) {
     const existing = await this.healthProfileRepo.findOne({
@@ -369,7 +407,7 @@ export class AiService {
 
     const heightUnit = payload.heightUnit || existing?.heightUnit || 'cm';
     const heightVal = payload.height !== undefined ? payload.height : (payload.heightCm !== undefined ? payload.heightCm : (existing?.height || existing?.heightCm || 0));
-    
+
     let heightCm = 0;
     if (heightUnit === 'inch') {
       heightCm = Number((heightVal * 2.54).toFixed(2));
@@ -1764,7 +1802,7 @@ Step 7: Sources
   async generateGeminiHealthInsights(prompt: string): Promise<any> {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-      
+
       const response = await axios.post(
         url,
         {
@@ -1840,7 +1878,7 @@ Step 7: Sources
 
     const prompt = this.buildHealthInsightsPrompt(userData, '');
     const insights = await this.generateGeminiHealthInsights(prompt);
-    
+
     return { message: 'Insights generated successfully', insights };
   }
 

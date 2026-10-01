@@ -12,6 +12,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { Customer } from 'src/customer/entities/customer.entity';
 import { Categories } from 'src/categories/categories.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { Product } from 'src/products/entities/product.entity';
 import { HealthProfile } from 'src/ai/entities/health-profile.entity';
 import { AiService } from 'src/ai/ai.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -19,7 +20,7 @@ import { RolesGuard } from './guards/roles.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories, HealthProfile]),
+    TypeOrmModule.forFeature([Auth, User, Vendor, Customer, UserType, Categories, HealthProfile, Product]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
