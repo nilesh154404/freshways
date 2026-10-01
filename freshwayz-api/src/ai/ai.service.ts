@@ -162,7 +162,7 @@ export class AiService {
       'https://ai.engine.freshwayz.dexpertsystems.com/api';
     this.healthAnalyzePath =
       this.config.get<string>('AI_HEALTH_ANALYZE_PATH') || '/health/analyze';
-    this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || 'AIzaSyBIkTTAV9qNwVV-SsqcAABm7MLIg7xfmHE';
+    this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || '';
     this.geminiModel = this.config.get<string>('GEMINI_MODEL') || 'gemini-2.5-flash';
 
     this.username = this.config.get<string>('AI_USERNAME') || 'admin';
