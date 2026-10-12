@@ -1,11 +1,12 @@
-// Simple FreshAI frontend service (modern async/await)
-// Base URL for the AI engine
-export const BASE_URL = 'http://localhost:8080/api';
+import { API_BASE_URL } from './api';
+
+// Base URL for AI endpoints uses the exact same API_BASE_URL configured for the whole app
+export const BASE_URL = API_BASE_URL;
 const STORAGE_KEY = 'freshai_session_key';
 
 export function getSessionKey() {
   try {
-    return localStorage.getItem(STORAGE_KEY);
+    return localStorage.getItem(STORAGE_KEY) || localStorage.getItem('token');
   } catch (err) {
     return null;
   }
@@ -35,12 +36,28 @@ export async function login(username, password) {
   });
 
   if (!res.ok) {
+    // If external engine login fails, try main auth login
+    const authRes = await fetch(`${BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: username, password }),
+    }).catch(() => null);
+
+    if (authRes && authRes.ok) {
+      const authData = await authRes.json();
+      const token = authData?.accessToken || authData?.token;
+      if (token) {
+        setSessionKey(token);
+        return token;
+      }
+    }
+
     const text = await res.text();
     throw new Error(text || `Login failed (${res.status})`);
   }
 
   const data = await res.json();
-  const key = data?.sessionKey || data?.session_key || data?.token;
+  const key = data?.sessionKey || data?.session_key || data?.token || data?.accessToken;
   if (!key) throw new Error('No sessionKey received from server');
   setSessionKey(key);
   return key;
@@ -48,14 +65,16 @@ export async function login(username, password) {
 
 export async function sendMessageToAI(message) {
   const key = getSessionKey();
-  if (!key) throw new Error('Missing sessionKey. Please login first.');
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (key) {
+    headers['Authorization'] = `Bearer ${key}`;
+  }
 
   const res = await fetch(`${BASE_URL}/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
+    headers,
     body: JSON.stringify({ message }),
   });
 
@@ -65,14 +84,20 @@ export async function sendMessageToAI(message) {
   }
 
   const data = await res.json();
-  return data?.response || '';
+  return data?.reply || data?.response || data?.message || '';
 }
 
 export async function getRecommendations(userId) {
   const q = `userId=${encodeURIComponent(String(userId))}`;
+  const key = getSessionKey();
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) {
+    headers['Authorization'] = `Bearer ${key}`;
+  }
+
   const res = await fetch(`${BASE_URL}/recommendations?${q}`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
   });
 
   if (!res.ok) {
@@ -82,3 +107,4 @@ export async function getRecommendations(userId) {
 
   return (await res.json()) || [];
 }
+

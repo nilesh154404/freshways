@@ -85,6 +85,33 @@ import { PDFParse } from 'pdf-parse';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { Repository } from 'typeorm';
+
+// --- DEBUG INTERCEPTOR START ---
+axios.interceptors.request.use((config) => {
+  if (config.url?.includes('generativelanguage') || config.url?.includes('kmsapi') || config.url?.includes('/v1/proxy')) {
+    console.log('[DEBUG Axios Request] URL:', config.url);
+    const safeHeaders = Object.keys(config.headers || {}).map(k => {
+      const val = config.headers[k];
+      return `${k}: ${typeof val === 'string' && val.length > 20 ? val.substring(0, 5) + '...[HIDDEN]' : val}`;
+    });
+    console.log('[DEBUG Axios Request] Headers:', safeHeaders);
+  }
+  return config;
+});
+axios.interceptors.response.use((response) => {
+  if (response.config.url?.includes('generativelanguage') || response.config.url?.includes('kmsapi') || response.config.url?.includes('/v1/proxy')) {
+    console.log('[DEBUG Axios Response] Status:', response.status);
+    console.log('[DEBUG Axios Response] Data:', JSON.stringify(response.data).substring(0, 200));
+  }
+  return response;
+}, (error) => {
+  if (error.config?.url?.includes('generativelanguage') || error.config?.url?.includes('kmsapi') || error.config?.url?.includes('/v1/proxy')) {
+    console.log('[DEBUG Axios Error]', error.response?.status, error.response?.data);
+  }
+  return Promise.reject(error);
+});
+// --- DEBUG INTERCEPTOR END ---
+
 import { UpsertHealthProfileDto } from './dto/upsert-health-profile.dto';
 import { analyzeHealthProfile } from './helpers/rule-based-health-analysis';
 import { HealthProfile } from './entities/health-profile.entity';
@@ -140,6 +167,9 @@ export class AiService {
   private readonly healthAnalyzePath: string;
   private readonly geminiApiKey: string;
   private readonly geminiModel: string;
+  private readonly kmsBaseUrl: string;
+  private readonly kmsApiKey: string;
+  private readonly kmsModel: string;
   private readonly username: string;
   private readonly password: string;
   private readonly fallbackMock: boolean;
@@ -165,11 +195,89 @@ export class AiService {
     this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || '';
     this.geminiModel = this.config.get<string>('GEMINI_MODEL') || 'gemini-2.5-flash';
 
+    this.kmsBaseUrl =
+      this.config.get<string>('KMS_BASE_URL') ||
+      this.config.get<string>('KMS_URL') ||
+      'https://kmsapi.dexpertsystems.com/v1';
+    this.kmsApiKey =
+      this.config.get<string>('KMS_API_KEY') ||
+      this.config.get<string>('GEMINI_API_KEY') ||
+      '';
+    this.kmsModel =
+      this.config.get<string>('KMS_MODEL') ||
+      this.config.get<string>('GEMINI_MODEL') ||
+      'gemini-2.5-flash';
+
     this.username = this.config.get<string>('AI_USERNAME') || 'admin';
     this.password = this.config.get<string>('AI_PASSWORD') || 'secret';
     this.fallbackMock = !!this.config.get<boolean>('AI_FALLBACK_MOCK');
     this.sharedFilesDir =
       this.config.get<string>('SHARED_FILES_DIR') || path.resolve(process.cwd(), 'shared_files');
+  }
+
+  private getKmsProxyUrl(): string {
+    let base = (this.kmsBaseUrl || 'https://kmsapi.dexpertsystems.com/v1').trim().replace(/\/+$/, '');
+    if (!base.endsWith('/v1')) {
+      base = `${base}/v1`;
+    }
+    return `${base}/proxy`;
+  }
+
+  private async callKmsProxy(payloadBody: any, timeout = 30000): Promise<any> {
+    const apiKey = (this.kmsApiKey || this.geminiApiKey || '').trim();
+    if (!apiKey) {
+      if (this.fallbackMock) {
+        return null;
+      }
+      throw new HttpException(
+        { message: 'KMS_API_KEY is not configured on server' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const url = this.getKmsProxyUrl();
+    const model = (this.kmsModel || this.geminiModel || 'gemini-2.5-flash').trim();
+
+    const headers: any = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    };
+
+    const requestData = {
+      model,
+      body: payloadBody,
+    };
+
+    try {
+      const res = await axios.post(url, requestData, {
+        headers,
+        timeout,
+        validateStatus: () => true,
+      });
+
+      if (res.status < 200 || res.status >= 300) {
+        this.logger.error(`KMS Proxy error status ${res.status}:`, res.data);
+        throw new HttpException(
+          {
+            message: res.data?.message || 'KMS AI proxy request failed',
+            status: res.status,
+            body: res.data,
+          },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+      return res.data;
+    } catch (err: any) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      this.logger.error(`Failed to call KMS Proxy (${url}):`, err?.message || err);
+      throw new HttpException(
+        { message: err?.message || 'KMS AI connection error' },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
   }
 
   // Login to external AI engine.
@@ -239,12 +347,13 @@ export class AiService {
   //   }
 
   async sendChat(message: string) {
-    if (!this.geminiApiKey) {
+    const apiKey = (this.kmsApiKey || this.geminiApiKey || '').trim();
+    if (!apiKey) {
       if (this.fallbackMock) {
         return { reply: `Mock AI response for: ${message}` };
       }
       throw new HttpException(
-        { message: 'GEMINI_API_KEY is not configured on server' },
+        { message: 'KMS_API_KEY is not configured on server' },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -266,49 +375,26 @@ If they mention any health issues (like fever, cold, etc.) or explicitly ask for
 Format any recommended product names in **bold**. Do NOT recommend products that are not in this list.
 
 Available Products:
-${productContext}
+${productContext}`;
 
-User message: ${message.trim()}`;
-
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-
-      const res = await axios.post(
-        url,
-        {
-          contents: [
-            {
-              parts: [
-                {
-                  text: systemPrompt,
-                },
-              ],
-            },
-          ],
+      const kmsPayload = {
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
         },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 15000,
-          validateStatus: () => true,
-        },
-      );
-
-      if (res.status < 200 || res.status >= 300) {
-        throw new HttpException(
+        contents: [
           {
-            message: 'Gemini API request failed',
-            geminiStatus: res.status,
-            geminiBody: res.data,
-          },
-          HttpStatus.BAD_GATEWAY,
-        );
-      }
+            role: 'user',
+            parts: [{ text: message.trim() }]
+          }
+        ]
+      };
 
-      const replyText = this.extractGeminiText(res.data);
+      const resData = await this.callKmsProxy(kmsPayload, 20000);
+
+      const replyText = this.extractAiText(resData);
       if (!replyText) {
         throw new HttpException(
-          { message: 'Gemini response did not contain text output' },
+          { message: 'AI response did not contain text output' },
           HttpStatus.BAD_GATEWAY,
         );
       }
@@ -320,7 +406,7 @@ User message: ${message.trim()}`;
       }
 
       this.logger.error(
-        `AI chat failed -> Gemini API`,
+        `AI chat failed -> KMS Proxy`,
         err?.response?.data || err?.message || err,
       );
 
@@ -331,56 +417,119 @@ User message: ${message.trim()}`;
     }
   }
 
-  // Recommendations from external AI engine.
+  // Recommendations from Gemini based on user health profile and products
   async getRecommendations(userId: string | number) {
-    const url = `${this.baseUrl}/recommendations`;
+    const apiKey = (this.kmsApiKey || this.geminiApiKey || '').trim();
+    if (!apiKey) {
+      if (this.fallbackMock) {
+        return [
+          { id: 'mock-1', title: 'Sugarless Tea', score: 0.9 },
+          { id: 'mock-2', title: 'Jaggery', score: 0.8 },
+        ];
+      }
+      throw new HttpException(
+        { message: 'KMS_API_KEY is not configured on server' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
 
     try {
-      // ensure logged in to include Authorization header
-      if (!this.sessionKey) {
-        await this.login();
+      // 1. Get user health profile
+      let profile;
+      try {
+        profile = await this.healthProfileRepo.findOne({ where: { userId: Number(userId) } });
+      } catch (err) {
+        profile = null;
       }
-      const res = await axios.get(url, {
-        params: { userId: String(userId) },
-        headers: {
-          Authorization: `Bearer ${this.sessionKey}`,
-        },
-        timeout: 15000,
+
+      // 2. Fetch available products
+      const products = await this.productRepo.find({
+        select: ['id', 'label', 'description', 'productType'],
+        take: 150, // Limit to 150 to avoid exceeding token limits
       });
 
-      return res.data;
+      const productContext = products
+        .map(p => `- ${p.label} (ID: ${p.id}, Type: ${p.productType}): ${p.description}`)
+        .join('\n');
+
+      let userDataString = 'No health profile found for this user.';
+      if (profile) {
+        userDataString = JSON.stringify({
+          bmi: this.calculateBmi(profile.heightCm, profile.weightKg),
+          bloodGroup: profile.bloodGroup,
+          medicalInformation: profile.medicalInformation,
+          medicalHistory: profile.medicalHistory,
+          allergies: profile.allergies,
+          currentMedications: profile.currentMedications,
+          sleepHours: profile.sleepHours,
+          activityLevel: profile.activityLevel,
+          dietPreference: profile.dietPreference,
+        }, null, 2);
+      }
+
+      // 3. Prompt KMS / Gemini
+      const systemPrompt = `You are a health and wellness product recommendation AI for an online store called Freshwayz.
+You are given the user's health profile and a list of available products.
+Suggest 3-5 products from the list that would be most beneficial for the user's health conditions, medical history, and dietary preferences.
+For example, if the user has a history of diabetes or high sugar, recommend jaggery, sugarless tea, etc.
+
+You MUST only recommend products from the "Available Products" list. Do not invent products.
+Respond STRICTLY with a JSON array of recommendation objects. Do not use markdown blocks like \`\`\`json.
+Format: [{"id": 1, "title": "Product Name", "score": 0.95, "reason": "Why this is recommended"}]
+
+Available Products:
+${productContext}`;
+
+      const userPrompt = `User Health Profile:
+${userDataString}
+
+Please provide product recommendations as a raw JSON array.`;
+
+      const kmsPayload = {
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: userPrompt }]
+          }
+        ]
+      };
+
+      const resData = await this.callKmsProxy(kmsPayload, 20000);
+
+      const replyText = this.extractAiText(resData);
+      if (!replyText) {
+        throw new HttpException(
+          { message: 'AI response did not contain text output' },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+      // Parse JSON from replyText
+      let recommendations = [];
+      try {
+        const cleanText = replyText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+        const jsonMatch = cleanText.match(/\[.*\]/s);
+        recommendations = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
+      } catch (err) {
+        this.logger.error('Failed to parse recommendations JSON', replyText);
+        throw new HttpException('Invalid JSON format from AI', HttpStatus.BAD_GATEWAY);
+      }
+
+      return recommendations;
     } catch (err: any) {
       this.logger.error(
-        `AI recommendations failed -> ${url}`,
+        `AI recommendations failed`,
         err?.response?.data || err?.message || err,
       );
 
-      if (err?.response?.status === 401) {
-        this.logger.warn('AI session expired, re-authenticating');
-        await this.login();
-        return this.getRecommendations(userId);
-      }
-
-      if (err?.response) {
-        const aiStatus = err.response.status;
-        const aiBody = err.response.data;
-        // if server-side error and fallback enabled, return mocks
-        if (aiStatus >= 500 && this.fallbackMock) {
-          this.logger.warn('AI returned server error, returning recommendations mock');
-          return [
-            { id: 'mock-1', title: 'Milk', score: 0.9 },
-            { id: 'mock-2', title: 'Bread', score: 0.8 },
-          ];
-        }
-        throw new HttpException({ aiStatus, aiBody }, HttpStatus.BAD_GATEWAY);
-      }
-
-      const code = err?.code;
-      if (code === 'ECONNREFUSED' && this.fallbackMock) {
-        this.logger.warn('AI unreachable, returning recommendations mock');
+      if (this.fallbackMock) {
+        this.logger.warn('AI failed, returning recommendations mock');
         return [
-          { id: 'mock-1', title: 'Milk', score: 0.9 },
-          { id: 'mock-2', title: 'Bread', score: 0.8 },
+          { id: 'mock-1', title: 'Mock Jaggery', score: 0.9 },
+          { id: 'mock-2', title: 'Mock Sugarless Tea', score: 0.8 },
         ];
       }
 
@@ -550,9 +699,10 @@ User message: ${message.trim()}`;
     extractedText: string,
     prompt?: string,
   ): Promise<StructuredReportSummary> {
-    if (!this.geminiApiKey) {
+    const apiKey = (this.kmsApiKey || this.geminiApiKey || '').trim();
+    if (!apiKey) {
       throw new HttpException(
-        { message: 'GEMINI_API_KEY is not configured on server' },
+        { message: 'KMS_API_KEY is not configured on server' },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -561,91 +711,68 @@ User message: ${message.trim()}`;
       prompt?.trim() || 'Summarize this report and list abnormal findings with practical recommendations.';
 
     const textForModel = extractedText.slice(0, 20000);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
 
-    const res = await axios.post(
-      url,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: [
-                  'You are a medical report assistant.',
-                  'IMPORTANT: Ensure that the `disclaimer` field explicitly mentions: "these are the insights from the report".',
-                  'Return STRICT JSON only. Do not wrap the response in markdown fences or add commentary.',
-                  'Use this schema and keep values concise and user-friendly:',
-                  JSON.stringify(
-                    {
-                      patient: {
-                        name: '',
-                        age: '',
-                        gender: '',
-                        reportDate: '',
-                        reference: '',
-                        sampleCollectionDate: '',
-                      },
-                      overview: '',
-                      keyFindings: [
-                        {
-                          test: '',
-                          result: '',
-                          status: 'normal',
-                          notes: '',
-                        },
-                      ],
-                      normalValues: [''],
-                      abnormalValues: [''],
-                      recommendations: [''],
-                      disclaimer: '',
-                      sources: [
-                        {
-                          name: 'Example: NIH Office of Dietary Supplements',
-                          url: 'https://ods.od.nih.gov/',
-                        },
-                      ],
-                    },
-                    null,
-                    2,
-                  ),
-                  'IMPORTANT for `sources`: For every recommendation or abnormal finding you identify, cite the real, publicly accessible medical reference you used (e.g. NIH, WHO, Mayo Clinic, PubMed, CDC, ICMR). Each source must have a `name` (organization/publication name) and a `url` (direct link to the relevant page). Only include sources that are genuinely relevant to the findings in this specific report. Do not fabricate URLs.',
-                  `User prompt: ${normalizedPrompt}`,
-                  'Report text:',
-                  textForModel,
-                ].join('\n\n'),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-        validateStatus: () => true,
-      },
-    );
-
-    if (res.status < 200 || res.status >= 300) {
-      this.logger.error('Gemini API call failed', {
-        status: res.status,
-        data: res.data,
-      });
-      throw new HttpException(
+    const systemPrompt = [
+      'You are a medical report assistant.',
+      'IMPORTANT: Ensure that the `disclaimer` field explicitly mentions: "these are the insights from the report".',
+      'Return STRICT JSON only. Do not wrap the response in markdown fences or add commentary.',
+      'Use this schema and keep values concise and user-friendly:',
+      JSON.stringify(
         {
-          message: 'Gemini API request failed',
-          geminiStatus: res.status,
-          geminiBody: res.data,
+          patient: {
+            name: '',
+            age: '',
+            gender: '',
+            reportDate: '',
+            reference: '',
+            sampleCollectionDate: '',
+          },
+          overview: '',
+          keyFindings: [
+            {
+              test: '',
+              result: '',
+              status: 'normal',
+              notes: '',
+            },
+          ],
+          normalValues: [''],
+          abnormalValues: [''],
+          recommendations: [''],
+          disclaimer: '',
+          sources: [
+            {
+              name: 'Example: NIH Office of Dietary Supplements',
+              url: 'https://ods.od.nih.gov/',
+            },
+          ],
         },
-        HttpStatus.BAD_GATEWAY,
-      );
-    }
+        null,
+        2,
+      ),
+      'IMPORTANT for `sources`: For every recommendation or abnormal finding you identify, cite the real, publicly accessible medical reference you used (e.g. NIH, WHO, Mayo Clinic, PubMed, CDC, ICMR). Each source must have a `name` (organization/publication name) and a `url` (direct link to the relevant page). Only include sources that are genuinely relevant to the findings in this specific report. Do not fabricate URLs.',
+    ].join('\n\n');
 
-    const summaryText = this.extractGeminiText(res.data);
+    const userPrompt = `User prompt: ${normalizedPrompt}\n\nReport text:\n${textForModel}`;
+
+    const kmsPayload = {
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: userPrompt }]
+        }
+      ]
+    };
+
+    const resData = await this.callKmsProxy(kmsPayload, 30000);
+
+    const summaryText = this.extractAiText(resData);
     if (!summaryText) {
       throw new HttpException(
-        { message: 'Gemini response did not contain text output' },
+        { message: 'AI response did not contain text output' },
         HttpStatus.BAD_GATEWAY,
       );
     }
@@ -653,19 +780,38 @@ User message: ${message.trim()}`;
     return this.normalizeReportSummary(summaryText);
   }
 
-  private extractGeminiText(payload: any): string {
+  private extractAiText(payload: any): string {
     if (!payload || typeof payload !== 'object') {
       return '';
     }
 
+    // Standard OpenAI response format
+    if (Array.isArray(payload.choices) && payload.choices.length > 0) {
+      const content = payload.choices[0]?.message?.content;
+      if (typeof content === 'string') return content.trim();
+      if (Array.isArray(content)) {
+        return content.map((c: any) => c?.text || '').join('\n').trim();
+      }
+    }
+
+    // Native Gemini format
     const candidate = Array.isArray(payload.candidates) ? payload.candidates[0] : null;
     const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
-    const text = parts
-      .map((part: any) => (typeof part?.text === 'string' ? part.text.trim() : ''))
-      .filter(Boolean)
-      .join('\n');
+    if (parts.length > 0) {
+      const text = parts
+        .map((part: any) => (typeof part?.text === 'string' ? part.text.trim() : ''))
+        .filter(Boolean)
+        .join('\n');
+      if (text) return text;
+    }
 
-    return text;
+    // Direct text / reply / response / result fields
+    if (typeof payload.text === 'string') return payload.text.trim();
+    if (typeof payload.reply === 'string') return payload.reply.trim();
+    if (typeof payload.response === 'string') return payload.response.trim();
+    if (typeof payload.result === 'string') return payload.result.trim();
+
+    return '';
   }
 
   private normalizeReportSummary(summaryText: string): StructuredReportSummary {
@@ -1801,55 +1947,49 @@ Step 7: Sources
 
   async generateGeminiHealthInsights(prompt: string): Promise<any> {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-
-      const response = await axios.post(
-        url,
-        {
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
+      const kmsPayload = {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
           },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
         },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 30000,
-        }
-      );
+      };
 
-      const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const resData = await this.callKmsProxy(kmsPayload, 30000);
+
+      const responseText = this.extractAiText(resData);
       if (!responseText) {
-        throw new Error('No response text from Gemini API');
+        throw new Error('No response text from KMS AI API');
       }
 
-      // Parse JSON response from Gemini
+      // Parse JSON response from AI
       let parsedResponse = this.tryParseJson(responseText) || this.tryParseJsonFromText(responseText);
       if (!parsedResponse) {
-        const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const cleaned = responseText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
         parsedResponse = this.tryParseJson(cleaned) || this.tryParseJsonFromText(cleaned);
       }
 
       if (!parsedResponse) {
-        this.logger.error(`Failed to parse Gemini response as JSON. Raw response: ${responseText}`);
-        throw new Error('Failed to parse Gemini response as JSON');
+        this.logger.error(`Failed to parse AI response as JSON. Raw response: ${responseText}`);
+        throw new Error('Failed to parse AI response as JSON');
       }
 
       return parsedResponse;
     } catch (error: any) {
-      this.logger.error('Error generating Gemini health insights:', error?.message || error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error('Error generating AI health insights via KMS:', error?.message || error);
       throw error;
     }
   }
