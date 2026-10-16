@@ -416,7 +416,7 @@ export class OrderService {
 
     if (deliverySlotId) {
       deliverySlot = await this.deliverySlotRepo.findOneBy({ id: deliverySlotId });
-      if (!vendor) throw new NotFoundException('Vendor not found');
+      if (!deliverySlot) throw new NotFoundException('Delivery slot not found');
     }
     const community = await this.communityRepo.findOneBy({ id: communityId });
     if (!community) throw new NotFoundException('Community not found');

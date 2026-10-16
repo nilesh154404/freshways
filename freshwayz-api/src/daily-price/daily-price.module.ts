@@ -8,10 +8,12 @@ import { DailyPrice } from './entities/daily-price.entity';
 import { PriceLog } from './entities/price-log.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([DailyPrice, PriceLog, Product, Vendor]),
+    AuthModule,
   ],
   controllers: [DailyPriceController],
   providers: [DailyPriceService],

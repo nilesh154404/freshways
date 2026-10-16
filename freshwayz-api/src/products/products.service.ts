@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -47,8 +48,11 @@ export class ProductsService {
   // ----------------------------
   // CREATE PRODUCT (SAFE VERSION)
   // ----------------------------
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user?: any) {
     try {
+      if (user && user.role?.toLowerCase() === 'vendor') {
+        createProductDto.vendorId = user.profileId;
+      }
       const {
         label,
         description,
@@ -276,10 +280,20 @@ export class ProductsService {
     return qb.getMany();
   }
 
-  async update(id: number, dto: any) {
-    const product = await this.productRepo.findOne({ where: { id } });
+  async update(id: number, dto: any, user?: any) {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: ['vendor'],
+    });
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!product.vendor || product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only update your own products');
+      }
+      delete dto.vendorId;
     }
 
     const {
@@ -309,14 +323,20 @@ export class ProductsService {
     return await this.productRepo.save(product);
   }
 
-  async upsertCustomizations(productId: number, groupsDto: CreateProductCustomizationGroupDto[]) {
+  async upsertCustomizations(productId: number, groupsDto: CreateProductCustomizationGroupDto[], user?: any) {
     const product = await this.productRepo.findOne({
       where: { id: productId },
-      relations: ['category']
+      relations: ['category', 'vendor']
     });
 
     if (!product) {
       throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!product.vendor || product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only customize your own products');
+      }
     }
 
     if (product.category?.name !== 'Healthy Meals' && product.category?.label !== 'Healthy Meals') {
@@ -393,10 +413,19 @@ export class ProductsService {
     };
   }
 
-  async remove(id: number) {
-    const product = await this.productRepo.findOne({ where: { id } });
+  async remove(id: number, user?: any) {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: ['vendor'],
+    });
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!product.vendor || product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only delete your own products');
+      }
     }
 
     const manager = this.productRepo.manager;

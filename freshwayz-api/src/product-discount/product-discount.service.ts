@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { CreateProductDiscountDto } from './dto/create-product-discount.dto';
 import { UpdateProductDiscountDto } from './dto/update-product-discount.dto';
 import { DiscountType } from './entities/discount-type.enum';
@@ -45,9 +45,18 @@ export class ProductDiscountService {
   }
 
   /** Create a new product discount */
-  async create(dto: CreateProductDiscountDto): Promise<ProductDiscount> {
-    const product = await this.productRepo.findOneBy({ id: dto.productId });
+  async create(dto: CreateProductDiscountDto, user?: any): Promise<ProductDiscount> {
+    const product = await this.productRepo.findOne({
+      where: { id: dto.productId },
+      relations: ['vendor'],
+    });
     if (!product) throw new NotFoundException(`Product with id ${dto.productId} not found`);
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!product.vendor || product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only create discounts for your own products');
+      }
+    }
 
     const discount = this.discountRepo.create({ ...dto, product });
     return this.discountRepo.save(discount);
@@ -60,19 +69,38 @@ export class ProductDiscountService {
 
   /** Get one discount by id */
   async findOne(id: number): Promise<ProductDiscount> {
-    const discount = await this.discountRepo.findOne({ where: { id }, relations: ['product'] });
+    const discount = await this.discountRepo.findOne({ where: { id }, relations: ['product', 'product.vendor'] });
     if (!discount) throw new NotFoundException(`Discount with id ${id} not found`);
     return discount;
   }
 
   /** Update a discount */
-  async update(id: number, dto: UpdateProductDiscountDto): Promise<ProductDiscount> {
-    const discount = await this.findOne(id);
+  async update(id: number, dto: UpdateProductDiscountDto, user?: any): Promise<ProductDiscount> {
+    const discount = await this.discountRepo.findOne({
+      where: { id },
+      relations: ['product', 'product.vendor'],
+    });
+    if (!discount) throw new NotFoundException(`Discount with id ${id} not found`);
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!discount.product?.vendor || discount.product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only update discounts for your own products');
+      }
+    }
 
     // If productId is updated
     if (dto.productId) {
-      const product = await this.productRepo.findOneBy({ id: dto.productId });
+      const product = await this.productRepo.findOne({
+        where: { id: dto.productId },
+        relations: ['vendor'],
+      });
       if (!product) throw new NotFoundException(`Product with id ${dto.productId} not found`);
+
+      if (user && user.role?.toLowerCase() === 'vendor') {
+        if (!product.vendor || product.vendor.id !== user.profileId) {
+          throw new ForbiddenException('You can only apply discounts to your own products');
+        }
+      }
       discount.product = product;
     }
 
@@ -81,8 +109,19 @@ export class ProductDiscountService {
   }
 
   /** Remove a discount */
-  async remove(id: number): Promise<void> {
-    const discount = await this.findOne(id);
+  async remove(id: number, user?: any): Promise<void> {
+    const discount = await this.discountRepo.findOne({
+      where: { id },
+      relations: ['product', 'product.vendor'],
+    });
+    if (!discount) throw new NotFoundException(`Discount with id ${id} not found`);
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!discount.product?.vendor || discount.product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only delete discounts for your own products');
+      }
+    }
+
     await this.discountRepo.remove(discount);
   }
 }

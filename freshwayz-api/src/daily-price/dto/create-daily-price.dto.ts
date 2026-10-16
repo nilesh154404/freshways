@@ -26,8 +26,8 @@ export class CreateDailyPriceDto {
   @IsNotEmpty()
   productId: number;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
-  @IsNotEmpty()
-  vendorId: number;
+  vendorId?: number;
 }

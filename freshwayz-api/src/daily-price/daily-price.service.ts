@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DailyPrice } from './entities/daily-price.entity';
@@ -26,9 +26,22 @@ export class DailyPriceService {
     private readonly vendorRepo: Repository<Vendor>,
   ) { }
 
-  async create(dto: CreateDailyPriceDto): Promise<DailyPrice> {
-    const product = await this.productRepo.findOneBy({ id: dto.productId });
+  async create(dto: CreateDailyPriceDto, user?: any): Promise<DailyPrice> {
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      dto.vendorId = user.profileId;
+    }
+
+    const product = await this.productRepo.findOne({
+      where: { id: dto.productId },
+      relations: ['vendor'],
+    });
     if (!product) throw new NotFoundException('Product not found');
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (product.vendor && product.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only configure daily prices for your own products');
+      }
+    }
 
     const vendor = await this.vendorRepo.findOneBy({ id: dto.vendorId });
     if (!vendor) throw new NotFoundException('Vendor not found');
@@ -132,27 +145,57 @@ export class DailyPriceService {
     return price;
   }
 
-  async update(id: number, dto: UpdateDailyPriceDto) {
+  async update(id: number, dto: UpdateDailyPriceDto, user?: any) {
     const price = await this.dailyPriceRepo.findOne({
-      where: {
-        id
-      }
+      where: { id },
+      relations: ['product', 'vendor'],
     });
-    if (!price) throw new NotFoundException('Product not found');
+    if (!price) throw new NotFoundException('Daily price not found');
 
-    const product = await this.productRepo.findOneBy({ id: dto.productId });
-    if (!product) throw new NotFoundException('Product not found');
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (price.vendor && price.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only update your own daily price');
+      }
+      dto.vendorId = user.profileId;
+    }
 
-    const vendor = await this.vendorRepo.findOneBy({ id: dto.vendorId });
-    if (!vendor) throw new NotFoundException('Vendor not found');
-    price.vendor = vendor;
+    if (dto.productId) {
+      const product = await this.productRepo.findOne({
+        where: { id: dto.productId },
+        relations: ['vendor'],
+      });
+      if (!product) throw new NotFoundException('Product not found');
+      if (user && user.role?.toLowerCase() === 'vendor') {
+        if (product.vendor && product.vendor.id !== user.profileId) {
+          throw new ForbiddenException('You can only set daily prices for your own products');
+        }
+      }
+      price.product = product;
+    }
+
+    if (dto.vendorId) {
+      const vendor = await this.vendorRepo.findOneBy({ id: dto.vendorId });
+      if (!vendor) throw new NotFoundException('Vendor not found');
+      price.vendor = vendor;
+    }
 
     Object.assign(price, dto);
     return this.dailyPriceRepo.save(price);
   }
 
-  async remove(id: number) {
-    const price = await this.findOne(id);
+  async remove(id: number, user?: any) {
+    const price = await this.dailyPriceRepo.findOne({
+      where: { id },
+      relations: ['vendor'],
+    });
+    if (!price) throw new NotFoundException('Daily price not found');
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (price.vendor && price.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only delete your own daily price');
+      }
+    }
+
     return this.dailyPriceRepo.remove(price);
   }
 

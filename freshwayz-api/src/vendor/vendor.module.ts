@@ -9,9 +9,13 @@ import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { MarketingContent } from 'src/marketing-content/entities/marketing-content.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Vendor, UserType, Categories, Order, Product, MarketingContent, Customer])],
+  imports: [
+    TypeOrmModule.forFeature([Vendor, UserType, Categories, Order, Product, MarketingContent, Customer]),
+    AuthModule,
+  ],
   controllers: [VendorController],
   providers: [VendorService],
 })

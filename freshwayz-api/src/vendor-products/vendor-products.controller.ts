@@ -1,19 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
-import type { Request } from 'express';
-import { JwtService } from '@nestjs/jwt';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { VendorProductsService } from './vendor-products.service';
 import { CreateVendorProductDto } from './dto/create-vendor-product.dto';
 import { UpdateVendorProductDto } from './dto/update-vendor-product.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
+@ApiTags('vendor-products')
 @Controller('vendor-products')
 export class VendorProductsController {
   constructor(
     private readonly vendorProductsService: VendorProductsService,
-    private readonly jwtService: JwtService
   ) {}
 
   @Post()
-  create(@Body() createVendorProductDto: CreateVendorProductDto) {
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
+  create(@Body() createVendorProductDto: CreateVendorProductDto, @Req() req: any) {
     return this.vendorProductsService.create(createVendorProductDto);
   }
 
@@ -28,26 +33,18 @@ export class VendorProductsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateVendorProductDto: UpdateVendorProductDto) {
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
+  update(@Param('id') id: string, @Body() updateVendorProductDto: UpdateVendorProductDto, @Req() req: any) {
     return this.vendorProductsService.update(+id, updateVendorProductDto);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string, @Req() req: Request) {
-    // Extract JWT from Authorization header
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) throw new ForbiddenException('No token provided');
-    const token = authHeader.replace('Bearer ', '');
-    let payload: any;
-    try {
-      payload = this.jwtService.verify(token);
-    } catch (e) {
-      throw new ForbiddenException('Invalid token');
-    }
-    if (payload.role !== 'Vendor' || !payload.profileId) {
-      throw new ForbiddenException('Only vendors can delete their products');
-    }
-    // Only allow deletion if vendor owns the product
-    return this.vendorProductsService.remove(+id, payload.profileId);
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
+  async remove(@Param('id') id: string, @Req() req: any) {
+    return this.vendorProductsService.remove(+id, req.user?.profileId, req.user?.role);
   }
 }

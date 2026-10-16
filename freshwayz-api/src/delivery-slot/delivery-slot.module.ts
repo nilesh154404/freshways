@@ -4,9 +4,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DeliverySlot } from './entities/delivery-slot.entity';
 import { DeliverySlotsController } from './delivery-slot.controller';
 import { DeliverySlotsService } from './delivery-slot.service';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DeliverySlot])],
+  imports: [TypeOrmModule.forFeature([DeliverySlot]), AuthModule],
   controllers: [DeliverySlotsController],
   providers: [DeliverySlotsService],
 })

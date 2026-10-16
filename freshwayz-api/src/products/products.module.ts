@@ -10,6 +10,7 @@ import { Vendor } from 'src/vendor/entities/vendor.entity';
 
 import { ProductCustomizationGroup } from './entities/product-customization-group.entity';
 import { ProductCustomizationOption } from './entities/product-customization-option.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ProductCustomizationOption } from './entities/product-customization-opt
       ProductCustomizationGroup,
       ProductCustomizationOption
     ]),
+    AuthModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

@@ -3,11 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { VendorProductsService } from './vendor-products.service';
 import { VendorProductsController } from './vendor-products.controller';
 import { Product } from 'src/products/entities/product.entity';
-import { JwtService } from '@nestjs/jwt';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product])],
+  imports: [TypeOrmModule.forFeature([Product]), AuthModule],
   controllers: [VendorProductsController],
-  providers: [VendorProductsService, JwtService],
+  providers: [VendorProductsService],
 })
 export class VendorProductsModule {}

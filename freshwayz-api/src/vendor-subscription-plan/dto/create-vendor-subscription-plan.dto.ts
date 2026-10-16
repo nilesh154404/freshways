@@ -47,11 +47,12 @@ export class CreateVendorSubscriptionPlanDto {
   @MaxLength(50)
   duration?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Vendor ID to which this plan belongs',
     example: 5,
   })
+  @IsOptional()
   @IsInt()
   @IsPositive()
-  vendorId: number;
+  vendorId?: number;
 }

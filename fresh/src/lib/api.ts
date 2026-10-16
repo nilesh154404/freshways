@@ -1,3 +1,16 @@
+import axios from 'axios';
+
+// Automatically attach JWT token to all outbound Axios requests if present in localStorage
+axios.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('accessToken');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 // Centralized API configuration
 // Uses environment variable for the API base URL
 

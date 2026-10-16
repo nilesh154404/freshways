@@ -474,8 +474,8 @@ Suggest 3-5 products from the list that would be most beneficial for the user's 
 For example, if the user has a history of diabetes or high sugar, recommend jaggery, sugarless tea, etc.
 
 You MUST only recommend products from the "Available Products" list. Do not invent products.
-Respond STRICTLY with a JSON array of recommendation objects. Do not use markdown blocks like \`\`\`json.
-Format: [{"id": 1, "title": "Product Name", "score": 0.95, "reason": "Why this is recommended"}]
+Respond STRICTLY with a JSON array of strings combining ONLY the Product Name and the Reason for recommendation. Do not include IDs, scores, or markdown blocks like \`\`\`json.
+Format: ["Product Name: Reason why this product is recommended", "Product Name: Reason why this product is recommended"]
 
 Available Products:
 ${productContext}`;
@@ -483,7 +483,7 @@ ${productContext}`;
       const userPrompt = `User Health Profile:
 ${userDataString}
 
-Please provide product recommendations as a raw JSON array.`;
+Please provide product recommendations as a raw JSON array of strings combining Product Name and Reason.`;
 
       const kmsPayload = {
         systemInstruction: {
@@ -508,17 +508,36 @@ Please provide product recommendations as a raw JSON array.`;
       }
 
       // Parse JSON from replyText
-      let recommendations = [];
+      let rawRecommendations: any[] = [];
       try {
         const cleanText = replyText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
         const jsonMatch = cleanText.match(/\[.*\]/s);
-        recommendations = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
+        rawRecommendations = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
       } catch (err) {
         this.logger.error('Failed to parse recommendations JSON', replyText);
         throw new HttpException('Invalid JSON format from AI', HttpStatus.BAD_GATEWAY);
       }
 
-      return recommendations;
+      if (!Array.isArray(rawRecommendations)) {
+        rawRecommendations = [rawRecommendations];
+      }
+
+      // Format as clean strings: "Product Name: Reason"
+      const formattedRecommendations: string[] = rawRecommendations
+        .map((item: any) => {
+          if (typeof item === 'string') {
+            return item.trim();
+          }
+          if (item && typeof item === 'object') {
+            const name = item.title || item.productName || item.name || item.label || 'Product';
+            const reason = item.reason || item.description || '';
+            return reason ? `${name}: ${reason}` : String(name);
+          }
+          return String(item || '').trim();
+        })
+        .filter(Boolean);
+
+      return formattedRecommendations;
     } catch (err: any) {
       this.logger.error(
         `AI recommendations failed`,
@@ -528,8 +547,8 @@ Please provide product recommendations as a raw JSON array.`;
       if (this.fallbackMock) {
         this.logger.warn('AI failed, returning recommendations mock');
         return [
-          { id: 'mock-1', title: 'Mock Jaggery', score: 0.9 },
-          { id: 'mock-2', title: 'Mock Sugarless Tea', score: 0.8 },
+          'Mock Jaggery: Natural sweetener with essential minerals for daily energy.',
+          'Mock Sugarless Tea: Rich in antioxidants and supports healthy metabolism.',
         ];
       }
 

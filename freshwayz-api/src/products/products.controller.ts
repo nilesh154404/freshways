@@ -8,13 +8,16 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateProductCustomizationGroupDto } from './dto/create-product-customization.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiOkResponse, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Pagination } from 'src/helpers/pagination/dto/pagination.dto';
@@ -22,17 +25,18 @@ import { Product } from './entities/product.entity';
 import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('Products')
-// @ApiBearerAuth()
-// @UseGuards(AuthGuard('jwt'))
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) { }
 
   // CREATE PRODUCT
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
   @ApiOperation({ summary: 'Create a new product' })
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+  create(@Body() createProductDto: CreateProductDto, @Req() req: any) {
+    return this.productsService.create(createProductDto, req.user);
   }
 
   // GET ALL PRODUCTS
@@ -85,29 +89,39 @@ export class ProductsController {
 
   // UPDATE PRODUCT
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
   @ApiOperation({ summary: 'Update a product' })
   @ApiParam({ name: 'id', type: Number })
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(+id, updateProductDto);
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Req() req: any) {
+    return this.productsService.update(+id, updateProductDto, req.user);
   }
 
   // UPSERT PRODUCT CUSTOMIZATIONS
   @Post(':id/customizations')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
   @ApiOperation({ summary: 'Upsert product customizations (Healthy Meals Only)' })
   @ApiParam({ name: 'id', type: Number })
   upsertCustomizations(
     @Param('id') id: string,
-    @Body() groupsDto: CreateProductCustomizationGroupDto[]
+    @Body() groupsDto: CreateProductCustomizationGroupDto[],
+    @Req() req: any
   ) {
-    return this.productsService.upsertCustomizations(+id, groupsDto);
+    return this.productsService.upsertCustomizations(+id, groupsDto, req.user);
   }
 
   // DELETE PRODUCT
   @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
   @ApiOperation({ summary: 'Delete a product' })
   @ApiParam({ name: 'id', type: Number })
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(+id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.productsService.remove(+id, req.user);
   }
 
   // GET PRODUCT CUSTOMIZATIONS (CUSTOMER FACING)

@@ -28,10 +28,11 @@ export class VendorProductsService {
     return `This action updates a #${id} vendorProduct`;
   }
 
-  async remove(id: number, vendorId: number) {
+  async remove(id: number, vendorId: number, role?: string) {
     const product = await this.productRepo.findOne({ where: { id }, relations: ['vendor'] });
     if (!product) throw new NotFoundException('Product not found');
-    if (!product.vendor || product.vendor.id !== vendorId) {
+    const isVendor = role?.toLowerCase() === 'vendor';
+    if (isVendor && (!product.vendor || product.vendor.id !== vendorId)) {
       throw new ForbiddenException('You can only delete your own products');
     }
     try {

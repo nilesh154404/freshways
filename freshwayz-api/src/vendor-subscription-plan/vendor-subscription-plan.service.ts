@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { VendorSubscriptionPlan } from './entities/vendor-subscription-plan.entity';
@@ -24,7 +24,11 @@ export class VendorSubscriptionPlanService {
     };
   }
 
-  async create(dto: CreateVendorSubscriptionPlanDto) {
+  async create(dto: CreateVendorSubscriptionPlanDto, user?: any) {
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      dto.vendorId = user.profileId;
+    }
+
     const plan = this.repo.create({
       label: dto.label,
       description: dto.description,
@@ -51,12 +55,18 @@ export class VendorSubscriptionPlanService {
     return this.transformToResponse(plan);
   }
 
-  async update(id: number, dto: UpdateVendorSubscriptionPlanDto) {
+  async update(id: number, dto: UpdateVendorSubscriptionPlanDto, user?: any) {
     const plan = await this.repo.findOne({
       where: { id },
       relations: ['vendor'],
     });
     if (!plan) throw new NotFoundException('Plan not found');
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!plan.vendor || plan.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only update your own subscription plans');
+      }
+    }
 
     const { vendorId, ...updateData } = dto;
     Object.assign(plan, updateData);
@@ -65,9 +75,16 @@ export class VendorSubscriptionPlanService {
     return this.transformToResponse(saved);
   }
 
-  async remove(id: number) {
-    const plan = await this.repo.findOne({ where: { id } });
+  async remove(id: number, user?: any) {
+    const plan = await this.repo.findOne({ where: { id }, relations: ['vendor'] });
     if (!plan) throw new NotFoundException('Plan not found');
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!plan.vendor || plan.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only delete your own subscription plans');
+      }
+    }
+
     return this.repo.remove(plan);
   }
 

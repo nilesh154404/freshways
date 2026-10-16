@@ -1,4 +1,3 @@
-// src/marketing-content/marketing-content.controller.ts
 import {
   Controller,
   Get,
@@ -11,6 +10,8 @@ import {
   UploadedFiles,
   UseInterceptors,
   UseGuards,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiConsumes, ApiBody, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -51,6 +52,9 @@ export class MarketingContentController {
   // }
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -76,6 +80,7 @@ export class MarketingContentController {
   )
   async create(
     @Body() dto: any,
+    @Req() req: any,
     @UploadedFiles() files: { media_files?: Express.Multer.File[] }
   ) {
     const data = {
@@ -85,7 +90,7 @@ export class MarketingContentController {
       vendorId: dto.vendorId ? Number(dto.vendorId) : undefined,
     };
 
-    return this.marketingService.create(data, files?.media_files);
+    return this.marketingService.create(data, files?.media_files, req.user);
   }
 
   @Get()
@@ -107,6 +112,9 @@ export class MarketingContentController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileFieldsInterceptor(
@@ -117,6 +125,7 @@ export class MarketingContentController {
   async update(
     @Param('id') id: number,
     @Body() dto: any,
+    @Req() req: any,
     @UploadedFiles() files?: { media_files?: Express.Multer.File[] },
   ) {
     const data = {
@@ -125,12 +134,15 @@ export class MarketingContentController {
       productId: dto.productId ? Number(dto.productId) : undefined,
       vendorId: dto.vendorId ? Number(dto.vendorId) : undefined,
     };
-    return this.marketingService.update(id, data, files?.media_files);
+    return this.marketingService.update(id, data, files?.media_files, req.user);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: number) {
-    return this.marketingService.remove(id);
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
+  async remove(@Param('id') id: number, @Req() req: any) {
+    return this.marketingService.remove(id, req.user);
   }
 
   // Save/Unsave post — Customer only
@@ -185,8 +197,7 @@ export class MarketingContentController {
 // Share post + generate deep link
 @Post(':id/share')
 async sharePost(@Param('id') id: number) {
-  const deepLink = await this.marketingService.incrementShare(id);
-  return { deepLink };
+  return await this.marketingService.incrementShare(id);
 }
 
 
@@ -226,20 +237,32 @@ async sharePost(@Param('id') id: number) {
 
   // Vendor: see all reports on their posts — GET /marketing/reports/vendor/:vendorId
   @Get('reports/vendor/:vendorId')
-  async getReportsByVendor(@Param('vendorId') vendorId: number) {
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
+  async getReportsByVendor(@Param('vendorId') vendorId: number, @Req() req: any) {
+    if (req.user?.role?.toLowerCase() === 'vendor' && req.user.profileId !== Number(vendorId)) {
+      throw new ForbiddenException('You cannot access reports for another vendor');
+    }
     return this.marketingService.getReportsByVendor(Number(vendorId));
   }
 
   // Admin: see all reports on all posts — GET /marketing/reports/all
   @Get('reports/all')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin')
   async getAllReports() {
     return this.marketingService.getAllReports();
   }
 
   // Vendor or Admin: see all reports on a specific post — GET /marketing/:id/reports
   @Get(':id/reports')
-  async getReportsByPost(@Param('id') id: number) {
-    return this.marketingService.getReportsByPost(Number(id));
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Super Admin', 'Vendor')
+  async getReportsByPost(@Param('id') id: number, @Req() req: any) {
+    return this.marketingService.getReportsByPost(Number(id), req.user);
   }
 
   // Admin: delete a reported post — DELETE /marketing/:id

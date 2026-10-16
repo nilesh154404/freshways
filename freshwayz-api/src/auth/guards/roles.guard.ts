@@ -37,7 +37,11 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access denied: no role found in token');
     }
 
-    const hasRole = requiredRoles.includes(user.role);
+    const userRole = (user.role || '').toLowerCase();
+    const hasRole = requiredRoles.some((r) => {
+      const target = r.toLowerCase();
+      return target === userRole || (target === 'admin' && userRole === 'super admin');
+    });
 
     if (!hasRole) {
       throw new ForbiddenException(

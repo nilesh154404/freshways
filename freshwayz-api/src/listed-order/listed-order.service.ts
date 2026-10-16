@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ListedOrder } from './entities/listed-order.entity';
@@ -12,19 +12,32 @@ export class ListedOrderService {
     private readonly listedOrderRepository: Repository<ListedOrder>,
   ) { }
 
-  async findAll(): Promise<ListedOrder[]> {
+  async findAll(user?: any): Promise<ListedOrder[]> {
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      return this.listedOrderRepository.find({
+        where: { order: { vendor: { id: user.profileId } } },
+        relations: ['order', 'product'],
+      });
+    }
     return this.listedOrderRepository.find({
       relations: ['order', 'product'],
     });
   }
 
-  async findOne(id: number): Promise<ListedOrder> {
+  async findOne(id: number, user?: any): Promise<ListedOrder> {
     const item = await this.listedOrderRepository.findOne({
       where: { id },
-      relations: ['order', 'product'],
+      relations: ['order', 'order.vendor', 'product'],
     });
 
     if (!item) throw new NotFoundException(`ListedOrder #${id} not found`);
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (item.order?.vendor && item.order.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only access listed orders for your own orders');
+      }
+    }
+
     return item;
   }
 
@@ -42,12 +55,18 @@ export class ListedOrderService {
     return this.listedOrderRepository.save(item);
   }
 
-  async update(id: number, dto: UpdateListedOrderDto): Promise<ListedOrder> {
+  async update(id: number, dto: UpdateListedOrderDto, user?: any): Promise<ListedOrder> {
     const item = await this.listedOrderRepository.findOne({
       where: { id },
-      relations: ['order', 'product'],
+      relations: ['order', 'order.vendor', 'product'],
     });
     if (!item) throw new NotFoundException(`ListedOrder #${id} not found`);
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (item.order?.vendor && item.order.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only update listed orders for your own orders');
+      }
+    }
 
     if (dto.orderId) item.order = { id: dto.orderId } as any;
     if ('productId' in dto)
@@ -73,12 +92,18 @@ export class ListedOrderService {
     return updatedItem;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, user?: any): Promise<void> {
     const item = await this.listedOrderRepository.findOne({
       where: { id },
-      relations: ['order'],
+      relations: ['order', 'order.vendor'],
     });
     if (!item) throw new NotFoundException(`ListedOrder #${id} not found`);
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (item.order?.vendor && item.order.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only delete listed orders for your own orders');
+      }
+    }
 
     const parentOrder = item.order;
     await this.listedOrderRepository.remove(item);

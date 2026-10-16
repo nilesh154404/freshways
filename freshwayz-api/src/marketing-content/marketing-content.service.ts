@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MarketingContent } from './entities/marketing-content.entity';
@@ -67,7 +67,12 @@ export class MarketingContentService {
   async create(
     dto: CreateMarketingContentDto,
     files?: Express.Multer.File[],
+    user?: any,
   ) {
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      dto.vendorId = user.profileId;
+    }
+
     const content = new MarketingContent();
 
     content.category = { id: dto.categoryId } as Categories;
@@ -141,7 +146,20 @@ export class MarketingContentService {
     return content;
   }
 
-  async update(id: number, dto: UpdateMarketingContentDto, files?: Express.Multer.File[]) {
+  async update(id: number, dto: UpdateMarketingContentDto, files?: Express.Multer.File[], user?: any) {
+    const existing = await this.marketingRepo.findOne({
+      where: { id },
+      relations: ['vendor'],
+    });
+    if (!existing) throw new NotFoundException('Marketing content not found');
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!existing.vendor || existing.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only update your own marketing content');
+      }
+      delete (dto as any).vendorId;
+    }
+
     const content = await this.marketingRepo.preload({ id, ...dto });
     if (!content) throw new NotFoundException('Marketing content not found');
 
@@ -159,8 +177,19 @@ export class MarketingContentService {
     return this.findOne(content.id);
   }
 
-  async remove(id: number) {
-    const content = await this.findOne(id);
+  async remove(id: number, user?: any) {
+    const content = await this.marketingRepo.findOne({
+      where: { id },
+      relations: ['vendor'],
+    });
+    if (!content) throw new NotFoundException('Marketing content not found');
+
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      if (!content.vendor || content.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You can only delete your own marketing content');
+      }
+    }
+
     return this.marketingRepo.remove(content);
   }
 
@@ -341,7 +370,7 @@ export class MarketingContentService {
     await this.marketingRepo.save(post);
 
     return {
-      deepLink: `http://localhost:8080/post/${id}`, // ✅ WEB URL
+      deepLink: `${process.env.WEB_BASE_URL ?? 'http://localhost:8080'}/post/${id}`, // ✅ WEB URL (configured via WEB_BASE_URL env var)
       // const deepLink = `freshwayz://marketing-content?id=${id}`;
     };
   }
@@ -393,7 +422,17 @@ export class MarketingContentService {
   }
 
   // Get all reports on a specific post (Vendor + Admin)
-  async getReportsByPost(postId: number) {
+  async getReportsByPost(postId: number, user?: any) {
+    if (user && user.role?.toLowerCase() === 'vendor') {
+      const post = await this.marketingRepo.findOne({
+        where: { id: postId },
+        relations: ['vendor'],
+      });
+      if (!post) throw new NotFoundException('Post not found');
+      if (!post.vendor || post.vendor.id !== user.profileId) {
+        throw new ForbiddenException('You cannot view reports for another vendor\'s post');
+      }
+    }
     return this.reportRepo.find({
       where: { marketingContent: { id: postId } },
       relations: ['customer', 'marketingContent'],
