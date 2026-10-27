@@ -47,7 +47,7 @@ const ContractV2 = ({ PropertyHierarchyLevelId }: ContractV2Props) => {
   const fetchTenantFiles = async (tenantId: number) => {
     try {
       const response = await axios.get<string[]>(
-        `https://freshwayz.dexpertsystems.com/files/msfc/${tenantId}`
+        `https://admin.freshwayz.dexpertsystems.com/files/msfc/${tenantId}`
       );
       setTenantFiles(response.data || []);
     } catch (err) {

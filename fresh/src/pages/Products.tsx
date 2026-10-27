@@ -33,7 +33,7 @@ import { ProductCustomizationsDialog } from "@/components/ProductCustomizationsD
 import { Plus, Pencil, Trash2, AlertTriangle, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 
 const API_BASE = API_BASE_URL;
 
@@ -243,7 +243,7 @@ const Products = () => {
         data,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-      setFormData({ ...formData, productUrl: response.data.fileUrl });
+      setFormData({ ...formData, productUrl: normalizeImageUrl(response.data.fileUrl) });
       toast.success("Image uploaded successfully");
     } catch (err) {
       console.error(err);
@@ -299,7 +299,7 @@ const Products = () => {
       vendorId: product.vendor?.id || "",
       vendorSubscriptionPlanId: product.vendorSubscriptionPlan?.id?.toString() || "",
       categoryId: product.category?.id?.toString() || "",
-      productUrl: product.productUrl || "",
+      productUrl: normalizeImageUrl(product.productUrl || ""),
       productType: product.productType || "VEG",
     });
     setIsDialogOpen(true);
@@ -523,7 +523,7 @@ const Products = () => {
                   <Input
                     type="text"
                     value={formData.productUrl}
-                    onChange={(e) => setFormData({ ...formData, productUrl: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, productUrl: normalizeImageUrl(e.target.value) })}
                     placeholder="Paste image URL or upload below"
                   />
                   <input type="file" accept="image/*" onChange={handleFileUpload} />
@@ -561,7 +561,7 @@ const Products = () => {
               <TableBody>
                 {products.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell><img src={p.productUrl} className="h-10 w-10 rounded" /></TableCell>
+                    <TableCell><img src={normalizeImageUrl(p.productUrl)} className="h-10 w-10 rounded object-cover" /></TableCell>
                     <TableCell>
                       <div className="font-medium">{p.label}</div>
                       {role === "Admin" && p.vendor && (

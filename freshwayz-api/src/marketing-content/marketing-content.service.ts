@@ -31,6 +31,21 @@ export class MarketingContentService {
     private readonly fileUploadService: FileUploadService,
   ) { }
 
+  private normalizeContent(content: MarketingContent): MarketingContent {
+    if (!content) return content;
+    if (content.media && Array.isArray(content.media)) {
+      content.media.forEach((m) => {
+        if (m && m.fileUrl) {
+          m.fileUrl = m.fileUrl
+            .replace(/https?:\/\/freshwayz\.dexpertsystems\.com\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+            .replace(/http:\/\/192\.168\.\d+\.\d+:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+            .replace(/http:\/\/localhost:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads');
+        }
+      });
+    }
+    return content;
+  }
+
   // async create(dto: CreateMarketingContentDto, files?: Express.Multer.File[]) {
   //   const content = this.marketingRepo.create(dto);
   //   await this.marketingRepo.save(content);
@@ -96,13 +111,14 @@ export class MarketingContentService {
       await this.fileUploadService.saveFilesForMarketing(files, content.id);
     }
 
-    return this.marketingRepo.findOne({
+    const saved = await this.marketingRepo.findOne({
       where: { id: content.id },
       relations: ['category', 'product', 'product.dailyPrices', 'vendor', 'media'],
     });
+    return saved ? this.normalizeContent(saved) : null;
   }
 
-  findAll(customerId?: number) {
+  async findAll(customerId?: number) {
     const query = this.marketingRepo.createQueryBuilder('content')
       .leftJoinAndSelect('content.media', 'media')
       .leftJoinAndSelect('content.product', 'product')
@@ -134,7 +150,8 @@ export class MarketingContentService {
       });
     }
 
-    return query.getMany();
+    const items = await query.getMany();
+    return items.map((item) => this.normalizeContent(item));
   }
 
   async findOne(id: number) {
@@ -143,7 +160,7 @@ export class MarketingContentService {
       relations: ['media', 'comments'],
     });
     if (!content) throw new NotFoundException('Marketing content not found');
-    return content;
+    return this.normalizeContent(content);
   }
 
   async update(id: number, dto: UpdateMarketingContentDto, files?: Express.Multer.File[], user?: any) {
@@ -265,7 +282,8 @@ export class MarketingContentService {
       });
     }
 
-    return query.getMany();
+    const items = await query.getMany();
+    return items.map((item) => this.normalizeContent(item));
   }
   // async filter(filters: {
   //   vendorId?: number;

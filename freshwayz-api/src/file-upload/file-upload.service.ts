@@ -14,6 +14,17 @@ export class FileUploadService {
     @InjectRepository(MarketingContent) // ✅ THIS WAS MISSING
     private readonly marketingRepo: Repository<MarketingContent>,) { }
 
+  private getUploadBaseUrl(): string {
+    return process.env.UPLOAD_BASE_URL || 'https://admin.freshwayz.dexpertsystems.com';
+  }
+
+  private normalizeUrl(url: string): string {
+    if (!url) return url;
+    return url
+      .replace('https://freshwayz.dexpertsystems.com/uploads', 'https://admin.freshwayz.dexpertsystems.com/uploads')
+      .replace('http://freshwayz.dexpertsystems.com/uploads', 'https://admin.freshwayz.dexpertsystems.com/uploads');
+  }
+
   async saveFile(
     file: Express.Multer.File,
     customerId?: number,
@@ -36,9 +47,10 @@ export class FileUploadService {
     }
     console.log(tenantId);
 
+    const baseUrl = this.getUploadBaseUrl();
     const fileUpload = this.fileRepo.create({
       fileName: file.filename,
-      fileUrl: `https://freshwayz.dexpertsystems.com/uploads/${file.filename}`,
+      fileUrl: `${baseUrl}/uploads/${file.filename}`,
       customerId,
       vendorId,
       orderId, tenantId,
@@ -54,7 +66,7 @@ export class FileUploadService {
       where: { customerId },
     });
 
-    return files.map(file => file.fileUrl); // return only URL
+    return files.map(file => this.normalizeUrl(file.fileUrl)); // return only URL
   }
 
   async getFilesByVendor(vendorId: number): Promise<string[]> {
@@ -62,7 +74,7 @@ export class FileUploadService {
       where: { vendorId },
     });
 
-    return files.map(file => file.fileUrl); // return only URL
+    return files.map(file => this.normalizeUrl(file.fileUrl)); // return only URL
   }
 
   async getFilesByTen(tenantId: number): Promise<string[]> {
@@ -70,14 +82,14 @@ export class FileUploadService {
       where: { tenantId },
     });
 
-    return files.map(file => file.fileUrl); // return only URL
+    return files.map(file => this.normalizeUrl(file.fileUrl)); // return only URL
   }
   async getFilesByOrder(orderId: number): Promise<string[]> {
     const files = await this.fileRepo.find({
       where: { orderId },
     });
 
-    return files.map(file => file.fileUrl); // return only URL
+    return files.map(file => this.normalizeUrl(file.fileUrl)); // return only URL
   }
 
   findAll() {
@@ -104,10 +116,11 @@ export class FileUploadService {
 
     if (!marketingContent) throw new NotFoundException('Marketing content not found');
 
+    const baseUrl = this.getUploadBaseUrl();
     const fileEntities = files.map((file) =>
       this.fileRepo.create({
         fileName: file.filename,
-        fileUrl: `https://freshwayz.dexpertsystems.com/uploads/${file.filename}`,
+        fileUrl: `${baseUrl}/uploads/${file.filename}`,
         marketingContent,
       }),
     );

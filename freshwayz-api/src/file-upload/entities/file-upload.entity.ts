@@ -1,6 +1,9 @@
 // src/file-upload/entities/file-upload.entity.ts
 import { MarketingContent } from 'src/marketing-content/entities/marketing-content.entity';
 import {
+  AfterLoad,
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -19,6 +22,18 @@ export class FileUpload {
 
   @Column()
   fileUrl: string;
+
+  @AfterLoad()
+  @BeforeInsert()
+  @BeforeUpdate()
+  normalizeFileUrl() {
+    if (this.fileUrl) {
+      this.fileUrl = this.fileUrl
+        .replace(/https?:\/\/freshwayz\.dexpertsystems\.com\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+        .replace(/http:\/\/192\.168\.\d+\.\d+:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+        .replace(/http:\/\/localhost:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads');
+    }
+  }
 
   @Column({ nullable: true })
   marketingContentId?: number;

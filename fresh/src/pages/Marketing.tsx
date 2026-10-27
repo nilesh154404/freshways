@@ -60,7 +60,7 @@ type ProductsResponse = {
   items: { id: number; label: string }[];
 };
 
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 const API_BASE = API_BASE_URL;
 
 /* ================= COMPONENT ================= */
@@ -146,7 +146,7 @@ const Marketing = () => {
           product_id: item.product?.id,
           product_name: item.product?.label,
           description: item.description,
-          media_urls: item.media?.map((m: any) => m.fileUrl) || [],
+          media_urls: item.media?.map((m: any) => normalizeImageUrl(m.fileUrl)) || [],
           vendorId: vendorId,
           vendor_name: vendorName,
           likes: item.likes || [],
@@ -256,7 +256,7 @@ const Marketing = () => {
       description: item.description,
       media_files: [],
     });
-    setMediaPreviews(item.media_urls);
+    setMediaPreviews(item.media_urls.map(normalizeImageUrl));
     setIsDialogOpen(true);
   };
 
@@ -486,7 +486,7 @@ const Marketing = () => {
                     <video src={item.media_urls[0]} className="h-full w-full object-cover" controls />
                   ) : (
                     <img
-                      src={item.media_urls[0]}
+                      src={normalizeImageUrl(item.media_urls[0])}
                       alt={item.product_name || item.vendor_name || 'Marketing image'}
                       className="h-full w-full object-cover"
                     />

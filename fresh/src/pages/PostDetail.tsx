@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Heart, MessageCircle, Share2, Bookmark, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 
 interface MarketingContent {
   id: number;
@@ -180,7 +180,7 @@ const PostDetail = () => {
                 {post.media.map((mediaItem) => (
                   <img
                     key={mediaItem.id}
-                    src={mediaItem.fileUrl}
+                    src={normalizeImageUrl(mediaItem.fileUrl)}
                     alt={mediaItem.fileName}
                     className="w-full object-cover"
                   />

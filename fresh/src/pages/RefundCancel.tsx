@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { RefreshCw, Ban, Upload, HelpCircle, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, normalizeImageUrl } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -176,7 +176,7 @@ const RefundCancel = () => {
           },
         }
       );
-      setFormData((prev) => ({ ...prev, imageUrl: response.data.fileUrl }));
+      setFormData((prev) => ({ ...prev, imageUrl: normalizeImageUrl(response.data.fileUrl) }));
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Failed to upload image', error);

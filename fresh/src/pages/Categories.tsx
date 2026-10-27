@@ -2,7 +2,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Upload } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 import { Package } from "lucide-react";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -95,7 +95,7 @@ const Categories = () => {
           headers: { "Content-Type": "multipart/form-data" },
         }
       );
-      setFormData({ ...formData, img_link: response.data.fileUrl });
+      setFormData({ ...formData, img_link: normalizeImageUrl(response.data.fileUrl) });
       toast.success("Image uploaded successfully");
     } catch (err) {
       console.error(err);
@@ -137,7 +137,7 @@ const Categories = () => {
     setFormData({
       name: category.name,
       label: category.label,
-      img_link: category.img_link || "",
+      img_link: normalizeImageUrl(category.img_link),
       is_active: category.is_active,
     });
     setIsDialogOpen(true);
@@ -242,7 +242,7 @@ const Categories = () => {
                       id="img_link"
                       value={formData.img_link}
                       onChange={(e) =>
-                        setFormData({ ...formData, img_link: e.target.value })
+                        setFormData({ ...formData, img_link: normalizeImageUrl(e.target.value) })
                       }
                       placeholder="Paste image URL or upload below"
                     />
@@ -295,7 +295,7 @@ const Categories = () => {
               >
                 {category.img_link && (
                   <img
-                    src={category.img_link}
+                    src={normalizeImageUrl(category.img_link)}
                     alt={category.name}
                     className="w-full h-40 object-cover rounded-t-lg"
                   />
@@ -359,7 +359,7 @@ const Categories = () => {
                   {categoryProducts.map(product => (
                     <div key={product.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                       {product.productUrl ? (
-                        <img src={product.productUrl} alt={product.label} className="w-12 h-12 rounded-md object-cover border" />
+                        <img src={normalizeImageUrl(product.productUrl)} alt={product.label} className="w-12 h-12 rounded-md object-cover border" />
                       ) : (
                         <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center border">
                           <Package className="h-5 w-5 text-gray-400" />

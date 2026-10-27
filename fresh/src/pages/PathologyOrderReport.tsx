@@ -34,7 +34,7 @@ import {
 
 import { Eye } from "lucide-react";
 import { toast } from "sonner";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 
 //
 // TYPES
@@ -256,10 +256,11 @@ export default function PathologyOrderReport() {
                 data,
                 { headers: { "Content-Type": "multipart/form-data" } }
             );
+            const fileUrl = normalizeImageUrl(response.data.fileUrl);
             // Update selected order files locally
             setSelectedOrder({
                 ...selectedOrder,
-                files: selectedOrder.files ? [...selectedOrder.files, response.data.fileUrl] : [response.data.fileUrl],
+                files: selectedOrder.files ? [...selectedOrder.files, fileUrl] : [fileUrl],
             });
             toast.success("File uploaded successfully!");
         } catch (err) {

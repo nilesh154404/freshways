@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, fileUrl } from "@/lib/api";
 
 interface MarketingContent {
   id: number;
@@ -293,7 +293,7 @@ const SavedPosts = () => {
                           {post.media.slice(0, 1).map((media) => (
                             <img
                               key={media.id}
-                              src={`${API_BASE_URL}${media.fileUrl}`}
+                              src={fileUrl(media.fileUrl)}
                               alt={media.fileName}
                               className="w-full rounded-lg object-cover max-h-96"
                             />

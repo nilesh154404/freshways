@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 
 interface MarketingContent {
   id: number;
@@ -603,7 +603,7 @@ const Feed = () => {
                           {post.media.slice(0, 1).map((media) => (
                             <img
                               key={media.id}
-                              src={media.fileUrl}
+                              src={normalizeImageUrl(media.fileUrl)}
                               alt={media.fileName}
                               className="w-full rounded-xl object-cover max-h-96 border border-green-100 shadow-sm"
                             />

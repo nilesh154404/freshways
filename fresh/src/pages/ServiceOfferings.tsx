@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
 
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -269,7 +269,7 @@ const ServiceOfferings = () => {
                               </div>
                               {p.productUrl && (
                                 <img
-                                  src={p.productUrl}
+                                  src={normalizeImageUrl(p.productUrl)}
                                   alt={p.label}
                                   className="w-12 h-12 object-cover rounded"
                                 />

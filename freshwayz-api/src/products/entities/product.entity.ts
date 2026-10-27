@@ -4,7 +4,17 @@ import { ProductDiscount } from "src/product-discount/entities/product-discount.
 import { ServiceOffering } from "src/service-offering/entities/service-offering.entity";
 import { VendorSubscriptionPlan } from "src/vendor-subscription-plan/entities/vendor-subscription-plan.entity";
 import { Vendor } from "src/vendor/entities/vendor.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import {
+  AfterLoad,
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { ProductCustomizationGroup } from "./product-customization-group.entity";
 
 @Entity()
@@ -20,6 +30,18 @@ export class Product {
 
     @Column()
     productUrl: string;
+
+    @AfterLoad()
+    @BeforeInsert()
+    @BeforeUpdate()
+    normalizeProductUrl() {
+        if (this.productUrl) {
+            this.productUrl = this.productUrl
+                .replace(/https?:\/\/freshwayz\.dexpertsystems\.com\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+                .replace(/http:\/\/192\.168\.\d+\.\d+:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+                .replace(/http:\/\/localhost:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads');
+        }
+    }
 
     @Column()
     measurementUnit: string;

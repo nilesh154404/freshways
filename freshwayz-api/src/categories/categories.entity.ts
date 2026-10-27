@@ -1,6 +1,6 @@
 import { Product } from "src/products/entities/product.entity";
 import { Vendor } from "src/vendor/entities/vendor.entity";
-import { BaseEntity, Column, Entity, ManyToMany, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity, Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn, AfterLoad, BeforeInsert, BeforeUpdate } from "typeorm";
 
 @Entity()
 export class Categories extends BaseEntity {
@@ -15,6 +15,18 @@ export class Categories extends BaseEntity {
 
     @Column('text', { nullable: true })
     img_link: string;
+
+    @AfterLoad()
+    @BeforeInsert()
+    @BeforeUpdate()
+    normalizeImgLink() {
+        if (this.img_link) {
+            this.img_link = this.img_link
+                .replace(/https?:\/\/freshwayz\.dexpertsystems\.com\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+                .replace(/http:\/\/192\.168\.\d+\.\d+:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads')
+                .replace(/http:\/\/localhost:\d+\/uploads/g, 'https://admin.freshwayz.dexpertsystems.com/uploads');
+        }
+    }
 
     @Column()
     name: string;
