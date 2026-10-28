@@ -64,10 +64,10 @@ export class PaymentsService {
       'wmJRtH4WKvv733tF';
     this.urlSuccess =
       this.configService.get<string>('DEXPERT_URL_SUCCESS') ||
-      'https://freshwayz.dexpertsystems.com/api/payments/response';
+      'https://admin.freshwayz.dexpertsystems.com/api/payments/response';
     this.urlFail =
       this.configService.get<string>('DEXPERT_URL_FAIL') ||
-      'https://freshwayz.dexpertsystems.com/api/payments/response';
+      'https://admin.freshwayz.dexpertsystems.com/api/payments/response';
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto) {
@@ -113,7 +113,7 @@ export class PaymentsService {
 
     const routerUrl = `?mcode=${this.merchantCode}&uname=${this.username}&psw=${this.password}&amount=${txnAmt}&settlement_split=${settlement_split}&mtxnId=${txnId}&pfname=${pfname}&plname=${plname}&pmno=${pmno}&pemail=${pemail}&padd=&surl=${this.urlSuccess}&furl=${this.urlFail}&udf6=`;
     this.logger.log(`Generated Dexpert routerUrl for txnId ${txnId}`);
-    
+
     const encryptedUrl = DexpertCryptoUtil.encrypt(
       routerUrl,
       this.privateValue,
@@ -153,7 +153,7 @@ export class PaymentsService {
           responseData[key] = value || '';
         }
       });
-      
+
       paymentDebugLogs.push({
         time: new Date().toISOString(),
         encryptedQuery: sanitizedQuery,
@@ -179,7 +179,7 @@ export class PaymentsService {
           .leftJoinAndSelect('payment.order', 'order')
           .where('LOWER(payment.transactionId) = LOWER(:transactionId)', { transactionId })
           .getOne();
-          
+
         if (payment) {
           this.logger.log(`Found payment record for TxnId: ${transactionId}. Updating status...`);
           payment.status = isSuccess
@@ -211,7 +211,7 @@ export class PaymentsService {
               );
             }
           } else {
-             this.logger.warn(`Payment ${transactionId} has no associated order to update.`);
+            this.logger.warn(`Payment ${transactionId} has no associated order to update.`);
           }
         } else {
           this.logger.warn(
