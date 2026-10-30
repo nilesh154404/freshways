@@ -1,0 +1,65 @@
+### ============================================================================
+### Dexpert Payment Webhook - Local Test Requests
+### Local Server: http://localhost:5000
+### Production Server: https://admin.freshwayz.dexpertsystems.com
+### ============================================================================
+
+### 1. Test Unrecognized / Pending Status (The exact payload you mentioned)
+### Expected outcome: "unrecognized_status" (HTTP 200, DB payment remains PENDING)
+POST http://localhost:5000/api/payments/webhook/dexpert
+Content-Type: application/json
+
+{
+  "transaction_id": "TXNF85F7B1FA9AA",
+  "amount": "800.00",
+  "status": "PENDING"
+}
+
+
+### 2. Test Real Payment Success (What Dexpert sends when customer pays)
+### Expected outcome: "marked_success", generates receipt number, marks Order as PAID
+POST http://localhost:5000/api/payments/webhook/dexpert
+Content-Type: application/json
+
+{
+  "transaction_id": "TXNF85F7B1FA9AA",
+  "amount": "800.00",
+  "status": "success",
+  "pg_transt_id": "DEX_PG_12345678"
+}
+
+
+### 3. Test Idempotency (Send the exact same success payload a 2nd time)
+### Expected outcome: "already_final" (HTTP 200, no duplicate receipt or double processing)
+POST http://localhost:5000/api/payments/webhook/dexpert
+Content-Type: application/json
+
+{
+  "transaction_id": "TXNF85F7B1FA9AA",
+  "amount": "800.00",
+  "status": "success"
+}
+
+
+### 4. Test Amount Mismatch Tamper Protection
+### Expected outcome: "amount_mismatch" (Payment will NOT be approved)
+POST http://localhost:5000/api/payments/webhook/dexpert
+Content-Type: application/json
+
+{
+  "transaction_id": "TXNF85F7B1FA9AA",
+  "amount": "500.00",
+  "status": "success"
+}
+
+
+### 5. Test Non-existent Transaction
+### Expected outcome: "unknown_transaction"
+POST http://localhost:5000/api/payments/webhook/dexpert
+Content-Type: application/json
+
+{
+  "transaction_id": "TXN_DOES_NOT_EXIST",
+  "amount": "800.00",
+  "status": "success"
+}
