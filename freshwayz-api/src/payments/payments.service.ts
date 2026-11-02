@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { DexpertCryptoUtil } from './dexpert-crypto.util';
+import { DexpertCryptoUtil, DexpertParsedResponse } from './dexpert-crypto.util';
 import { Order } from 'src/orders/entities/order.entity';
 import {
   Payment,
@@ -59,6 +59,8 @@ export class PaymentsService {
   private readonly privateValue: string;
   private readonly urlSuccess: string;
   private readonly urlFail: string;
+  private readonly aesKey: string;
+  private readonly aesIv: string;
 
   private generateReceiptNumber(orderId: number, transactionId: string): string {
     const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
@@ -98,6 +100,12 @@ export class PaymentsService {
     this.urlFail =
       this.configService.get<string>('DEXPERT_URL_FAIL') ||
       'https://admin.freshwayz.dexpertsystems.com/api/payments/response';
+    this.aesKey =
+      this.configService.get<string>('DEXPERT_AES_KEY') ||
+      '3md6uPicmLlZmlVG';
+    this.aesIv =
+      this.configService.get<string>('DEXPERT_AES_IV') ||
+      'xVJSbcqImp2utNzi';
   }
 
   // ===========================================================================
@@ -171,7 +179,7 @@ export class PaymentsService {
   }
 
   // ===========================================================================
-  // NEW (SHARED): processConfirmedPayment
+  // EXISTING (SHARED): processConfirmedPayment
   //
   // Single source of truth for updating a payment and its order.
   // Called by both the browser-redirect handler and the webhook handler.
@@ -309,57 +317,55 @@ export class PaymentsService {
   }
 
   // ===========================================================================
-  // EXISTING: verifyPaymentResponse  (browser redirect – return shape UNCHANGED)
+  // EXISTING: verifyPaymentResponse  (browser redirect)
   //
-  // Refactored to delegate DB update to processConfirmedPayment so both the
-  // redirect and webhook paths share the same idempotency/locking guarantees.
+  // Supports both router credentials and AES webhook credentials.
   // ===========================================================================
 
   async verifyPaymentResponse(encryptedQuery: string) {
     this.logger.log(`Received encryptedQuery from Dexpert for verification.`);
     try {
-      // Browsers often convert '+' to ' ' in query parameters.
-      // We must revert spaces back to '+' for base64 decryption to work!
       const sanitizedQuery = encryptedQuery.replace(/ /g, '+');
-      const decText = DexpertCryptoUtil.decrypt(
-        sanitizedQuery,
-        this.privateValue,
-        this.privateKey,
-      );
+      let decText: string;
 
-      const decryptValues = decText.split('&');
+      try {
+        decText = DexpertCryptoUtil.decryptDexpertResponse(
+          sanitizedQuery,
+          this.aesKey,
+          this.aesIv,
+          this.privateKey,
+          this.privateValue,
+        );
+      } catch {
+        decText = DexpertCryptoUtil.decrypt(
+          sanitizedQuery,
+          this.privateValue,
+          this.privateKey,
+        );
+      }
 
-      const responseData: Record<string, string> = {};
-      decryptValues.forEach((val) => {
-        const [key, value] = val.split('=');
-        if (key) {
-          responseData[key] = value || '';
-        }
-      });
+      const parsed = DexpertCryptoUtil.parseDecryptedQuery(decText);
 
       paymentDebugLogs.push({
         time: new Date().toISOString(),
-        encryptedQuery: sanitizedQuery,
-        responseData,
+        encryptedQuery: sanitizedQuery.substring(0, 30) + '...',
+        responseData: parsed.raw,
       });
       if (paymentDebugLogs.length > 20) paymentDebugLogs.shift();
 
-      this.logger.log(
-        `Decrypted Dexpert Response: ${JSON.stringify(responseData)}`,
-      );
+      this.logger.log(`Decrypted Dexpert Response: mtxnId=${parsed.mtxnId} status=${parsed.status}`);
 
-      const orderStatusStr =
-        responseData['status'] || responseData['order_status'] || '';
-      const transactionId =
-        responseData['mtxnId'] ||
-        responseData['txnid'] ||
-        responseData['txnId'] ||
-        responseData['pg_transt_id'];
+      const orderStatusStr = parsed.status || '';
+      const rawTxnId = parsed.mtxnId || parsed.transId || parsed.pgTransId;
+      let cleanTxnId = rawTxnId;
+      if (cleanTxnId && this.merchantCode && cleanTxnId.toUpperCase().startsWith(this.merchantCode.toUpperCase())) {
+        cleanTxnId = cleanTxnId.substring(this.merchantCode.length);
+      }
+      const transactionId = cleanTxnId || rawTxnId;
+      const pgTransactionId = parsed.pgTransId || parsed.transId || undefined;
 
-      // Dexpert's own gateway reference (if present in the response)
-      const pgTransactionId = responseData['pg_transt_id'] || undefined;
-
-      const isSuccess = orderStatusStr.toLowerCase().trim() === 'success';
+      const normStatus = orderStatusStr.toLowerCase().trim();
+      const isSuccess = normStatus === 'success' || normStatus === 'txn_success';
       let receiptNumber: string | undefined;
 
       this.logger.log(
@@ -367,7 +373,6 @@ export class PaymentsService {
       );
 
       if (transactionId) {
-        // Delegate to the shared atomic idempotent handler
         const result = await this.processConfirmedPayment(
           transactionId,
           isSuccess,
@@ -381,12 +386,12 @@ export class PaymentsService {
 
       return {
         success: isSuccess,
-        data: responseData,
+        data: parsed.raw,
         orderStatus: orderStatusStr
           ? orderStatusStr.charAt(0).toUpperCase() + orderStatusStr.slice(1)
           : 'Unknown',
         transactionId: transactionId,
-        amount: responseData['amount'],
+        amount: parsed.amount,
         receiptNumber,
       };
     } catch (error: any) {
@@ -404,148 +409,310 @@ export class PaymentsService {
   // ===========================================================================
   // NEW: handleDexpertWebhook
   //
-  // Called by Sir (Dexpert admin) to manually confirm a payment as SUCCESS.
+  // Processes Dexpert (PayPlatter) automatic webhook callbacks.
+  // Supports:
+  //   1. GET /api/payments/webhook/dexpert?query=ENCRYPTED_DATA&mcode=MYA344&transDate=...
+  //   2. POST /api/payments/webhook/dexpert with { query: "...", mcode: "..." }
   //
-  // Flow:
-  //   1. Sir checks Dexpert merchant dashboard – sees which transactions succeeded.
-  //   2. For each confirmed-success transaction, Sir POSTs:
-  //        { "transId": "TXN_ABC123" }
-  //   3. This API automatically marks that payment as SUCCESS, updates the order
-  //      to PAID, generates a receipt, and logs the change in payment_log.
+  // Decrypts using AES-128-CBC (PKCS5PADDING / PKCS7PADDING), parses all 15
+  // Dexpert fields, rigorously validates merchant code, transaction existence,
+  // exact amount, and documented status values before updating payment and order.
   //
-  // Body  : { "transId": "TXN_ABC123" }   ← only one field required
-  // Always SUCCESS – Sir only hits this for payments he has verified are paid.
-  //
-  // HTTP 200 → acknowledged=true  (always returned for business-logic outcomes)
-  // HTTP 500 → acknowledged=false (only for genuine DB/server crashes)
+  // Unrestricted / unverified manual payment confirmations are strictly blocked.
   // ===========================================================================
 
   async handleDexpertWebhook(
-    body: Record<string, any>,
+    body: Record<string, any> = {},
     webhookSecretHeader?: string,
+    queryParams: Record<string, any> = {},
   ): Promise<WebhookHandleResult> {
+    this.logger.log('Dexpert Webhook received. Inspecting callback request...');
 
     // 0. Optional shared-secret check (activate by setting DEXPERT_WEBHOOK_SECRET in env)
     const configuredSecret = this.configService.get<string>('DEXPERT_WEBHOOK_SECRET');
     if (configuredSecret) {
       if (!webhookSecretHeader || webhookSecretHeader !== configuredSecret) {
-        this.logger.warn('Webhook: rejected – X-Webhook-Secret missing or incorrect.');
+        this.logger.warn('Webhook rejected: X-Webhook-Secret header missing or incorrect.');
         return { acknowledged: true, outcome: 'authentication_failed' };
       }
     }
 
-    // 1. Validate payload structure
-    if (!body || typeof body !== 'object') {
-      this.logger.warn('Webhook: received non-object body.');
-      return { acknowledged: true, outcome: 'invalid_payload' };
+    // 1. Extract encrypted query parameter (from GET query params or POST body)
+    const encryptedQuery: string | undefined =
+      queryParams['query'] ||
+      body['query'] ||
+      body['encryptedQuery'] ||
+      body['data'] ||
+      undefined;
+
+    const callbackMcode: string | undefined =
+      queryParams['mcode'] ||
+      body['mcode'] ||
+      undefined;
+
+    // 2. If encrypted query is present, process through automatic AES decryption flow
+    if (encryptedQuery) {
+      this.logger.log('Webhook: encrypted query found. Decrypting with Dexpert AES...');
+
+      let decryptedText: string;
+      try {
+        decryptedText = DexpertCryptoUtil.decryptDexpertResponse(
+          encryptedQuery,
+          this.aesKey,
+          this.aesIv,
+          this.privateKey,
+          this.privateValue,
+        );
+      } catch (decryptErr: any) {
+        this.logger.warn(`Webhook: AES decryption failed: ${decryptErr.message}`);
+        await this.writePaymentLog({
+          source: 'webhook',
+          outcome: 'decryption_failed',
+          rawPayload: { error: 'decryption_failed', message: decryptErr.message },
+        });
+        return { acknowledged: true, outcome: 'decryption_failed' };
+      }
+
+      // 3. Parse all 15 Dexpert fields
+      const parsed = DexpertCryptoUtil.parseDecryptedQuery(decryptedText);
+
+      this.logger.log(
+        `Webhook: decrypted successfully. mtxnId=${parsed.mtxnId} transId=${parsed.transId} status=${parsed.status} amount=${parsed.amount} mcode=${parsed.mcode}`,
+      );
+
+      // 4. Validate merchant code
+      const effectiveMcode = parsed.mcode || callbackMcode;
+      if (effectiveMcode && effectiveMcode.toUpperCase() !== this.merchantCode.toUpperCase()) {
+        this.logger.warn(
+          `Webhook: MERCHANT MISMATCH. Expected=${this.merchantCode}, Received=${effectiveMcode}`,
+        );
+        await this.writePaymentLog({
+          transactionId: parsed.mtxnId || parsed.transId,
+          source: 'webhook',
+          outcome: 'merchant_mismatch',
+          rawPayload: this.sanitizePayloadForLog(parsed),
+        });
+        return {
+          acknowledged: true,
+          outcome: 'merchant_mismatch',
+          transactionId: parsed.mtxnId || parsed.transId,
+        };
+      }
+
+      // 5. Extract Freshways transactionId (handling merchant prefix if Dexpert prepends it e.g. MYA344TXN...)
+      const rawTxnId = parsed.mtxnId || parsed.transId;
+      if (!rawTxnId) {
+        this.logger.warn('Webhook: missing transaction ID (neither mtxnId nor transId present in decrypted data).');
+        await this.writePaymentLog({
+          source: 'webhook',
+          outcome: 'missing_transaction_id',
+          rawPayload: this.sanitizePayloadForLog(parsed),
+        });
+        return { acknowledged: true, outcome: 'missing_transaction_id' };
+      }
+
+      let cleanTxnId = rawTxnId;
+      if (this.merchantCode && cleanTxnId.toUpperCase().startsWith(this.merchantCode.toUpperCase())) {
+        cleanTxnId = cleanTxnId.substring(this.merchantCode.length);
+      }
+
+      // 6. Look up existing payment record (matches rawTxnId e.g. MYA344TXN... or cleanTxnId e.g. TXN...)
+      const payment = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .leftJoinAndSelect('payment.order', 'order')
+        .where('LOWER(payment.transactionId) = LOWER(:rawId)', { rawId: rawTxnId })
+        .orWhere('LOWER(payment.transactionId) = LOWER(:cleanId)', { cleanId: cleanTxnId })
+        .getOne();
+
+      if (!payment) {
+        this.logger.warn(`Webhook: unknown transactionId=${rawTxnId} (clean=${cleanTxnId}).`);
+        await this.writePaymentLog({
+          transactionId: cleanTxnId || rawTxnId,
+          source: 'webhook',
+          outcome: 'unknown_transaction',
+          rawPayload: this.sanitizePayloadForLog(parsed),
+        });
+        return { acknowledged: true, outcome: 'unknown_transaction', transactionId: cleanTxnId || rawTxnId };
+      }
+
+      const transactionId = payment.transactionId;
+      const previousStatus = String(payment.status);
+
+      // 7. Validate amount (tolerance: 0.01) - checks amount or requestedAmount
+      const effectiveAmountStr =
+        parsed.amount && parsed.amount !== 'null'
+          ? parsed.amount
+          : parsed.requestedAmount && parsed.requestedAmount !== 'null'
+          ? parsed.requestedAmount
+          : undefined;
+
+      if (effectiveAmountStr !== undefined && effectiveAmountStr !== '') {
+        const receivedAmt = parseFloat(effectiveAmountStr);
+        const expectedAmt = parseFloat(String(payment.amount));
+
+        if (!isNaN(receivedAmt)) {
+          if (Math.abs(receivedAmt - expectedAmt) > 0.01) {
+            this.logger.warn(
+              `Webhook: AMOUNT MISMATCH for txnId=${transactionId}. Expected=${expectedAmt}, Received=${receivedAmt}`,
+            );
+            await this.writePaymentLog({
+              payment,
+              transactionId,
+              previousStatus,
+              source: 'webhook',
+              outcome: 'amount_mismatch',
+              rawPayload: this.sanitizePayloadForLog(parsed),
+            });
+            return { acknowledged: true, outcome: 'amount_mismatch', transactionId };
+          }
+        }
+      }
+
+      // 8. Validate status and response code
+      const normStatus = String(parsed.status || '').toLowerCase().trim();
+      const normRespCode = String(parsed.respCode || '').toLowerCase().trim();
+
+      const isStatusSuccess =
+        normStatus === 'success' || normStatus === 'txn_success' || normStatus === 'completed';
+      const isRespCodeSuccess =
+        !normRespCode ||
+        normRespCode === '0' ||
+        normRespCode === '00' ||
+        normRespCode === '0000' ||
+        normRespCode === 'success' ||
+        normRespCode === '200';
+      const isSuccess = isStatusSuccess && isRespCodeSuccess;
+
+      const isFailure =
+        ['failure', 'failed', 'fail', 'cancelled', 'canceled', 'expired', 'rejected', 'declined', 'bounce'].includes(normStatus) ||
+        (!isStatusSuccess && normRespCode && !isRespCodeSuccess);
+
+      if (!isSuccess && !isFailure) {
+        this.logger.warn(
+          `Webhook: unrecognized status="${parsed.status}" respCode="${parsed.respCode}" for txnId=${transactionId}. Payment remains ${previousStatus}.`,
+        );
+        await this.writePaymentLog({
+          payment,
+          transactionId,
+          previousStatus,
+          source: 'webhook',
+          outcome: 'unrecognized_status',
+          rawPayload: this.sanitizePayloadForLog(parsed),
+        });
+        return { acknowledged: true, outcome: 'unrecognized_status', transactionId };
+      }
+
+      // 9. Update webhook audit counters on payment entity
+      try {
+        payment.webhookAttempts = (payment.webhookAttempts ?? 0) + 1;
+        if (!payment.webhookReceivedAt) {
+          payment.webhookReceivedAt = new Date();
+        }
+        await this.paymentRepository.save(payment);
+      } catch (trackErr: any) {
+        this.logger.warn(`Webhook: audit tracking update failed: ${trackErr.message}`);
+      }
+
+      // 10. Execute atomic database update
+      const pgTransactionId = parsed.pgTransId || parsed.transId || undefined;
+
+      try {
+        const result = await this.processConfirmedPayment(
+          transactionId,
+          isSuccess,
+          'webhook',
+          pgTransactionId,
+        );
+
+        const latestStatus = result.newStatus ?? (isSuccess ? PaymentStatus.SUCCESS : PaymentStatus.FAILED);
+
+        await this.writePaymentLog({
+          payment,
+          transactionId,
+          previousStatus,
+          newStatus: latestStatus,
+          source: 'webhook',
+          outcome: result.outcome,
+          rawPayload: this.sanitizePayloadForLog(parsed),
+        });
+
+        this.logger.log(
+          `Webhook complete: txnId=${transactionId} outcome=${result.outcome} ` +
+            `${previousStatus} -> ${latestStatus}` +
+            (result.receiptNumber ? ` receipt=${result.receiptNumber}` : ''),
+        );
+
+        return {
+          acknowledged: true,
+          outcome: result.outcome,
+          transactionId,
+          previousStatus,
+          latestStatus,
+          receiptNumber: result.receiptNumber || payment.receiptNumber,
+          orderId: payment.order?.id,
+        };
+      } catch (dbErr: any) {
+        this.logger.error(`Webhook: database update failed for txnId=${transactionId}: ${dbErr.message}`);
+        return { acknowledged: false, outcome: 'db_error', transactionId };
+      }
     }
 
-    // 2. Extract transId (accept common field name variants)
-    const transactionId: string | undefined =
+    // 3. Fallback: Check if unencrypted transId was submitted without encrypted query
+    const unencryptedTxnId: string | undefined =
       body['transId'] ||
       body['transaction_id'] ||
       body['transactionId'] ||
-      body['txnId'] ||
-      body['txn_id'] ||
+      queryParams['transId'] ||
       undefined;
 
-    if (!transactionId) {
+    if (unencryptedTxnId) {
       this.logger.warn(
-        `Webhook: missing transId. Received keys: [${Object.keys(body).join(', ')}]`,
+        `Webhook: rejected unencrypted transId=${unencryptedTxnId}. Encrypted response query is required.`,
       );
-      // Write a log entry for the missing-field case too
       await this.writePaymentLog({
-        transactionId: undefined,
-        previousStatus: undefined,
-        newStatus: undefined,
+        transactionId: unencryptedTxnId,
         source: 'webhook',
-        rawPayload: body,
-        outcome: 'missing_fields',
+        outcome: 'encrypted_query_required',
+        rawPayload: { transId: unencryptedTxnId, note: 'Unencrypted transId rejected' },
       });
-      return { acknowledged: true, outcome: 'missing_fields' };
-    }
-
-    this.logger.log(
-      `Webhook received: transId=${transactionId} – marking as SUCCESS (Sir-verified)`,
-    );
-
-    // 3. Look up the payment record (for audit / to get previous status)
-    const payment = await this.paymentRepository
-      .createQueryBuilder('payment')
-      .leftJoinAndSelect('payment.order', 'order')
-      .where('LOWER(payment.transactionId) = LOWER(:tid)', { tid: transactionId })
-      .getOne();
-
-    if (!payment) {
-      this.logger.warn(`Webhook: unknown transactionId=${transactionId}.`);
-      await this.writePaymentLog({
-        transactionId,
-        previousStatus: undefined,
-        newStatus: undefined,
-        source: 'webhook',
-        rawPayload: body,
-        outcome: 'unknown_transaction',
-      });
-      return { acknowledged: true, outcome: 'unknown_transaction', transactionId };
-    }
-
-    const previousStatus = String(payment.status);
-
-    // 4. Record webhook audit trail (non-critical – outside main transaction)
-    try {
-      payment.webhookAttempts = (payment.webhookAttempts ?? 0) + 1;
-      if (!payment.webhookReceivedAt) {
-        payment.webhookReceivedAt = new Date();
-      }
-      await this.paymentRepository.save(payment);
-    } catch (trackErr: any) {
-      // Non-fatal: tracking failure must not block payment processing
-      this.logger.warn(`Webhook: audit tracking update failed: ${trackErr.message}`);
-    }
-
-    // 5. Apply atomic idempotent status update – always SUCCESS (Sir verified it)
-    try {
-      const result = await this.processConfirmedPayment(
-        transactionId,
-        true, // always SUCCESS – Sir only calls this for confirmed payments
-        'webhook',
-      );
-
-      const latestStatus = result.newStatus ?? previousStatus;
-
-      // 6. Write payment_log entry
-      await this.writePaymentLog({
-        payment,
-        transactionId,
-        previousStatus,
-        newStatus: latestStatus,
-        source: 'webhook',
-        rawPayload: body,
-        outcome: result.outcome,
-      });
-
-      this.logger.log(
-        `Webhook complete: transId=${transactionId} outcome=${result.outcome} ` +
-          `${previousStatus} -> ${latestStatus}` +
-          (result.receiptNumber ? ` receipt=${result.receiptNumber}` : ''),
-      );
-
       return {
         acknowledged: true,
-        outcome: result.outcome,
-        transactionId,
-        previousStatus,
-        latestStatus,
-        receiptNumber: result.receiptNumber,
-        orderId: payment.order?.id,
+        outcome: 'encrypted_query_required',
+        transactionId: unencryptedTxnId,
       };
-    } catch (dbError: any) {
-      // DB failure → acknowledged=false
-      this.logger.error(
-        `Webhook: DB error for txnId=${transactionId}: ${dbError.message}`,
-      );
-      return { acknowledged: false, outcome: 'db_error', transactionId };
     }
+
+    // 4. Missing required payload fields
+    this.logger.warn('Webhook: missing query parameter or body payload.');
+    await this.writePaymentLog({
+      source: 'webhook',
+      outcome: 'missing_fields',
+      rawPayload: { note: 'Empty payload received' },
+    });
+    return { acknowledged: true, outcome: 'missing_fields' };
+  }
+
+  // ===========================================================================
+  // PRIVATE: sanitizePayloadForLog
+  //
+  // Prepares safe metadata for storage in payment_log without sensitive keys/PII.
+  // ===========================================================================
+
+  private sanitizePayloadForLog(parsed: DexpertParsedResponse): Record<string, any> {
+    return {
+      receivedVia: 'encrypted_webhook',
+      pgTransId: parsed.pgTransId,
+      transId: parsed.transId,
+      mtxnId: parsed.mtxnId,
+      amount: parsed.amount,
+      requestedAmount: parsed.requestedAmount,
+      payInstrument: parsed.payInstrument,
+      respCode: parsed.respCode,
+      mcode: parsed.mcode,
+      txnDate: parsed.txnDate,
+      status: parsed.status,
+      rmsg: parsed.rmsg,
+    };
   }
 
   // ===========================================================================

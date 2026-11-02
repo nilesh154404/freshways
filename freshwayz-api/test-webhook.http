@@ -1,65 +1,64 @@
 ### ============================================================================
-### Dexpert Payment Webhook - Local Test Requests
+### Dexpert (PayPlatter) Encrypted Payment Webhook - Local Test Requests
 ### Local Server: http://localhost:5000
 ### Production Server: https://admin.freshwayz.dexpertsystems.com
 ### ============================================================================
 
-### 1. Test Unrecognized / Pending Status (The exact payload you mentioned)
-### Expected outcome: "unrecognized_status" (HTTP 200, DB payment remains PENDING)
+### ----------------------------------------------------------------------------
+### 1. Test Unencrypted transId Rejection (Loophole Closed)
+### Expected outcome: "encrypted_query_required" (Rejected! Won't mark SUCCESS)
+### ----------------------------------------------------------------------------
 POST http://localhost:5000/api/payments/webhook/dexpert
 Content-Type: application/json
 
 {
-  "transaction_id": "TXNF85F7B1FA9AA",
-  "amount": "800.00",
-  "status": "PENDING"
+  "transId": "TXNF85F7B1FA9AA"
 }
 
 
-### 2. Test Real Payment Success (What Dexpert sends when customer pays)
-### Expected outcome: "marked_success", generates receipt number, marks Order as PAID
+### ----------------------------------------------------------------------------
+### 2. Test Invalid Ciphertext
+### Expected outcome: "decryption_failed" (Rejected safely without modifying DB)
+### ----------------------------------------------------------------------------
 POST http://localhost:5000/api/payments/webhook/dexpert
 Content-Type: application/json
 
 {
-  "transaction_id": "TXNF85F7B1FA9AA",
-  "amount": "800.00",
-  "status": "success",
-  "pg_transt_id": "DEX_PG_12345678"
+  "query": "INVALID_ENCRYPTED_DATA_ABC123",
+  "mcode": "MYA344"
 }
 
 
-### 3. Test Idempotency (Send the exact same success payload a 2nd time)
-### Expected outcome: "already_final" (HTTP 200, no duplicate receipt or double processing)
-POST http://localhost:5000/api/payments/webhook/dexpert
-Content-Type: application/json
-
-{
-  "transaction_id": "TXNF85F7B1FA9AA",
-  "amount": "800.00",
-  "status": "success"
-}
-
-
-### 4. Test Amount Mismatch Tamper Protection
-### Expected outcome: "amount_mismatch" (Payment will NOT be approved)
-POST http://localhost:5000/api/payments/webhook/dexpert
-Content-Type: application/json
-
-{
-  "transaction_id": "TXNF85F7B1FA9AA",
-  "amount": "500.00",
-  "status": "success"
-}
-
-
-### 5. Test Non-existent Transaction
+### ----------------------------------------------------------------------------
+### 3. Test Unknown Transaction ID
 ### Expected outcome: "unknown_transaction"
+### ----------------------------------------------------------------------------
+# Encrypted payload with mtxnId=TXN_UNKNOWN_999999
 POST http://localhost:5000/api/payments/webhook/dexpert
 Content-Type: application/json
 
 {
-  "transaction_id": "TXN_DOES_NOT_EXIST",
-  "amount": "800.00",
-  "status": "success"
+  "query": "9nA6I3vDwy/0UrlXmWuxLkpNloTAfIqdu$QJ94aCUBIjo9NiFLVL44$Pj0hJ4rexkzGowgjtLVtnsixfw3hP3PXqhuJm/oDsOfgGmCZM2NngBuTNrYCrs0zJtePdpukyI$3ZmSuU/hg$xSDO9LbO2xd/gDec01XdEcgYIWZl4QnWQ1w6LxP27n3CT67aQRaC09f3YE/TrV1xGcGfOGVkmK5WkI2b2aShX6JVAy/cY32kNhyvHOTQKDGcvIZF5pscnF8NP3JGXQWyvlWc2QFJb1N3/0trM82j5apg9QBs3AdKTmKCW$aYiK27BrAyAK0m3pG0m3z9eIYxJqtc4vXnRf7j3uDDBHSjOwZD2z2u1EkkB10KNAy9KlS//vp/StDu6iXagRhZutyLXRNhQZ4o1w==",
+  "mcode": "MYA344"
+}
+
+
+### ----------------------------------------------------------------------------
+### 4. Test GET Webhook Callback (Sample shared by Dexpert)
+### Generate query using: node generate-test-payload.js <YOUR_TXN_ID> <AMOUNT> SUCCESS
+### ----------------------------------------------------------------------------
+GET http://localhost:5000/api/payments/webhook/dexpert?mcode=MYA344&transDate=02-11-2026%2012:00:00&query=PASTE_ENCRYPTED_QUERY_HERE
+
+
+### ----------------------------------------------------------------------------
+### 5. Test POST Webhook Callback (Real Encrypted Payment Success)
+### Expected outcome: "updated" -> status: SUCCESS, receiptNumber generated
+### ----------------------------------------------------------------------------
+POST http://localhost:5000/api/payments/webhook/dexpert
+Content-Type: application/json
+
+{
+  "query": "PASTE_ENCRYPTED_QUERY_HERE",
+  "mcode": "MYA344",
+  "transDate": "02-11-2026 12:00:00"
 }

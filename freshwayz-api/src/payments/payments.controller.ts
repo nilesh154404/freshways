@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, Param, Res, Req, NotFoundException, BadRequestException, Logger, Headers } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { PaymentsService, paymentDebugLogs } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import type { Request, Response } from 'express';
@@ -18,24 +18,89 @@ export class PaymentsController {
   }
 
   // =========================================================================
-  // NEW: Dexpert server-to-server webhook
-  // POST /api/payments/webhook/dexpert
+  // Dexpert (PayPlatter) automatic server-to-server webhook
   //
-  // Dexpert calls this directly from their servers when a payment completes,
-  // independently of the customer's browser redirect. This ensures payments
-  // are recorded even when the customer closes the browser early.
+  // Dexpert calls this when payment completes at the gateway.
+  // Supports both GET query parameters (sample provided by Dexpert) and POST:
+  //   GET  /api/payments/webhook/dexpert?query=ENCRYPTED_DATA&mcode=MYA344&transDate=...
+  //   POST /api/payments/webhook/dexpert with { query: "...", mcode: "..." }
   //
   // HTTP 200 -> Dexpert considers delivery successful, stops retrying.
-  // HTTP 500 -> Dexpert will retry (used only for genuine DB/server errors).
+  // HTTP 500 -> Dexpert will retry (used only for temporary DB/server errors).
   // =========================================================================
+
+  @Get('webhook/dexpert')
+  @ApiOperation({
+    summary: 'Dexpert payment gateway webhook (GET callback)',
+    description:
+      'Dexpert callback with AES-encrypted payment query parameter. ' +
+      'Sample: /api/payments/webhook/dexpert?query=ENCRYPTED_DATA&mcode=MYA344&transDate=31-10-2026',
+  })
+  @ApiHeader({
+    name: 'x-webhook-secret',
+    required: false,
+    description: 'Optional webhook secret header if configured in .env',
+  })
+  @ApiQuery({
+    name: 'query',
+    required: false,
+    description: 'AES-128-CBC encrypted payment response from Dexpert',
+  })
+  @ApiQuery({
+    name: 'mcode',
+    required: false,
+    description: 'Dexpert merchant code (e.g. MYA344)',
+  })
+  @ApiQuery({
+    name: 'transDate',
+    required: false,
+    description: 'Transaction date from Dexpert',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Webhook received and processed (acknowledged: true)',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Temporary DB or server error (acknowledged: false, Dexpert will retry)',
+  })
+  async handleDexpertWebhookGet(
+    @Query() queryParams: Record<string, any>,
+    @Headers('x-webhook-secret') webhookSecret: string | undefined,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const result = await this.paymentsService.handleDexpertWebhook(
+        {},
+        webhookSecret,
+        queryParams,
+      );
+
+      // In case Dexpert redirects the customer's browser to this webhook URL:
+      const acceptHeader = req.headers.accept || '';
+      if (acceptHeader.includes('text/html') && result.receiptNumber) {
+        res.status(200);
+        return res.redirect(
+          `/api/payments/receipt/${encodeURIComponent(result.receiptNumber)}`,
+        );
+      }
+
+      res.status(result.acknowledged ? 200 : 500);
+      return { ok: result.acknowledged, ...result };
+    } catch (err: any) {
+      this.logger.error(`Webhook GET handler threw: ${err.message}`);
+      res.status(500);
+      return { ok: false, message: 'Internal server error' };
+    }
+  }
 
   @Post('webhook/dexpert')
   @ApiOperation({
-    summary: 'Manual payment confirmation webhook (Sir to Freshways)',
+    summary: 'Dexpert payment gateway webhook (POST callback)',
     description:
-      'Sir calls this endpoint after verifying a payment is successful in the Dexpert merchant dashboard. ' +
-      'Sending this request automatically marks the payment as SUCCESS, updates the order to PAID, ' +
-      'generates a receipt, and logs the change. Only one field is required: transId.',
+      'Dexpert callback with AES-encrypted payment query parameter in POST body or query string. ' +
+      'Automatically decrypts, validates amount/mcode/status, and updates payment record.',
   })
   @ApiHeader({
     name: 'x-webhook-secret',
@@ -43,17 +108,26 @@ export class PaymentsController {
     description: 'Optional webhook secret header if configured in .env',
   })
   @ApiBody({
-    description: 'Webhook confirmation payload — only transId is required',
+    description: 'Dexpert webhook payload (encrypted query and metadata)',
     schema: {
       type: 'object',
       properties: {
-        transId: {
+        query: {
           type: 'string',
-          description: 'The transaction ID generated by Freshways at payment initiation',
-          example: 'TXNF85F7B1FA9AA',
+          description: 'AES-128-CBC encrypted payment response from Dexpert',
+          example: 'fLTTgMmhi8uKktW2zwpSaW7cBZOFi1kiQoLZW+...',
+        },
+        mcode: {
+          type: 'string',
+          description: 'Merchant code (e.g. MYA344)',
+          example: 'MYA344',
+        },
+        transDate: {
+          type: 'string',
+          description: 'Transaction date (e.g. 31-10-2026 00:24:50)',
+          example: '31-10-2026 00:24:50',
         },
       },
-      required: ['transId'],
     },
   })
   @ApiResponse({
@@ -66,6 +140,7 @@ export class PaymentsController {
   })
   async handleDexpertWebhook(
     @Body() body: Record<string, any>,
+    @Query() queryParams: Record<string, any>,
     @Headers('x-webhook-secret') webhookSecret: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -73,18 +148,11 @@ export class PaymentsController {
       const result = await this.paymentsService.handleDexpertWebhook(
         body,
         webhookSecret,
+        queryParams,
       );
 
-      if (result.acknowledged) {
-        // Business-logic outcome (success, mismatch, unknown txn, etc.)
-        // Return HTTP 200 so Dexpert does not retry endlessly.
-        res.status(200);
-        return { ok: true, ...result };
-      } else {
-        // acknowledged=false means a DB/server error occurred – Dexpert should retry.
-        res.status(500);
-        return { ok: false, ...result };
-      }
+      res.status(result.acknowledged ? 200 : 500);
+      return { ok: result.acknowledged, ...result };
     } catch (err: any) {
       this.logger.error(`Webhook handler threw: ${err.message}`);
       res.status(500);
