@@ -31,6 +31,7 @@ import { ProductDiscountModule } from './product-discount/product-discount.modul
 import { CustomerProductListModule } from './customer-product-list/customer-product-list.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReportsModule } from './reports/reports.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -49,7 +50,16 @@ import { ReportsModule } from './reports/reports.module';
         database: config.get('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-        autoLoadEntities: true
+        autoLoadEntities: true,
+        // ✅ Fix ETIMEDOUT: keep-alive + connection pool settings
+        connectTimeout: 30000,
+        extra: {
+          connectionLimit: 10,
+          waitForConnections: true,
+          queueLimit: 0,
+          enableKeepAlive: true,
+          keepAliveInitialDelay: 10000,
+        },
       }),
     }),
     AuthModule,
@@ -80,7 +90,7 @@ import { ReportsModule } from './reports/reports.module';
     CustomerProductListModule,
     ReportsModule,
     // AI proxy module (provides /api/chat and /api/recommendations)
-    require('./ai/ai.module').AiModule
+    AiModule,
   ],
 })
 export class AppModule implements OnModuleInit {

@@ -373,6 +373,24 @@ export class PaymentsService {
       );
 
       if (transactionId) {
+        if (isSuccess && parsed.amount) {
+          const payment = await this.paymentRepository.findOne({ where: { transactionId } });
+          if (payment) {
+            const receivedAmt = parseFloat(parsed.amount);
+            const expectedAmt = parseFloat(String(payment.amount));
+            if (!isNaN(receivedAmt) && Math.abs(receivedAmt - expectedAmt) > 0.01) {
+              this.logger.warn(
+                'Redirect: AMOUNT MISMATCH for txnId=' + transactionId + '. Expected=' + expectedAmt + ', Received=' + receivedAmt,
+              );
+              return {
+                success: false,
+                message: 'Payment amount mismatch. Payment flagged for review.',
+                transactionId,
+              };
+            }
+          }
+        }
+
         const result = await this.processConfirmedPayment(
           transactionId,
           isSuccess,

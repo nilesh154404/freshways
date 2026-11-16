@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
@@ -59,7 +59,7 @@ export class OrderService {
   // ----------------------------------------------------------
   // CREATE NEW ORDER
   // ----------------------------------------------------------
-  async createNew(createDto: CreateNewOrderDto): Promise<Order> {
+  async createNew(createDto: CreateNewOrderDto, user?: any): Promise<Order> {
     const { customerId, vendorId, vendorSubscriptionPlanId, communityId, listedOrders, deliveryDate, deliverySlotId } = createDto;
 
     console.log(createDto);
@@ -67,6 +67,14 @@ export class OrderService {
     // Validate Relations
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
     if (!customer) throw new NotFoundException('Customer not found');
+
+    if (customer.isActive === false) {
+      throw new BadRequestException('This customer account has been deactivated');
+    }
+
+    if (user && user.role?.toLowerCase() === 'customer' && user.profileId !== customerId) {
+      throw new ForbiddenException('You cannot place an order for another customer account');
+    }
 
     const vendor = vendorId
       ? await this.vendorRepo.findOne({ where: { id: vendorId } })
@@ -125,7 +133,10 @@ export class OrderService {
         listedOrder.order = order;
         listedOrder.notes = item.notes || null;
         listedOrder.productName = item.productName ?? null;
-        listedOrder.quantity = item.quantity ?? null;
+        if (!item.quantity || item.quantity <= 0) {
+          throw new BadRequestException('Quantity for product ID ' + item.productId + ' must be at least 1');
+        }
+        listedOrder.quantity = item.quantity;
 
         if (!item.productId) {
           throw new BadRequestException('Product ID is required in listedOrders');
@@ -148,8 +159,12 @@ export class OrderService {
         // Calculate customizations total
         let customizationsTotal = 0;
         if (item.customizations && item.customizations.length > 0) {
-          for (const cust of item.customizations) {
-            customizationsTotal += Number(cust.additionalPrice);
+          const optionIds = item.customizations.map(c => c.optionId);
+          const dbOptions = await this.customOptionRepo.find({
+            where: { id: In(optionIds) },
+          });
+          for (const opt of dbOptions) {
+            customizationsTotal += Number(opt.additionalPrice || 0);
           }
         }
 
@@ -186,7 +201,8 @@ export class OrderService {
     }
 
     // Set grand total
-    order.grandTotal = createDto.grandTotal ?? total;
+    // Strictly enforce server-calculated total from active daily_price + discounts + customizations
+    order.grandTotal = total;
 
     const saved = await this.orderRepo.save(order);
     
@@ -247,8 +263,12 @@ export class OrderService {
   // ----------------------------------------------------------
   // PLACE ORDER FROM CUSTOMER PRODUCT LIST
   // ----------------------------------------------------------
-  async placeOrderFromProductList(dto: PlaceOrderFromProductListDto): Promise<Order> {
+  async placeOrderFromProductList(dto: PlaceOrderFromProductListDto, user?: any): Promise<Order> {
     const { customerId, communityId, vendorSubscriptionPlanId } = dto;
+
+    if (user && user.role?.toLowerCase() === 'customer' && user.profileId !== customerId) {
+      throw new ForbiddenException('You cannot place an order for another customer account');
+    }
 
     // Fetch customer with communities
     const customer = await this.customerRepo.findOne({ 

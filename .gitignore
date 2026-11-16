@@ -60,3 +60,7 @@ uploads/
 # =========================
 Thumbs.db
 freshways-dataexport
+
+# Uploads backup
+uploads_backup/
+**/uploads_backup/

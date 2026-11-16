@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import expressBasicAuth from 'express-basic-auth';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
+import { existsSync } from 'fs';
 import { NestExpressApplication } from '@nestjs/platform-express'; // ✅ Import this
 
 async function bootstrap() {
@@ -63,13 +64,21 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  // ✅ Static uploads folder
-  // app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-  //   prefix: '/uploads',
-  // });
+  // ✅ Static uploads folder with multi-path fallback & HTTP caching (7 days)
+  const uploadDir = [
+    join(process.cwd(), "uploads"),
+    join(process.cwd(), "freshwayz-api", "uploads"),
+    join(__dirname, "..", "uploads"),
+    join(__dirname, "..", "..", "uploads"),
+  ].find((dir) => existsSync(dir)) || join(process.cwd(), "uploads");
 
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
-    prefix: '/uploads/',
+  console.log("📁 Serving static uploads from:", uploadDir);
+
+  app.useStaticAssets(uploadDir, {
+    prefix: "/uploads",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    etag: true,
+    lastModified: true,
   });
 
   await app.listen(process.env.PORT ?? 5000);

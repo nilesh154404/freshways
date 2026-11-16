@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -36,8 +36,13 @@ export class PaymentsReconciliationService {
     private readonly configService: ConfigService,
   ) {}
 
-  /** Run every 15 minutes – finds PENDING payments older than 30 minutes. */
-  @Cron('0 */15 * * * *')
+  /**
+   * Run once per hour – finds PENDING payments older than 30 minutes.
+   * Reduced from every-15-min to avoid log spam while DEXPERT_STATUS_INQUIRY_URL
+   * is not yet configured. When the status inquiry API is live, change back to:
+   *   @Cron('0 *\/15 * * * *')
+   */
+  @Cron('0 0 * * * *')
   async reconcilePendingPayments(): Promise<void> {
     this.logger.log('Reconciliation: checking for unresolved payments...');
 
@@ -60,16 +65,21 @@ export class PaymentsReconciliationService {
       `Reconciliation: found ${pendingPayments.length} unresolved payment(s).`,
     );
 
+    // Log a single summary warning instead of one per payment
+    if (!this.configService.get<string>('DEXPERT_STATUS_INQUIRY_URL')) {
+      this.logger.warn(
+        `Reconciliation: DEXPERT_STATUS_INQUIRY_URL not configured — ` +
+        `${pendingPayments.length} payment(s) remain PENDING. ` +
+        `Set this env variable to enable auto-resolution.`,
+      );
+    }
+
     for (const payment of pendingPayments) {
       try {
         const gatewayResult = await this.queryGatewayStatus(payment.transactionId);
 
         if (gatewayResult === null) {
-          this.logger.warn(
-            `Reconciliation: status inquiry API not configured. ` +
-              `txnId=${payment.transactionId} orderId=${payment.order?.id} ` +
-              `remains PENDING. Set DEXPERT_STATUS_INQUIRY_URL to enable auto-resolution.`,
-          );
+          // Status inquiry API not configured yet — log once per batch, not per payment
           continue;
         }
 

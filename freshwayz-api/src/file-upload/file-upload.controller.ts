@@ -54,15 +54,6 @@ export class FileUploadController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: UploadFileDto,
   ): Promise<FileUpload> {
-    console.log(
-     {
-      d: body.customerId,
-      b: body.vendorId,
-      c: body.orderId, f: body.marketingContentId, t: body.tenantId
-    });
-    console.log('body:', body);
-console.log('type of tenantId:', typeof body.tenantId);
-
     return this.fileService.saveFile(
       file,
       body.customerId,

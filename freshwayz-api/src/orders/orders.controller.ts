@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+  Req,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -11,35 +24,51 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 
+function extractUserFromRequest(req: any): any {
+  if (req?.user) return req.user;
+  const authHeader = req?.headers?.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const parts = authHeader.split(' ')[1].split('.');
+      if (parts.length === 3) {
+        return JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      }
+    } catch {}
+  }
+  return null;
+}
+
 @ApiTags('orders')
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
   @Post('place-from-product-list')
-  // --- Friend's guest-login security guards (Commented out to allow HealthAmigo tokens) ---
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('Customer')
-  // @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
-  // ---------------------------------------------------------------------------------------
   @ApiOperation({ summary: 'Create order from customer product list' })
   @ApiResponse({ status: 201, description: 'Order created from product list' })
-  placeOrderFromProductList(@Body() dto: PlaceOrderFromProductListDto) {
-    return this.orderService.placeOrderFromProductList(dto);
+  placeOrderFromProductList(
+    @Body() dto: PlaceOrderFromProductListDto,
+    @Req() req: any,
+  ) {
+    const user = extractUserFromRequest(req);
+    if (user?.role?.toLowerCase() === 'guest') {
+      throw new ForbiddenException('Guest users cannot place orders. Please log in with a registered account.');
+    }
+    return this.orderService.placeOrderFromProductList(dto, user);
   }
 
   @Post()
-  // --- Friend's guest-login security guards (Commented out to allow HealthAmigo tokens) ---
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('Customer')
-  // @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot place orders' })
-  // ---------------------------------------------------------------------------------------
   @ApiOperation({ summary: 'Create a new order with listed items' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
-  createNew(@Body() createDto: CreateNewOrderDto) {
-    return this.orderService.createNew(createDto);
+  createNew(
+    @Body() createDto: CreateNewOrderDto,
+    @Req() req: any,
+  ) {
+    const user = extractUserFromRequest(req);
+    if (user?.role?.toLowerCase() === 'guest') {
+      throw new ForbiddenException('Guest users cannot place orders. Please log in with a registered account.');
+    }
+    return this.orderService.createNew(createDto, user);
   }
 
   @Patch(':id/status')
@@ -55,8 +84,13 @@ export class OrderController {
   @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
   @ApiResponse({ status: 404, description: 'No orders found for this customer' })
   getOrdersByCustomerId(
-    @Param('customerId', ParseIntPipe) customerId: number
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Req() req: any,
   ) {
+    const user = extractUserFromRequest(req);
+    if (user?.role?.toLowerCase() === 'customer' && user?.profileId !== customerId) {
+      throw new ForbiddenException('You can only view your own orders');
+    }
     return this.orderService.findByCustomerId(customerId);
   }
 
@@ -67,12 +101,6 @@ export class OrderController {
     return this.orderService.create(createOrderDto);
   }
 
-  // @Get()
-  // @ApiOperation({ summary: 'Get all orders' })
-  // @ApiResponse({ status: 200, type: [Order] })
-  // findAll() {
-  //   return this.orderService.findAll();
-  // }
   @Get()
   @ApiOperation({ summary: 'Get all orders with optional filters' })
   @ApiResponse({ status: 200, type: [Order] })
@@ -106,7 +134,6 @@ export class OrderController {
     });
   }
 
-
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiResponse({ status: 200, type: Order })
@@ -121,7 +148,7 @@ export class OrderController {
     @Param('id', ParseIntPipe) id: number,
     @Query('customerId', ParseIntPipe) customerId: number,
   ) {
-    return this.orderService.findOneByVendorServicePlan(id,customerId);
+    return this.orderService.findOneByVendorServicePlan(id, customerId);
   }
 
   @Patch(':id')
@@ -135,12 +162,6 @@ export class OrderController {
   @ApiOperation({ summary: 'Soft delete order by ID' })
   remove(@Param('id') id: string) {
     return this.orderService.remove(+id);
-  }
-
-  @Get('customer/:customerId')
-  @ApiOperation({ summary: 'Get orders by customer ID' })
-  getOrdersByCustomer(@Param('customerId') customerId: string) {
-    return this.orderService.getOrdersByCustomer(+customerId);
   }
 
   @Get('vendor/:vendorId')

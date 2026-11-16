@@ -45,8 +45,6 @@ export class FileUploadService {
         throw new NotFoundException('Marketing content not found');
       }
     }
-    console.log(tenantId);
-
     const baseUrl = this.getUploadBaseUrl();
     const fileUpload = this.fileRepo.create({
       fileName: file.filename,

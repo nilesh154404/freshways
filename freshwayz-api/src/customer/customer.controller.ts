@@ -8,6 +8,8 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -58,7 +60,11 @@ export class CustomerController {
   async updateCustomer(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCustomerDto: UpdateCustomerDto,
+    @Req() req: any,
   ): Promise<Customer> {
+    if (req.user?.role?.toLowerCase() === 'customer' && req.user?.profileId !== id) {
+      throw new ForbiddenException('You can only update your own customer details');
+    }
     return this.customerService.updateCustomer(id, updateCustomerDto);
   }
 
@@ -77,7 +83,10 @@ export class CustomerController {
   @ApiResponse({ status: 404, description: 'Customer not found' })
   @ApiResponse({ status: 400, description: 'Account is already deactivated' })
   @ApiResponse({ status: 401, description: 'Unauthorized — JWT token required' })
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.customerService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+      if (req.user?.role?.toLowerCase() === 'customer' && req.user?.profileId !== id) {
+        throw new ForbiddenException('You can only delete your own customer account');
+      }
+      return this.customerService.remove(id);
+    }
   }
-}
