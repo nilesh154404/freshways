@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { ServiceOffering } from './entities/service-offering.entity';
 import { CreateServiceOfferingDto } from './dto/create-service-offering.dto';
 import { UpdateServiceOfferingDto } from './dto/update-service-offering.dto';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class ServiceOfferingService {
@@ -17,10 +19,11 @@ export class ServiceOfferingService {
     return this.serviceOfferingRepo.save(serviceOffering);
   }
 
-  findAll() {
-    return this.serviceOfferingRepo.find({
-      relations: ['products'],
-    });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<ServiceOffering>> {
+    const qb = this.serviceOfferingRepo.createQueryBuilder('offering')
+      .orderBy('offering.serviceCode', 'ASC');
+
+    return paginate(qb, dto);
   }
 
   async findOne(serviceCode: string) {

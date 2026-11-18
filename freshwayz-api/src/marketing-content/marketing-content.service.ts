@@ -14,6 +14,8 @@ import { Categories } from 'src/categories/categories.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { paginate, paginateRepo, paginateArray, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class MarketingContentService {
@@ -118,7 +120,7 @@ export class MarketingContentService {
     return saved ? this.normalizeContent(saved) : null;
   }
 
-  async findAll(customerId?: number) {
+  async findAll(dto?: RangeDTO, customerId?: number): Promise<PaginatedResponse<any>> {
     const query = this.marketingRepo.createQueryBuilder('content')
       .leftJoinAndSelect('content.media', 'media')
       .leftJoinAndSelect('content.product', 'product')
@@ -150,8 +152,11 @@ export class MarketingContentService {
       });
     }
 
-    const items = await query.getMany();
-    return items.map((item) => this.normalizeContent(item));
+    const result = await paginate(query, dto);
+    return {
+      data: result.data.map((item) => this.normalizeContent(item)),
+      pagination: result.pagination,
+    };
   }
 
   async findOne(id: number) {
@@ -224,12 +229,12 @@ export class MarketingContentService {
   //   return query.getMany();
   // }
 
-  async filter(filters: {
+  async filter(dto: RangeDTO, filters: {
     vendorId?: number;
     categoryId?: number;
     productId?: number;
     customerId?: number;
-  }) {
+  }): Promise<PaginatedResponse<any>> {
     const query = this.marketingRepo
       .createQueryBuilder('content')
       .leftJoinAndSelect('content.media', 'media')
@@ -282,8 +287,11 @@ export class MarketingContentService {
       });
     }
 
-    const items = await query.getMany();
-    return items.map((item) => this.normalizeContent(item));
+    const result = await paginate(query, dto);
+    return {
+      data: result.data.map((item) => this.normalizeContent(item)),
+      pagination: result.pagination,
+    };
   }
   // async filter(filters: {
   //   vendorId?: number;
@@ -388,30 +396,40 @@ export class MarketingContentService {
     await this.marketingRepo.save(post);
 
     return {
-      deepLink: `${process.env.WEB_BASE_URL ?? 'http://localhost:8080'}/post/${id}`, // ✅ WEB URL (configured via WEB_BASE_URL env var)
+      deepLink: `${process.env.WEB_BASE_URL ?? 'http://localhost:8080'}/post/${id}`, // ? WEB URL (configured via WEB_BASE_URL env var)
       // const deepLink = `freshwayz://marketing-content?id=${id}`;
     };
   }
 
   // Get saved posts for a user
-  async getSavedPosts(userId: number) {
-    const savedPosts = await this.saveRepo.find({
-      where: { userId },
-      relations: ['marketingContent', 'marketingContent.media', 'marketingContent.vendor', 'marketingContent.category', 'marketingContent.comments', 'marketingContent.saves'],
-      order: { createdAt: 'DESC' },
-    });
+  async getSavedPosts(userId: number, dto?: RangeDTO) {
+    const qb = this.saveRepo.createQueryBuilder('save')
+      .leftJoinAndSelect('save.marketingContent', 'marketingContent')
+      .leftJoinAndSelect('marketingContent.media', 'media')
+      .leftJoinAndSelect('marketingContent.vendor', 'vendor')
+      .leftJoinAndSelect('marketingContent.category', 'category')
+      .leftJoinAndSelect('marketingContent.comments', 'comments')
+      .leftJoinAndSelect('marketingContent.saves', 'saves')
+      .where('save.userId = :userId', { userId })
+      .orderBy('save.createdAt', 'DESC')
+      .addOrderBy('save.id', 'DESC');
 
-    return savedPosts.map(save => save.marketingContent);
+    const result = await paginate(qb, dto);
+    return {
+      data: result.data.map(save => save.marketingContent),
+      pagination: result.pagination,
+    };
   }
 
   // Get all comments by a particular customer
-  async getCommentsByCustomer(userId: number) {
-    const comments = await this.commentRepo.find({
-      where: { userId },
-      relations: ['marketingContent'],
-      order: { createdAt: 'DESC' },
-    });
-    return comments;
+  async getCommentsByCustomer(userId: number, dto?: RangeDTO) {
+    const qb = this.commentRepo.createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.marketingContent', 'marketingContent')
+      .where('comment.userId = :userId', { userId })
+      .orderBy('comment.createdAt', 'DESC')
+      .addOrderBy('comment.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   // ======================== REPORT METHODS ========================
@@ -440,7 +458,7 @@ export class MarketingContentService {
   }
 
   // Get all reports on a specific post (Vendor + Admin)
-  async getReportsByPost(postId: number, user?: any) {
+  async getReportsByPost(postId: number, user?: any, dto?: RangeDTO) {
     if (user && user.role?.toLowerCase() === 'vendor') {
       const post = await this.marketingRepo.findOne({
         where: { id: postId },
@@ -451,31 +469,39 @@ export class MarketingContentService {
         throw new ForbiddenException('You cannot view reports for another vendor\'s post');
       }
     }
-    return this.reportRepo.find({
-      where: { marketingContent: { id: postId } },
-      relations: ['customer', 'marketingContent'],
-      order: { createdAt: 'DESC' },
-    });
+    const qb = this.reportRepo.createQueryBuilder('report')
+      .leftJoinAndSelect('report.customer', 'customer')
+      .leftJoinAndSelect('report.marketingContent', 'marketingContent')
+      .where('report.marketingContent = :postId', { postId })
+      .orderBy('report.createdAt', 'DESC')
+      .addOrderBy('report.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   // Get all reports on all posts by a specific vendor (for vendor dashboard)
-  async getReportsByVendor(vendorId: number) {
-    return this.reportRepo
+  async getReportsByVendor(vendorId: number, dto?: RangeDTO) {
+    const qb = this.reportRepo
       .createQueryBuilder('report')
       .leftJoinAndSelect('report.marketingContent', 'post')
       .leftJoinAndSelect('post.vendor', 'vendor')
       .leftJoinAndSelect('report.customer', 'customer')
       .where('vendor.id = :vendorId', { vendorId })
       .orderBy('report.createdAt', 'DESC')
-      .getMany();
+      .addOrderBy('report.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   // Get ALL reports across all posts (Admin only)
-  async getAllReports() {
-    return this.reportRepo.find({
-      relations: ['marketingContent', 'customer'],
-      order: { createdAt: 'DESC' },
-    });
+  async getAllReports(dto?: RangeDTO) {
+    const qb = this.reportRepo.createQueryBuilder('report')
+      .leftJoinAndSelect('report.marketingContent', 'marketingContent')
+      .leftJoinAndSelect('report.customer', 'customer')
+      .orderBy('report.createdAt', 'DESC')
+      .addOrderBy('report.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   // ======================== BLOCK VENDOR ========================

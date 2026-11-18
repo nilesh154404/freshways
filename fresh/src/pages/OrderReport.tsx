@@ -163,10 +163,11 @@ export default function OrdersReport() {
         if (role != "Admin") url += `&vendorId=` + profileId;
 
         try {
-            const response = await axios.get<APIOrder[]>(
+            const response = await axios.get<any>(
                 url
             );
-            setOrders(response.data);
+            const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+            setOrders(list);
         } catch (error) {
             toast.error("Failed to load orders");
         } finally {
@@ -176,10 +177,11 @@ export default function OrdersReport() {
 
     const fetchCommunities = async () => {
         try {
-            const response = await axios.get<Community[]>(
+            const response = await axios.get<any>(
                 `${API_BASE_URL}/community`
             );
-            setCommunities(response.data);
+            const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+            setCommunities(list);
         } catch { }
     };
 

@@ -69,10 +69,11 @@ const Communities = () => {
 
   const fetchCommunities = async () => {
     try {
-      const response = await axios.get<APICommunity[]>(
+      const response = await axios.get<any>(
         `${API_BASE_URL}/community/`
       );
-      const mapped = response.data.map((item) => ({
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+      const mapped = list.map((item: any) => ({
         id: item.id.toString(),
         name: item.name,
         location: item.address,

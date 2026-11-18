@@ -6,11 +6,15 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ServiceOfferingService } from './service-offering.service';
 import { CreateServiceOfferingDto } from './dto/create-service-offering.dto';
 import { UpdateServiceOfferingDto } from './dto/update-service-offering.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
+@ApiTags('Service Offerings')
 @Controller('service-offerings')
 export class ServiceOfferingController {
   constructor(private readonly serviceOfferingService: ServiceOfferingService) {}
@@ -21,8 +25,11 @@ export class ServiceOfferingController {
   }
 
   @Get()
-  findAll() {
-    return this.serviceOfferingService.findAll();
+  @ApiOperation({ summary: 'Get all service offerings with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.serviceOfferingService.findAll(dto);
   }
 
   @Get(':serviceCode')

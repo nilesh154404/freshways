@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Customer } from './entities/customer.entity';
 import { Repository } from 'typeorm';
 import { UserType } from 'src/user-type/entities/user-type.entity';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class CustomerService {
@@ -34,11 +36,13 @@ export class CustomerService {
    * Returns ALL customers (active + soft-deleted).
    * Admin can see account status via the isActive / deletedAt fields.
    */
-  async findAll() {
-    return this.customerRepository.find({
-      relations: ['userType'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<Customer>> {
+    const qb = this.customerRepository.createQueryBuilder('customer')
+      .leftJoinAndSelect('customer.userType', 'userType')
+      .orderBy('customer.createdAt', 'DESC')
+      .addOrderBy('customer.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   async findOne(id: number) {

@@ -11,6 +11,56 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// Seamlessly unwrap paginated response envelopes for legacy list consumers while preserving .pagination and .data properties
+axios.interceptors.response.use((response) => {
+  if (
+    response &&
+    response.data &&
+    typeof response.data === 'object' &&
+    !Array.isArray(response.data) &&
+    Array.isArray(response.data.data) &&
+    response.data.pagination
+  ) {
+    const list = [...response.data.data];
+    Object.assign(list, {
+      data: response.data.data,
+      items: response.data.data,
+      pagination: response.data.pagination,
+    });
+    response.data = list;
+  }
+  return response;
+});
+
+// Also patch window.fetch so consumers using native fetch receive compatible array-like objects
+if (typeof window !== 'undefined' && window.fetch) {
+  const originalFetch = window.fetch;
+  window.fetch = async function (...args) {
+    const res = await originalFetch.apply(this, args);
+    const originalJson = res.json;
+    res.json = async function () {
+      const data = await originalJson.apply(this);
+      if (
+        data &&
+        typeof data === 'object' &&
+        !Array.isArray(data) &&
+        Array.isArray(data.data) &&
+        data.pagination
+      ) {
+        const list = [...data.data];
+        Object.assign(list, {
+          data: data.data,
+          items: data.data,
+          pagination: data.pagination,
+        });
+        return list;
+      }
+      return data;
+    };
+    return res;
+  };
+}
+
 // Centralized API configuration
 // Uses environment variable for the API base URL
 

@@ -1,11 +1,12 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { SubscriptionService } from './subscription.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
@@ -24,9 +25,11 @@ export class SubscriptionController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all subscriptions' })
-  findAll() {
-    return this.subscriptionService.findAll();
+  @ApiOperation({ summary: 'Get all subscriptions with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.subscriptionService.findAll(dto);
   }
 
   @Get(':id')
@@ -58,34 +61,43 @@ export class SubscriptionController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Customer')
-  @ApiOperation({ summary: 'Get subscriptions for a customer (Customer only)' })
+  @ApiOperation({ summary: 'Get subscriptions for a customer (Customer only) with pagination' })
   @ApiResponse({ status: 403, description: 'Forbidden — Guest users cannot view personal subscriptions' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   getByCustomer(
     @Param('customerId') customerId: string,
+    @Query() dto: RangeDTO,
     @Query('active') active?: string,
   ) {
     const onlyActive = active === 'true';
-    return this.subscriptionService.findByCustomer(+customerId, onlyActive);
+    return this.subscriptionService.findByCustomer(+customerId, onlyActive, dto);
   }
 
   @Get('vendor/:vendorId')
-  @ApiOperation({ summary: 'Get subscriptions for a vendor' })
+  @ApiOperation({ summary: 'Get subscriptions for a vendor with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   getByVendor(
     @Param('vendorId') vendorId: string,
+    @Query() dto: RangeDTO,
     @Query('active') active?: string,
   ) {
     const onlyActive = active === 'true';
-    return this.subscriptionService.findByVendor(+vendorId, onlyActive);
+    return this.subscriptionService.findByVendor(+vendorId, onlyActive, dto);
   }
 
   @Get('customer/:customerId/vendor/:vendorId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Customer')
-  @ApiOperation({ summary: 'Get subscriptions for a customer+vendor combo (Customer only)' })
+  @ApiOperation({ summary: 'Get subscriptions for a customer+vendor combo (Customer only) with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   getByCustomerAndVendor(
     @Param('customerId') customerId: string,
     @Param('vendorId') vendorId: string,
+    @Query() dto: RangeDTO,
     @Query('active') active?: string,
   ) {
     const onlyActive = active === 'true';
@@ -93,6 +105,7 @@ export class SubscriptionController {
       +customerId,
       +vendorId,
       onlyActive,
+      dto,
     );
   }
 }

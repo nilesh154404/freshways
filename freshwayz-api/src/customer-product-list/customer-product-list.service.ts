@@ -11,6 +11,8 @@ import { VendorSubscriptionPlan } from '../vendor-subscription-plan/entities/ven
 import { Product } from '../products/entities/product.entity';
 import { ProductCustomizationOption } from '../products/entities/product-customization-option.entity';
 import { DailyPrice } from '../daily-price/entities/daily-price.entity';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
+import { paginate } from 'src/helpers/pagination/pagination';
 
 @Injectable()
 export class CustomerProductListService {
@@ -101,20 +103,18 @@ export class CustomerProductListService {
   }
 
   // GET BY CUSTOMER
-  async getByCustomerId(customerId: number) {
-    return this.customerProductRepo.find({
-      where: {
-        customer: { id: customerId },
-      },
-      relations: [
-        'customer',
-        'vendorSubscriptionPlan',
-        'vendorSubscriptionPlan.vendor',
-        'product',
-        'product.dailyPrices',
-      ],
-      order: { id: 'DESC' },
-    });
+  async getByCustomerId(customerId: number, dto?: RangeDTO) {
+    const qb = this.customerProductRepo
+      .createQueryBuilder('cp')
+      .leftJoinAndSelect('cp.customer', 'customer')
+      .leftJoinAndSelect('cp.vendorSubscriptionPlan', 'plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .leftJoinAndSelect('cp.product', 'product')
+      .leftJoinAndSelect('product.dailyPrices', 'dailyPrices')
+      .where('customer.id = :customerId', { customerId })
+      .orderBy('cp.id', 'DESC');
+
+    return await paginate(qb, dto);
   }
 
   // UPDATE

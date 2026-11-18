@@ -13,6 +13,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
@@ -80,18 +81,18 @@ export class OrderController {
   }
 
   @Get('customer/:customerId')
-  @ApiOperation({ summary: 'Get all orders for a specific customer' })
+  @ApiOperation({ summary: 'Get all orders for a specific customer with pagination' })
   @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
-  @ApiResponse({ status: 404, description: 'No orders found for this customer' })
   getOrdersByCustomerId(
     @Param('customerId', ParseIntPipe) customerId: number,
+    @Query() dto: RangeDTO,
     @Req() req: any,
   ) {
     const user = extractUserFromRequest(req);
     if (user?.role?.toLowerCase() === 'customer' && user?.profileId !== customerId) {
       throw new ForbiddenException('You can only view your own orders');
     }
-    return this.orderService.findByCustomerId(customerId);
+    return this.orderService.findByCustomerId(customerId, dto);
   }
 
   @Post()
@@ -102,8 +103,10 @@ export class OrderController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all orders with optional filters' })
-  @ApiResponse({ status: 200, type: [Order] })
+  @ApiOperation({ summary: 'Get all orders with optional filters and pagination' })
+  @ApiResponse({ status: 200, description: 'Paginated orders' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'customerId', required: false })
   @ApiQuery({ name: 'vendorId', required: false })
   @ApiQuery({ name: 'communityId', required: false })
@@ -113,6 +116,7 @@ export class OrderController {
   @ApiQuery({ name: 'endDate', required: false })
   @ApiQuery({ name: 'deliveryDate', required: false })
   async findAll(
+    @Query() dto: RangeDTO,
     @Query('customerId') customerId?: number,
     @Query('vendorId') vendorId?: number,
     @Query('communityId') communityId?: number,
@@ -123,6 +127,8 @@ export class OrderController {
     @Query('deliveryDate') deliveryDate?: string,
   ) {
     return this.orderService.findAll({
+      page: dto.page,
+      limit: dto.limit,
       customerId,
       vendorId,
       communityId,
@@ -165,14 +171,24 @@ export class OrderController {
   }
 
   @Get('vendor/:vendorId')
-  @ApiOperation({ summary: 'Get orders by vendor ID' })
-  getOrdersByVendor(@Param('vendorId') vendorId: string) {
-    return this.orderService.getOrdersByVendor(+vendorId);
+  @ApiOperation({ summary: 'Get orders by vendor ID with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getOrdersByVendor(
+    @Param('vendorId') vendorId: string,
+    @Query() dto: RangeDTO,
+  ) {
+    return this.orderService.getOrdersByVendor(+vendorId, dto);
   }
 
   @Get('pending-by-product/:productId')
-  @ApiOperation({ summary: 'Get all pending/active orders for a specific product' })
-  async getPendingByProductId(@Param('productId', ParseIntPipe) productId: number) {
-    return this.orderService.findPendingByProductId(productId);
+  @ApiOperation({ summary: 'Get all pending/active orders for a specific product with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getPendingByProductId(
+    @Param('productId', ParseIntPipe) productId: number,
+    @Query() dto: RangeDTO,
+  ) {
+    return this.orderService.findPendingByProductId(productId, dto);
   }
 }

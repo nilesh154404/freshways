@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Redirect, Res, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Redirect, Res, UploadedFiles, UseInterceptors, Query } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from 'src/user/dto/register-user.dto';
@@ -9,6 +9,7 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { Req } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 const multipartMemoryConfig = {
     storage: memoryStorage(),
@@ -76,8 +77,8 @@ export class AuthController {
     }
 
     @Get('customer')
-    findCustomes() {
-        return this.authService.findCustomer();
+    findCustomes(@Query() dto: RangeDTO) {
+        return this.authService.findCustomer(dto);
     }
 
     @Get('google')

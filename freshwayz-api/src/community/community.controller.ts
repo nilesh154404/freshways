@@ -3,6 +3,7 @@ import { CommunityService } from './community.service';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('Community')
 @Controller('community')
@@ -10,17 +11,25 @@ export class CommunityController {
     constructor(private readonly communityService: CommunityService) { }
 
     @Get(':communityId/members')
+    @ApiOperation({ summary: 'Get community members with pagination' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
     async getCommunityMembers(
         @Param('communityId') communityId: number,
+        @Query() dto: RangeDTO,
     ) {
-        return this.communityService.getCommunityMembers(+communityId);
+        return this.communityService.getCommunityMembers(+communityId, dto);
     }
     
     @Get('/customers/:customerId/communities')
+    @ApiOperation({ summary: 'Get member communities with pagination' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
     async getMemberCommunities(
         @Param('customerId') customerId: number,
+        @Query() dto: RangeDTO,
     ) {
-        return this.communityService.getMemberCommunities(+customerId);
+        return this.communityService.getMemberCommunities(+customerId, dto);
     }
 
 
@@ -31,16 +40,23 @@ export class CommunityController {
     }
 
     @Get()
-    @ApiOperation({ summary: 'Get all communities' })
-    findAll() {
-        return this.communityService.findAll();
+    @ApiOperation({ summary: 'Get all communities with pagination' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    findAll(@Query() dto: RangeDTO) {
+        return this.communityService.findAll(dto);
     }
 
     @Get('search')
-    @ApiOperation({ summary: 'Search community by name or slug' })
+    @ApiOperation({ summary: 'Search community by name or slug with pagination' })
     @ApiQuery({ name: 'keyword', required: true, example: 'green' })
-    search(@Query('keyword') keyword: string) {
-        return this.communityService.search(keyword);
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    search(
+        @Query('keyword') keyword: string,
+        @Query() dto: RangeDTO,
+    ) {
+        return this.communityService.search(keyword, dto);
     }
 
     @Get(':id')

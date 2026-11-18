@@ -5,6 +5,8 @@ import { CommunityMessage } from './entities/community-message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Community } from 'src/community/entities/community.entity';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
+import { paginate } from 'src/helpers/pagination/pagination';
 
 @Injectable()
 export class CommunityMessageService {
@@ -72,29 +74,28 @@ export class CommunityMessageService {
   }
 
   // get full chat history
-  async getMessages(communityId: number) {
-    return await this.messageRepo.find({
-      where: { community: { id: communityId } },
-      relations: ['sender'],
-      select: {
-        id: true,
-        message: true,
-        createdAt: true,
-        sender: {
-          id: true,
-          fullName: true,
-        },
-      },
-      order: { createdAt: 'ASC' },
-    });
+  async getMessages(communityId: number, dto?: RangeDTO) {
+    const qb = this.messageRepo
+      .createQueryBuilder('cm')
+      .leftJoinAndSelect('cm.sender', 'sender')
+      .where('cm.community = :communityId', { communityId })
+      .orderBy('cm.createdAt', 'ASC')
+      .addOrderBy('cm.id', 'ASC');
+
+    return await paginate(qb, dto);
   }
 
-  // unused default CRUD (you can remove if not needed)
+  // default CRUD
   create(dto: CreateCommunityMessageDto) {
     return 'disabled';
   }
-  findAll() {
-    return 'disabled';
+  async findAll(dto?: RangeDTO) {
+    const qb = this.messageRepo
+      .createQueryBuilder('cm')
+      .leftJoinAndSelect('cm.sender', 'sender')
+      .orderBy('cm.createdAt', 'DESC')
+      .addOrderBy('cm.id', 'DESC');
+    return await paginate(qb, dto);
   }
   findOne(id: number) {
     return 'disabled';

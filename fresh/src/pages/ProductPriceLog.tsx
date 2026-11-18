@@ -57,7 +57,8 @@ export default function ProductPriceLog() {
       }
 
       const response = await axios.get(`${API_BASE}/daily-price`, { params });
-      setPrices(response.data || []);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+      setPrices(list);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load product price log");
@@ -108,7 +109,8 @@ export default function ProductPriceLog() {
           { params }
         );
         console.log(`Price history response:`, response.data);
-        setPriceLogs((prev) => new Map(prev).set(key, response.data || []));
+        const histList = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+        setPriceLogs((prev) => new Map(prev).set(key, histList));
       } catch (error) {
         console.error("Error fetching price history:", error);
         toast.error("Failed to load price history");

@@ -98,7 +98,8 @@ const Feed = () => {
       
       const data = await response.json();
       console.log("Fetched marketing content:", data);
-      setPosts(data || []);
+      const list = Array.isArray(data) ? data : (data?.data || data?.items || []);
+      setPosts(list);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast({

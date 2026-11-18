@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CommunityMessageService } from './community-message.service';
 import { CreateCommunityMessageDto } from './dto/create-community-message.dto';
 import { UpdateCommunityMessageDto } from './dto/update-community-message.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { JoinCommunityDto } from 'src/community/dto/join-community.dto';
 import { CommunityService } from 'src/community/community.service';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 
 @ApiTags('CommunityChats')
@@ -26,8 +27,8 @@ export class CommunityMessageController {
 
   // GET /community-chat/1/chats → get history
   @Get(":communityId/chats")
-  async getChats(@Param("communityId") communityId: number) {
-    return await this.communityMessageService.getMessages(communityId);
+  async getChats(@Param("communityId") communityId: number, @Query() dto: RangeDTO) {
+    return await this.communityMessageService.getMessages(communityId, dto);
   }
 
   // POST /community-chat/1/chat → send message
@@ -49,8 +50,8 @@ export class CommunityMessageController {
   }
 
   @Get()
-  findAll() {
-    return this.communityMessageService.findAll();
+  async findAll(@Query() dto: RangeDTO) {
+    return await this.communityMessageService.findAll(dto);
   }
 
   @Get(':id')

@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
 import { OrderReturnService } from './order-return.service';
 import { CreateOrderReturnDto } from './dto/create-order-return.dto';
 import { UpdateOrderReturnDto } from './dto/update-order-return.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('order-return')
 @Controller('order-return')
@@ -20,22 +21,34 @@ export class OrderReturnController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: 'Find all cancellation requests' })
-  findAll() {
-    return this.orderReturnService.findAll();
+  @ApiOperation({ summary: 'Find all cancellation requests with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.orderReturnService.findAll(dto);
   }
 
   @Get('customer/:customerId')
-  @ApiOperation({ summary: 'Find all requests for a specific customer' })
-  findByCustomerId(@Param('customerId', ParseIntPipe) customerId: number) {
-    return this.orderReturnService.findByCustomerId(customerId);
+  @ApiOperation({ summary: 'Find all requests for a specific customer with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findByCustomerId(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Query() dto: RangeDTO,
+  ) {
+    return this.orderReturnService.findByCustomerId(customerId, dto);
   }
 
   @Get('vendor/:vendorId')
   @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: 'Find all requests for a specific vendor' })
-  findByVendorId(@Param('vendorId', ParseIntPipe) vendorId: number) {
-    return this.orderReturnService.findByVendorId(vendorId);
+  @ApiOperation({ summary: 'Find all requests for a specific vendor with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findByVendorId(
+    @Param('vendorId', ParseIntPipe) vendorId: number,
+    @Query() dto: RangeDTO,
+  ) {
+    return this.orderReturnService.findByVendorId(vendorId, dto);
   }
 
   @Get(':id')

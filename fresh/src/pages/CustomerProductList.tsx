@@ -103,8 +103,8 @@ const CustomerProductList = () => {
 
   const filteredProducts = formData.productName.trim()
     ? products.filter((product) =>
-        product.label?.toLowerCase().includes(formData.productName.toLowerCase())
-      )
+      product.label?.toLowerCase().includes(formData.productName.toLowerCase())
+    )
     : [];
 
   const handleProductNameChange = (val: string) => {
@@ -144,12 +144,12 @@ const CustomerProductList = () => {
 
       for (const group of customizationData.groups || []) {
         if (group.isRequired && (!selectedCustomizations[group.id] || selectedCustomizations[group.id].length === 0)) {
-           toast({
-             title: 'Validation',
-             description: `Please select an option for ${group.name}`,
-             variant: 'destructive',
-           });
-           return;
+          toast({
+            title: 'Validation',
+            description: `Please select an option for ${group.name}`,
+            variant: 'destructive',
+          });
+          return;
         }
 
         const selectedOptionIds = selectedCustomizations[group.id] || [];
@@ -176,7 +176,7 @@ const CustomerProductList = () => {
     };
 
     setTempItems((prev) => [...prev, newItem]);
-    
+
     // Reset product fields, keep subscription plan
     setFormData((prev) => ({
       ...prev,
@@ -199,18 +199,18 @@ const CustomerProductList = () => {
     const tempTotal = tempItems.reduce((sum, item) => sum + item.quantity * item.amount, 0);
     const currentQty = parseFloat(formData.quantity) || 0;
     const currentPrice = parseFloat(formData.amount) || 0;
-    
+
     let customizationCharges = 0;
     if (customizationData?.hasCustomizations) {
-       for (const group of customizationData.groups || []) {
-         const selectedOptionIds = selectedCustomizations[group.id] || [];
-         for (const optionId of selectedOptionIds) {
-           const option = (group.options || []).find((o: any) => o.id === optionId);
-           if (option) {
-             customizationCharges += Number(option.additionalPrice || 0);
-           }
-         }
-       }
+      for (const group of customizationData.groups || []) {
+        const selectedOptionIds = selectedCustomizations[group.id] || [];
+        for (const optionId of selectedOptionIds) {
+          const option = (group.options || []).find((o: any) => o.id === optionId);
+          if (option) {
+            customizationCharges += Number(option.additionalPrice || 0);
+          }
+        }
+      }
     }
 
     const currentTotal = formData.productName.trim() ? (currentQty * (currentPrice + customizationCharges)) : 0;
@@ -222,7 +222,7 @@ const CustomerProductList = () => {
     try {
       const profileId = localStorage.getItem('profileId');
       if (profileId) return parseInt(profileId);
-      
+
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
@@ -253,13 +253,14 @@ const CustomerProductList = () => {
   const fetchProductList = async () => {
     try {
       const response = await fetch(`${API_URL}/customer-product-list/customer/${customerId}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       const data = await response.json();
-      setProductList(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : (data?.data || data?.items || []);
+      setProductList(list);
     } catch (error: any) {
       console.error('Fetch product list error:', error);
       setProductList([]);
@@ -278,20 +279,21 @@ const CustomerProductList = () => {
   const fetchSubscriptionPlans = async () => {
     try {
       const response = await fetch(`${API_URL}/subscriptions/customer/${customerId}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Raw subscription data:', data);
-        
+
+        const planList = Array.isArray(data) ? data : (data?.data || data?.items || []);
         // Transform the subscription data to extract plan details
-        const transformedPlans = Array.isArray(data) ? data.map((subscription: any) => ({
+        const transformedPlans = planList.map((subscription: any) => ({
           id: subscription.plan?.id,
           planName: `${subscription.plan?.vendor?.businessName || subscription.plan?.vendor?.ownerName || 'Unknown Vendor'} - ${subscription.plan?.label || 'Unknown Plan'}`,
           price: subscription.plan?.price,
           duration: subscription.plan?.duration,
           vendorId: subscription.plan?.vendor?.id,
-        })) : [];
-        
+        }));
+
         console.log('Transformed plans:', transformedPlans);
         setSubscriptionPlans(transformedPlans);
       } else {
@@ -306,19 +308,19 @@ const CustomerProductList = () => {
   const fetchProducts = async (vendorId?: number) => {
     try {
       const customerId = getUserId();
-      const url = vendorId 
+      const url = vendorId
         ? `${API_URL}/products?vendorId=${vendorId}&customerId=${customerId}`
         : `${API_URL}/products?customerId=${customerId}`;
-      
+
       console.log('Fetching products from URL:', url);
       const response = await fetch(url);
-      
+
       console.log('Products response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Products fetched:', data);
-        
+
         // Handle paginated response (items property) or direct array
         let productsArray: Product[] = [];
         if (Array.isArray(data)) {
@@ -328,7 +330,7 @@ const CustomerProductList = () => {
         } else if (data.data && Array.isArray(data.data)) {
           productsArray = data.data;
         }
-        
+
         console.log('Products array:', productsArray);
         setProducts(productsArray);
       } else {
@@ -367,12 +369,12 @@ const CustomerProductList = () => {
       if (customizationData?.hasCustomizations) {
         for (const group of customizationData.groups || []) {
           if (group.isRequired && (!selectedCustomizations[group.id] || selectedCustomizations[group.id].length === 0)) {
-             toast({
-               title: 'Validation',
-               description: `Please select an option for ${group.name}`,
-               variant: 'destructive',
-             });
-             return;
+            toast({
+              title: 'Validation',
+              description: `Please select an option for ${group.name}`,
+              variant: 'destructive',
+            });
+            return;
           }
           const selectedOptionIds = selectedCustomizations[group.id] || [];
           allSelectedOptionIds = [...allSelectedOptionIds, ...selectedOptionIds];
@@ -582,17 +584,17 @@ const CustomerProductList = () => {
         setSelectedCustomizations({});
 
         if (selectedProduct.category?.name === 'Healthy Meals' || selectedProduct.category?.label === 'Healthy Meals') {
-           try {
-              const res = await fetch(`${API_URL}/products/${productId}/customizations`);
-              if (res.ok) {
-                 const data = await res.json();
-                 if (data.hasCustomizations) {
-                    setCustomizationData(data);
-                 }
+          try {
+            const res = await fetch(`${API_URL}/products/${productId}/customizations`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.hasCustomizations) {
+                setCustomizationData(data);
               }
-           } catch(e) {
-              console.error('Failed to fetch customizations:', e);
-           }
+            }
+          } catch (e) {
+            console.error('Failed to fetch customizations:', e);
+          }
         }
 
         setFormData({
@@ -640,167 +642,167 @@ const CustomerProductList = () => {
                 Add Product
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Products to List</DialogTitle>
-              <DialogDescription>
-                Add one or more products to your subscription list
-              </DialogDescription>
-            </DialogHeader>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Products to List</DialogTitle>
+                <DialogDescription>
+                  Add one or more products to your subscription list
+                </DialogDescription>
+              </DialogHeader>
 
-            {subscriptionPlans.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-gray-500 mb-4">
-                  You need an active subscription to add products.
-                </p>
-                <p className="text-sm text-gray-400">
-                  Please subscribe to a vendor plan first.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleAddProduct} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subscription">Subscription Plan *</Label>
-                  <Select
-                    value={formData.vendorSubscriptionPlanId}
-                    disabled={tempItems.length > 0}
-                    onValueChange={(value) => {
-                      console.log('Plan selected, value:', value);
-                      const selectedPlan = subscriptionPlans.find(p => p.id.toString() === value);
-                      console.log('Selected plan object:', selectedPlan);
-                      console.log('Vendor ID from plan:', selectedPlan?.vendorId);
-                      setFormData({ ...formData, vendorSubscriptionPlanId: value, productId: '', productName: '' });
-                      if (selectedPlan?.vendorId) {
-                        console.log('Setting vendor ID to:', selectedPlan.vendorId);
-                        setSelectedVendorId(selectedPlan.vendorId);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a subscription plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subscriptionPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id.toString()}>
-                          {plan.planName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {tempItems.length > 0 && (
-                    <p className="text-xs text-muted-foreground italic">
-                      Plan is locked because items have been added to the batch.
-                    </p>
-                  )}
+              {subscriptionPlans.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-gray-500 mb-4">
+                    You need an active subscription to add products.
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Please subscribe to a vendor plan first.
+                  </p>
                 </div>
-
-                <div className="border border-border p-3 rounded-lg space-y-3 bg-muted/5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product details</p>
-                  
+              ) : (
+                <form onSubmit={handleAddProduct} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="product">Product (Optional)</Label>
-                    <Select value={formData.productId} onValueChange={handleProductSelect}>
+                    <Label htmlFor="subscription">Subscription Plan *</Label>
+                    <Select
+                      value={formData.vendorSubscriptionPlanId}
+                      disabled={tempItems.length > 0}
+                      onValueChange={(value) => {
+                        console.log('Plan selected, value:', value);
+                        const selectedPlan = subscriptionPlans.find(p => p.id.toString() === value);
+                        console.log('Selected plan object:', selectedPlan);
+                        console.log('Vendor ID from plan:', selectedPlan?.vendorId);
+                        setFormData({ ...formData, vendorSubscriptionPlanId: value, productId: '', productName: '' });
+                        if (selectedPlan?.vendorId) {
+                          console.log('Setting vendor ID to:', selectedPlan.vendorId);
+                          setSelectedVendorId(selectedPlan.vendorId);
+                        }
+                      }}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select from catalog" />
+                        <SelectValue placeholder="Select a subscription plan" />
                       </SelectTrigger>
                       <SelectContent>
-                        {products.length === 0 ? (
-                          <div className="p-2 text-sm text-gray-500">No products available</div>
-                        ) : (
-                          products.map((product) => (
-                            <SelectItem key={product.id} value={product.id.toString()}>
-                              {product.label || 'Unknown'} - ₹{product.dailyPrices?.[0]?.amount || '0'}
-                            </SelectItem>
-                          ))
-                        )}
+                        {subscriptionPlans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id.toString()}>
+                            {plan.planName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2 relative">
-                    <Label htmlFor="productName">Product Name</Label>
-                    <Input
-                      id="productName"
-                      value={formData.productName}
-                      onChange={(e) => handleProductNameChange(e.target.value)}
-                      onFocus={() => setShowSuggestions(true)}
-                      onBlur={() => setShowSuggestions(false)}
-                      placeholder="Custom product name"
-                      autoComplete="off"
-                    />
-                    {showSuggestions && filteredProducts.length > 0 && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-input bg-popover text-popover-foreground shadow-lg">
-                        <div className="py-1">
-                          {filteredProducts.map((product) => (
-                            <div
-                              key={product.id}
-                              onMouseDown={(e) => {
-                                e.preventDefault(); // Prevents blur event on input
-                                handleProductSelect(product.id.toString());
-                                setShowSuggestions(false);
-                              }}
-                              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center transition-colors"
-                            >
-                              <span className="font-medium">{product.label}</span>
-                              <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                ₹{product.dailyPrices?.[0]?.amount || '0'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    {tempItems.length > 0 && (
+                      <p className="text-xs text-muted-foreground italic">
+                        Plan is locked because items have been added to the batch.
+                      </p>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="quantity">Quantity</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        step="0.1"
-                        value={formData.quantity}
-                        onChange={(e) =>
-                          setFormData({ ...formData, quantity: e.target.value })
-                        }
-                        placeholder="1"
-                      />
-                    </div>
+                  <div className="border border-border p-3 rounded-lg space-y-3 bg-muted/5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product details</p>
 
                     <div className="space-y-2">
-                      <Label htmlFor="amount">{customizationData?.hasCustomizations ? "Base Price (₹)" : "Amount (₹)"}</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        step="0.01"
-                        value={formData.amount}
-                        readOnly={customizationData?.hasCustomizations}
-                        onChange={(e) =>
-                          setFormData({ ...formData, amount: e.target.value })
-                        }
-                        placeholder="0.00"
-                        className={customizationData?.hasCustomizations ? "bg-muted" : ""}
-                      />
+                      <Label htmlFor="product">Product (Optional)</Label>
+                      <Select value={formData.productId} onValueChange={handleProductSelect}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select from catalog" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.length === 0 ? (
+                            <div className="p-2 text-sm text-gray-500">No products available</div>
+                          ) : (
+                            products.map((product) => (
+                              <SelectItem key={product.id} value={product.id.toString()}>
+                                {product.label || 'Unknown'} - ₹{product.dailyPrices?.[0]?.amount || '0'}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
 
-                  {customizationData?.hasCustomizations && (
-                    <div className="space-y-4 pt-3 border-t">
-                      <h4 className="font-semibold text-sm">Customize Your Meal</h4>
-                      {(customizationData.groups || []).map((group: any) => (
-                        <div key={group.id} className="space-y-2">
-                           <Label className="font-medium text-sm flex gap-2">
-                             {group.name}
-                             {group.isRequired && <span className="text-red-500">*</span>}
-                             <span className="text-muted-foreground text-xs font-normal">
-                               ({group.selectionType === 'SINGLE' ? 'Choose 1' : 'Choose multiple'})
-                             </span>
-                           </Label>
-                           <div className="space-y-2 mt-1">
-                             {(group.options || []).map((option: any) => {
-                               const isSelected = (selectedCustomizations[group.id] || []).includes(option.id);
-                               return (
-                                 <label key={option.id} className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-muted/50 border border-transparent hover:border-border transition-colors">
+                    <div className="space-y-2 relative">
+                      <Label htmlFor="productName">Product Name</Label>
+                      <Input
+                        id="productName"
+                        value={formData.productName}
+                        onChange={(e) => handleProductNameChange(e.target.value)}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => setShowSuggestions(false)}
+                        placeholder="Custom product name"
+                        autoComplete="off"
+                      />
+                      {showSuggestions && filteredProducts.length > 0 && (
+                        <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-input bg-popover text-popover-foreground shadow-lg">
+                          <div className="py-1">
+                            {filteredProducts.map((product) => (
+                              <div
+                                key={product.id}
+                                onMouseDown={(e) => {
+                                  e.preventDefault(); // Prevents blur event on input
+                                  handleProductSelect(product.id.toString());
+                                  setShowSuggestions(false);
+                                }}
+                                className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center transition-colors"
+                              >
+                                <span className="font-medium">{product.label}</span>
+                                <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                  ₹{product.dailyPrices?.[0]?.amount || '0'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="quantity">Quantity</Label>
+                        <Input
+                          id="quantity"
+                          type="number"
+                          step="0.1"
+                          value={formData.quantity}
+                          onChange={(e) =>
+                            setFormData({ ...formData, quantity: e.target.value })
+                          }
+                          placeholder="1"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="amount">{customizationData?.hasCustomizations ? "Base Price (₹)" : "Amount (₹)"}</Label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          step="0.01"
+                          value={formData.amount}
+                          readOnly={customizationData?.hasCustomizations}
+                          onChange={(e) =>
+                            setFormData({ ...formData, amount: e.target.value })
+                          }
+                          placeholder="0.00"
+                          className={customizationData?.hasCustomizations ? "bg-muted" : ""}
+                        />
+                      </div>
+                    </div>
+
+                    {customizationData?.hasCustomizations && (
+                      <div className="space-y-4 pt-3 border-t">
+                        <h4 className="font-semibold text-sm">Customize Your Meal</h4>
+                        {(customizationData.groups || []).map((group: any) => (
+                          <div key={group.id} className="space-y-2">
+                            <Label className="font-medium text-sm flex gap-2">
+                              {group.name}
+                              {group.isRequired && <span className="text-red-500">*</span>}
+                              <span className="text-muted-foreground text-xs font-normal">
+                                ({group.selectionType === 'SINGLE' ? 'Choose 1' : 'Choose multiple'})
+                              </span>
+                            </Label>
+                            <div className="space-y-2 mt-1">
+                              {(group.options || []).map((option: any) => {
+                                const isSelected = (selectedCustomizations[group.id] || []).includes(option.id);
+                                return (
+                                  <label key={option.id} className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-muted/50 border border-transparent hover:border-border transition-colors">
                                     <input
                                       type={group.selectionType === 'SINGLE' ? "radio" : "checkbox"}
                                       name={`group-${group.id}`}
@@ -829,108 +831,108 @@ const CustomerProductList = () => {
                                         <span className="text-muted-foreground text-xs">Free</span>
                                       )}
                                     </div>
-                                 </label>
-                               )
-                             })}
-                           </div>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="bg-primary/5 p-3 rounded-md flex justify-between items-center mt-2 border border-primary/20">
+                          <span className="font-medium text-sm">Item Total (Includes Qty):</span>
+                          <span className="font-bold text-primary">₹{(
+                            (parseFloat(formData.quantity) || 0) * (
+                              (parseFloat(formData.amount) || 0) +
+                              Object.entries(selectedCustomizations).reduce((sum, [groupId, optionIds]) => {
+                                const group = (customizationData.groups || []).find((g: any) => g.id.toString() === groupId);
+                                if (!group) return sum;
+                                const optionsSum = optionIds.reduce((optSum: number, optId: number) => {
+                                  const option = (group.options || []).find((o: any) => o.id === optId);
+                                  return optSum + (option ? Number(option.additionalPrice || 0) : 0);
+                                }, 0);
+                                return sum + optionsSum;
+                              }, 0)
+                            )
+                          ).toFixed(2)}</span>
                         </div>
-                      ))}
-                      
-                      <div className="bg-primary/5 p-3 rounded-md flex justify-between items-center mt-2 border border-primary/20">
-                         <span className="font-medium text-sm">Item Total (Includes Qty):</span>
-                         <span className="font-bold text-primary">₹{(
-                           (parseFloat(formData.quantity) || 0) * (
-                             (parseFloat(formData.amount) || 0) + 
-                             Object.entries(selectedCustomizations).reduce((sum, [groupId, optionIds]) => {
-                               const group = (customizationData.groups || []).find((g: any) => g.id.toString() === groupId);
-                               if (!group) return sum;
-                               const optionsSum = optionIds.reduce((optSum: number, optId: number) => {
-                                 const option = (group.options || []).find((o: any) => o.id === optId);
-                                 return optSum + (option ? Number(option.additionalPrice || 0) : 0);
-                               }, 0);
-                               return sum + optionsSum;
-                             }, 0)
-                           )
-                         ).toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea
+                        id="notes"
+                        value={formData.notes}
+                        onChange={(e) =>
+                          setFormData({ ...formData, notes: e.target.value })
+                        }
+                        placeholder="Any special instructions..."
+                        rows={2}
+                      />
+                    </div>
+
+                    <Button
+                      type="button"
+                      onClick={handleAddTempItem}
+                      className="w-full gap-2 border-primary text-primary hover:bg-primary/5 bg-transparent border mt-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Product to Batch
+                    </Button>
+                  </div>
+
+                  {/* BATCH ITEMS LIST */}
+                  {tempItems.length > 0 && (
+                    <div className="border border-border p-3 rounded-lg space-y-2 bg-muted/20">
+                      <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
+                        Batch Products ({tempItems.length})
+                      </h4>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {tempItems.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-sm bg-background p-2 rounded border gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-sm">{item.productName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                ₹{item.amount.toFixed(2)} × {item.quantity} {item.notes ? `(${item.notes})` : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-primary">
+                                ₹{(item.quantity * item.amount).toFixed(2)}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleRemoveTempItem(idx)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      placeholder="Any special instructions..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    onClick={handleAddTempItem}
-                    className="w-full gap-2 border-primary text-primary hover:bg-primary/5 bg-transparent border mt-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Product to Batch
-                  </Button>
-                </div>
-
-                {/* BATCH ITEMS LIST */}
-                {tempItems.length > 0 && (
-                  <div className="border border-border p-3 rounded-lg space-y-2 bg-muted/20">
-                    <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                      Batch Products ({tempItems.length})
-                    </h4>
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                      {tempItems.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm bg-background p-2 rounded border gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate text-sm">{item.productName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              ₹{item.amount.toFixed(2)} × {item.quantity} {item.notes ? `(${item.notes})` : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-primary">
-                              ₹{(item.quantity * item.amount).toFixed(2)}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleRemoveTempItem(idx)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                  {/* COMBINED TOTAL */}
+                  {(tempItems.length > 0 || (formData.productName.trim() && parseFloat(formData.quantity) > 0)) && (
+                    <div className="bg-secondary/55 p-3 rounded-lg flex justify-between items-center text-sm font-semibold border border-primary/10">
+                      <span className="text-muted-foreground">Total amount to pay:</span>
+                      <span className="text-lg text-primary">₹{getCombinedTotal()}</span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* COMBINED TOTAL */}
-                {(tempItems.length > 0 || (formData.productName.trim() && parseFloat(formData.quantity) > 0)) && (
-                  <div className="bg-secondary/55 p-3 rounded-lg flex justify-between items-center text-sm font-semibold border border-primary/10">
-                    <span className="text-muted-foreground">Total amount to pay:</span>
-                    <span className="text-lg text-primary">₹{getCombinedTotal()}</span>
-                  </div>
-                )}
-
-                <DialogFooter>
-                  <Button type="submit" className="w-full">
-                    Add to List ({tempItems.length + (formData.productName.trim() ? 1 : 0)} items)
-                  </Button>
-                </DialogFooter>
-              </form>
-            )}
-          </DialogContent>
-        </Dialog>
+                  <DialogFooter>
+                    <Button type="submit" className="w-full">
+                      Add to List ({tempItems.length + (formData.productName.trim() ? 1 : 0)} items)
+                    </Button>
+                  </DialogFooter>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

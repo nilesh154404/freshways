@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCustomerDiscountDto } from './dto/create-customer-discount.dto';
 import { UpdateCustomerDiscountDto } from './dto/update-customer-discount.dto';
+import { paginateArray, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class CustomerDiscountService {
@@ -8,8 +10,8 @@ export class CustomerDiscountService {
     return 'This action adds a new customerDiscount';
   }
 
-  findAll() {
-    return `This action returns all customerDiscount`;
+  findAll(dto?: RangeDTO): PaginatedResponse<any> {
+    return paginateArray([], dto);
   }
 
   findOne(id: number) {

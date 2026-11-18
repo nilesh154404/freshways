@@ -22,6 +22,7 @@ import { multerConfig } from './multer.config';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('Marketing Content')
 @Controller('marketing')
@@ -94,16 +95,18 @@ export class MarketingContentController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get marketing content with optional filters and pagination' })
   async findAll(
+    @Query() dto: RangeDTO,
     @Query('vendorId') vendorId?: number,
     @Query('categoryId') categoryId?: number,
     @Query('productId') productId?: number,
     @Query('customerId') customerId?: number,
   ) {
     if (vendorId || categoryId || productId) {
-      return this.marketingService.filter({ vendorId, categoryId, productId, customerId: customerId ? Number(customerId) : undefined });
+      return this.marketingService.filter(dto, { vendorId, categoryId, productId, customerId: customerId ? Number(customerId) : undefined });
     }
-    return this.marketingService.findAll(customerId ? Number(customerId) : undefined);
+    return this.marketingService.findAll(dto, customerId ? Number(customerId) : undefined);
   }
 
   @Get(':id')
@@ -204,14 +207,16 @@ async sharePost(@Param('id') id: number) {
 
   // Get saved posts for a user
   @Get('user/:userId/saved')
-  async getSavedPosts(@Param('userId') userId: number) {
-    return this.marketingService.getSavedPosts(userId);
+  @ApiOperation({ summary: 'Get saved posts for a user with pagination' })
+  async getSavedPosts(@Param('userId') userId: number, @Query() dto: RangeDTO) {
+    return this.marketingService.getSavedPosts(userId, dto);
   }
 
   // Get all comments by a particular customer
   @Get('user/:userId/comments')
-  async getCommentsByCustomer(@Param('userId') userId: number) {
-    return this.marketingService.getCommentsByCustomer(userId);
+  @ApiOperation({ summary: 'Get all comments by a particular customer with pagination' })
+  async getCommentsByCustomer(@Param('userId') userId: number, @Query() dto: RangeDTO) {
+    return this.marketingService.getCommentsByCustomer(userId, dto);
   }
 
   // ======================== REPORT ENDPOINTS ========================
@@ -240,11 +245,15 @@ async sharePost(@Param('id') id: number) {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'Super Admin', 'Vendor')
-  async getReportsByVendor(@Param('vendorId') vendorId: number, @Req() req: any) {
+  async getReportsByVendor(
+    @Param('vendorId') vendorId: number,
+    @Query() dto: RangeDTO,
+    @Req() req: any,
+  ) {
     if (req.user?.role?.toLowerCase() === 'vendor' && req.user.profileId !== Number(vendorId)) {
       throw new ForbiddenException('You cannot access reports for another vendor');
     }
-    return this.marketingService.getReportsByVendor(Number(vendorId));
+    return this.marketingService.getReportsByVendor(Number(vendorId), dto);
   }
 
   // Admin: see all reports on all posts — GET /marketing/reports/all
@@ -252,8 +261,8 @@ async sharePost(@Param('id') id: number) {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'Super Admin')
-  async getAllReports() {
-    return this.marketingService.getAllReports();
+  async getAllReports(@Query() dto: RangeDTO) {
+    return this.marketingService.getAllReports(dto);
   }
 
   // Vendor or Admin: see all reports on a specific post — GET /marketing/:id/reports
@@ -261,8 +270,12 @@ async sharePost(@Param('id') id: number) {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'Super Admin', 'Vendor')
-  async getReportsByPost(@Param('id') id: number, @Req() req: any) {
-    return this.marketingService.getReportsByPost(Number(id), req.user);
+  async getReportsByPost(
+    @Param('id') id: number,
+    @Query() dto: RangeDTO,
+    @Req() req: any,
+  ) {
+    return this.marketingService.getReportsByPost(Number(id), req.user, dto);
   }
 
   // Admin: delete a reported post — DELETE /marketing/:id

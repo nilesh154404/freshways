@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Get, Param, Delete, Patch, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Patch, ParseIntPipe, Query } from '@nestjs/common';
 import { CustomerProductListService } from './customer-product-list.service';
 import { CreateCustomerProductDto } from './dto/create-customer-product.dto';
 import { UpdateCustomerProductDto } from './dto/update-customer-product.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Controller('customer-product-list')
 export class CustomerProductListController {
@@ -15,8 +16,8 @@ export class CustomerProductListController {
 
   // GET BY CUSTOMER
   @Get('customer/:customerId')
-  getByCustomer(@Param('customerId') customerId: number) {
-    return this.service.getByCustomerId(+customerId);
+  getByCustomer(@Param('customerId') customerId: number, @Query() dto: RangeDTO) {
+    return this.service.getByCustomerId(+customerId, dto);
   }
 
   // UPDATE

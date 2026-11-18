@@ -12,7 +12,7 @@ import { Product } from './entities/product.entity';
 import { ServiceOffering } from 'src/service-offering/entities/service-offering.entity';
 import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/vendor-subscription-plan.entity';
 import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
-import { paginate } from 'src/helpers/pagination/pagination';
+import { paginate, paginateArray } from 'src/helpers/pagination/pagination';
 import { Categories } from 'src/categories/categories.entity';
 import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { HealthProfile } from 'src/ai/entities/health-profile.entity';
@@ -170,7 +170,7 @@ export class ProductsService {
   //     limit: dto.limit,
   //   });
   // }
-  async findAll(dto: RangeDTO, categoryId?: number, vendorId?: number, search?: string, customerId?: number) {
+  async findAll(dto: RangeDTO, categoryId?: any, vendorId?: any, search?: string, customerId?: any) {
     const qb = this.productRepo
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.serviceOffering', 'serviceOffering')
@@ -181,13 +181,14 @@ export class ProductsService {
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.customizationGroups', 'customizationGroups')
       .leftJoinAndSelect('customizationGroups.options', 'customizationOptions')
-      // .where('product.isDeleted = false')
       .orderBy('product.id', 'DESC');
 
-    if (customerId) {
+    // Customer diet preference filter
+    const parsedCustomerId = Number(customerId);
+    if (Number.isInteger(parsedCustomerId) && parsedCustomerId > 0) {
       try {
         const healthProfile = await this.productRepo.manager.findOne(HealthProfile, {
-          where: { userId: customerId },
+          where: { userId: parsedCustomerId },
         });
         if (healthProfile?.dietPreference) {
           const pref = healthProfile.dietPreference.trim().toLowerCase();
@@ -196,16 +197,19 @@ export class ProductsService {
           }
         }
       } catch (err) {
-        console.warn('Failed to retrieve diet preference for customer:', customerId, err);
+        console.warn('Failed to retrieve diet preference for customer:', parsedCustomerId, err);
       }
     }
 
-    if (categoryId) {
-      qb.andWhere('product.category = :categoryId', { categoryId });
+    // CHECK: Ensure missing, null, undefined, or string "undefined" category does NOT return empty list
+    const parsedCategoryId = Number(categoryId);
+    if (Number.isInteger(parsedCategoryId) && parsedCategoryId > 0) {
+      qb.andWhere('category.id = :categoryId', { categoryId: parsedCategoryId });
     }
 
-    if (vendorId) {
-      qb.andWhere('product.vendor = :vendorId', { vendorId });
+    const parsedVendorId = Number(vendorId);
+    if (Number.isInteger(parsedVendorId) && parsedVendorId > 0) {
+      qb.andWhere('vendor.id = :vendorId', { vendorId: parsedVendorId });
     }
 
     if (search) {
@@ -216,10 +220,6 @@ export class ProductsService {
           { searchParam: `%${trimmedSearch}%` }
         );
 
-        // Multi-tiered Relevance Sorting (like Amazon / Flipkart):
-        // Rank 1: Product label starts with the search initials (Prefix match)
-        // Rank 2: Product label contains the search term anywhere (Sub-string name match)
-        // Rank 3: Product description contains the search term (Fallback description match)
         qb.addSelect(`
           CASE 
             WHEN product.label LIKE :startSearch THEN 1
@@ -227,18 +227,18 @@ export class ProductsService {
             ELSE 3
           END
         `, 'search_rank');
-        
+
         qb.setParameter('startSearch', `${trimmedSearch}%`);
         qb.setParameter('containSearch', `%${trimmedSearch}%`);
-        
+
         qb.addOrderBy('search_rank', 'ASC');
       }
     }
 
-    return paginate(qb, {
-      page: dto.page,
-      limit: dto.limit,
-    });
+    // Secondary stable sort
+    qb.addOrderBy('product.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   findOne(id: number) {
@@ -248,13 +248,13 @@ export class ProductsService {
     });
   }
 
-  async searchByLetters(letters: string) {
+  async searchByLetters(letters: string, dto?: RangeDTO) {
     if (!letters) {
-      return [];
+      return paginateArray([], dto);
     }
     const trimmed = letters.trim();
     if (!trimmed) {
-      return [];
+      return paginateArray([], dto);
     }
 
     const qb = this.productRepo
@@ -276,8 +276,9 @@ export class ProductsService {
     qb.setParameter('startSearch', `${trimmed}%`);
     qb.addOrderBy('search_rank', 'ASC');
     qb.addOrderBy('product.label', 'ASC');
+    qb.addOrderBy('product.id', 'DESC');
 
-    return qb.getMany();
+    return paginate(qb, dto);
   }
 
   async update(id: number, dto: any, user?: any) {

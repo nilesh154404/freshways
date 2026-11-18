@@ -75,8 +75,13 @@ export class ProductsController {
   @Get('search')
   @ApiOperation({ summary: 'Search products by letters' })
   @ApiQuery({ name: 'letters', required: true, type: String })
-  async searchByLetters(@Query('letters') letters: string) {
-    return this.productsService.searchByLetters(letters);
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async searchByLetters(
+    @Query('letters') letters: string,
+    @Query() dto: RangeDTO,
+  ) {
+    return this.productsService.searchByLetters(letters, dto);
   }
 
   // GET SINGLE PRODUCT

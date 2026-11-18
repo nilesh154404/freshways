@@ -12,6 +12,8 @@ import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { MarketingContent } from 'src/marketing-content/entities/marketing-content.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class VendorService {
@@ -41,10 +43,16 @@ export class VendorService {
   //   return this.vendorRepo.save(vendor);
   // }
 
-  async findAll() {
-    return this.vendorRepo.find({
-      relations: ['userType', 'orders', 'dailyPrice', 'vendorSubscriptionPlan', 'categories'],
-    });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<Vendor>> {
+    const qb = this.vendorRepo.createQueryBuilder('vendor')
+      .leftJoinAndSelect('vendor.userType', 'userType')
+      .leftJoinAndSelect('vendor.orders', 'orders')
+      .leftJoinAndSelect('vendor.dailyPrice', 'dailyPrice')
+      .leftJoinAndSelect('vendor.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
+      .leftJoinAndSelect('vendor.categories', 'categories')
+      .orderBy('vendor.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   async findOne(id: number) {

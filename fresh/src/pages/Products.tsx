@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProductCustomizationsDialog } from "@/components/ProductCustomizationsDialog";
-import { Plus, Pencil, Trash2, AlertTriangle, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { log } from "console";
 import { API_BASE_URL, normalizeImageUrl } from "@/lib/api";
@@ -62,6 +62,9 @@ const Products = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [services, setServices] = useState<ServiceOffering[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -170,12 +173,18 @@ const Products = () => {
   // -----------------------------
   // FETCH DATA
   // -----------------------------
-  const getProducts = async () => {
-    let url = `${API_BASE}/products?page=1&limit=500`;
+  const getProducts = async (page = 1) => {
+    let url = `${API_BASE}/products?page=${page}&limit=50`;
     if (role != "Admin") url += `&vendorId=` + profileId;
     try {
       const res = await axios.get(url);
-      setProducts(res.data.items || []);
+      setProducts(res.data.items || (Array.isArray(res.data) ? res.data : res.data?.data) || []);
+      const pagination = res.data?.pagination || (res.data as any)?.pagination;
+      if (pagination) {
+        setCurrentPage(pagination.page || page);
+        setTotalPages(pagination.totalPages || 1);
+        setTotalItems(pagination.total || 0);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch products");
@@ -185,26 +194,26 @@ const Products = () => {
   const getVendors = async () => {
     try {
       const res = await axios.get(`${API_BASE}/vendors`);
-      setVendors(res.data || []);
+      setVendors(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) { console.error(err); }
   };
 
   const getServices = async () => {
     try {
       const res = await axios.get(`${API_BASE}/service-offerings`);
-      setServices(res.data || []);
+      setServices(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) { console.error(err); }
   };
 
   const getCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE}/categories/get-categories`);
-      setCategories(res.data || []);
+      setCategories(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
-    getProducts();
+    getProducts(1);
     getVendors();
     getServices();
     getCategories();
@@ -314,7 +323,7 @@ const Products = () => {
     setRelatedOrders([]);
     try {
       const res = await axios.get(`${API_BASE}/marketing?productId=${product.id}`);
-      setRelatedMarketing(res.data || []);
+      setRelatedMarketing(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) {
       console.error("Failed to fetch related marketing content", err);
     } finally {
@@ -323,7 +332,7 @@ const Products = () => {
 
     try {
       const res = await axios.get(`${API_BASE}/orders/pending-by-product/${product.id}`);
-      setRelatedOrders(res.data || []);
+      setRelatedOrders(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) {
       console.error("Failed to fetch related pending orders", err);
     } finally {
@@ -614,6 +623,40 @@ const Products = () => {
                 ))}
               </TableBody>
             </Table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t bg-gray-50/50">
+                <div className="text-sm text-muted-foreground">
+                  Showing <span className="font-semibold text-gray-900">{((currentPage - 1) * 50) + 1}</span> to{" "}
+                  <span className="font-semibold text-gray-900">{Math.min(currentPage * 50, totalItems || products.length)}</span> of{" "}
+                  <span className="font-semibold text-gray-900">{totalItems || products.length}</span> products
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => getProducts(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="gap-1"
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                  </Button>
+                  <div className="text-sm font-medium px-3 py-1 bg-white border rounded text-gray-700 shadow-xs">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => getProducts(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="gap-1"
+                  >
+                    Next <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

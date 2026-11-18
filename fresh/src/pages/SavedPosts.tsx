@@ -72,7 +72,8 @@ const SavedPosts = () => {
       
       const data = await response.json();
       console.log("Fetched saved posts:", data);
-      setSavedPosts(data || []);
+      const list = Array.isArray(data) ? data : (data?.data || data?.items || []);
+      setSavedPosts(list);
     } catch (error) {
       console.error("Error fetching saved posts:", error);
       toast({

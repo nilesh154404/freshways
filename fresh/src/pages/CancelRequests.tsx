@@ -55,11 +55,14 @@ const CancelRequests = () => {
         url = `${API_BASE_URL}/order-return/vendor/${profileId}`;
       }
 
-      const response = await axios.get<RefundCancelRequest[]>(
+      const response = await axios.get<any>(
         url,
         { headers: getAuthHeaders() }
       );
-      setRequests(response.data);
+      const list = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data || response.data?.items || []);
+      setRequests(list);
     } catch (error) {
       console.error('Failed to fetch requests', error);
       toast.error('Failed to load cancellation requests');

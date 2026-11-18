@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 import { Order } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -30,6 +32,8 @@ interface OrderFilter {
   startDate?: string; // ISO date string
   endDate?: string;   // ISO date string
   deliveryDate?: string; // ISO date string
+  page?: any;
+  limit?: any;
 }
 
 @Injectable()
@@ -396,27 +400,26 @@ export class OrderService {
     return found;
   }
 
-  async findByCustomerId(customerId: number): Promise<Order[]> {
-    const orders = await this.orderRepo.find({
-      where: { customer: { id: customerId } },
-      relations: [
-        'customer', 'vendor', 'listedOrders', 'listedOrders.product', 
-        'listedOrders.customizations', 'listedOrders.customizations.customizationGroup', 'listedOrders.customizations.customizationOption',
-        'deliverySlot', 'vendorSubscriptionPlan', 'community', 'payments'
-      ],
-      order: { createdAt: 'DESC' },
-    });
+  async findByCustomerId(customerId: number, dto?: RangeDTO): Promise<PaginatedResponse<Order>> {
+    const qb = this.orderRepo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.customer', 'customer')
+      .leftJoinAndSelect('order.vendor', 'vendor')
+      .leftJoinAndSelect('order.listedOrders', 'listedOrders')
+      .leftJoinAndSelect('listedOrders.product', 'product')
+      .leftJoinAndSelect('listedOrders.customizations', 'customizations')
+      .leftJoinAndSelect('customizations.customizationGroup', 'customizationGroup')
+      .leftJoinAndSelect('customizations.customizationOption', 'customizationOption')
+      .leftJoinAndSelect('order.deliverySlot', 'deliverySlot')
+      .leftJoinAndSelect('order.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
+      .leftJoinAndSelect('order.community', 'community')
+      .leftJoinAndSelect('order.payments', 'payments')
+      .where('order.customerId = :customerId', { customerId })
+      .andWhere('order.isDeleted = false')
+      .orderBy('order.createdAt', 'DESC')
+      .addOrderBy('order.id', 'DESC');
 
-    if (!orders || orders.length === 0) {
-      throw new NotFoundException(`No orders found for customer ID ${customerId}`);
-    }
-
-    // Optional: remove circular references manually if needed
-    // orders.forEach(order => {
-    //   order.listedOrders.forEach(item => delete item.order);
-    // });
-
-    return orders;
+    return paginate(qb, dto);
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -468,7 +471,7 @@ export class OrderService {
   // async findAll(): Promise<Order[]> {
   //   return this.orderRepo.find({ relations: ['customer', 'vendor','listedOrders.product', 'community', 'listedOrders', 'payments'] });
   // }
-  async findAll(filters: OrderFilter): Promise<Order[]> {
+  async findAll(filters: OrderFilter): Promise<PaginatedResponse<Order>> {
     const qb = this.orderRepo
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.customer', 'customer')
@@ -517,22 +520,19 @@ export class OrderService {
       qb.andWhere('order.deliveryDate = :deliveryDate', { deliveryDate: filters.deliveryDate });
     }
 
-    qb.orderBy('order.createdAt', 'DESC');
+    qb.orderBy('order.createdAt', 'DESC').addOrderBy('order.id', 'DESC');
 
-    const orders = await qb.getMany();
+    const result = await paginate(qb, { page: filters.page, limit: filters.limit });
 
     if (filters.vendorId) {
       const vendorIdNum = Number(filters.vendorId);
-      orders.forEach(order => {
+      result.data.forEach(order => {
         // If the order itself doesn't belong strictly to this vendor,
         // it means we are in a mixed order scenario. We only want to show
         // the grandTotal for the items this vendor is responsible for.
         if (order.vendor?.id !== vendorIdNum && order.listedOrders) {
           let vendorTotal = 0;
           for (const item of order.listedOrders) {
-            // Note: The WHERE clause already filters out the other vendor's items from the joined result,
-            // so order.listedOrders should only contain this vendor's items at this point.
-            // But we can double check just in case, or simply sum what was returned.
             const itemTotal = Number(item.discountedAmount !== null ? item.discountedAmount : item.amount) || 0;
             vendorTotal += itemTotal;
           }
@@ -541,7 +541,7 @@ export class OrderService {
       });
     }
 
-    return orders;
+    return result;
   }
   async findOne(id: number): Promise<Order> {
     const order = await this.orderRepo.findOne({
@@ -596,22 +596,44 @@ export class OrderService {
     await this.orderRepo.save(order);
   }
 
-  async getOrdersByCustomer(customerId: number): Promise<Order[]> {
-    return this.orderRepo.find({
-      where: { customer: { id: customerId }, isDeleted: false },
-      relations: ['vendor', 'community', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'payments'],
-    });
+  async getOrdersByCustomer(customerId: number, dto?: RangeDTO): Promise<PaginatedResponse<Order>> {
+    const qb = this.orderRepo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.vendor', 'vendor')
+      .leftJoinAndSelect('order.community', 'community')
+      .leftJoinAndSelect('order.listedOrders', 'listedOrders')
+      .leftJoinAndSelect('listedOrders.product', 'product')
+      .leftJoinAndSelect('order.deliverySlot', 'deliverySlot')
+      .leftJoinAndSelect('order.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
+      .leftJoinAndSelect('order.payments', 'payments')
+      .where('order.customerId = :customerId', { customerId })
+      .andWhere('order.isDeleted = false')
+      .orderBy('order.createdAt', 'DESC')
+      .addOrderBy('order.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
-  async getOrdersByVendor(vendorId: number): Promise<Order[]> {
-    return this.orderRepo.find({
-      where: { vendor: { id: vendorId }, isDeleted: false },
-      relations: ['customer', 'community', 'listedOrders', 'listedOrders.product', 'deliverySlot', 'vendorSubscriptionPlan', 'payments'],
-    });
+  async getOrdersByVendor(vendorId: number, dto?: RangeDTO): Promise<PaginatedResponse<Order>> {
+    const qb = this.orderRepo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.customer', 'customer')
+      .leftJoinAndSelect('order.community', 'community')
+      .leftJoinAndSelect('order.listedOrders', 'listedOrders')
+      .leftJoinAndSelect('listedOrders.product', 'product')
+      .leftJoinAndSelect('order.deliverySlot', 'deliverySlot')
+      .leftJoinAndSelect('order.vendorSubscriptionPlan', 'vendorSubscriptionPlan')
+      .leftJoinAndSelect('order.payments', 'payments')
+      .where('order.vendorId = :vendorId', { vendorId })
+      .andWhere('order.isDeleted = false')
+      .orderBy('order.createdAt', 'DESC')
+      .addOrderBy('order.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
-  async findPendingByProductId(productId: number): Promise<Order[]> {
-    return this.orderRepo
+  async findPendingByProductId(productId: number, dto?: RangeDTO): Promise<PaginatedResponse<Order>> {
+    const qb = this.orderRepo
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.customer', 'customer')
       .leftJoinAndSelect('order.listedOrders', 'listedOrders')
@@ -622,6 +644,8 @@ export class OrderService {
       })
       .andWhere('order.isDeleted = false')
       .orderBy('order.createdAt', 'DESC')
-      .getMany();
+      .addOrderBy('order.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 }

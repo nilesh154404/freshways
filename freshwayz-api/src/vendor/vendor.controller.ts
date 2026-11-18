@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { VendorService } from './vendor.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
 import { UpdateVendorDto } from './dto/update-vendor.dto';
@@ -7,6 +7,7 @@ import { UpdateVendorProfileDto } from './dto/update-vendor-profile.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('vendors')
 @Controller('vendors')
@@ -19,8 +20,11 @@ export class VendorController {
   // }
 
   @Get()
-  findAll() {
-    return this.vendorService.findAll();
+  @ApiOperation({ summary: 'Get all vendors with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.vendorService.findAll(dto);
   }
 
   @Get(':id')

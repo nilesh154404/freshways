@@ -18,6 +18,8 @@ import { HealthProfile } from 'src/ai/entities/health-profile.entity';
 import { analyzeHealthProfile } from 'src/ai/helpers/rule-based-health-analysis';
 import { AiService } from 'src/ai/ai.service';
 import axios from 'axios';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
+import { paginate } from 'src/helpers/pagination/pagination';
 
 const DEFAULT_INTERNAL_ANALYSIS_PROMPT =
     'Generate health score, risks, nutrition guidance, fitness suggestions, product recommendations, and preventive alerts based on profile metrics and uploaded reports.';
@@ -567,11 +569,12 @@ Provide concise, actionable insights specific to this person's combined health p
         return auth;
     }
 
-    async findCustomer() {
-        const customer = await this.customerRepo.find();
-
-        if (!customer) throw new NotFoundException('Customer not found');
-        return customer;
+    async findCustomer(dto?: RangeDTO) {
+        const qb = this.customerRepo
+            .createQueryBuilder('customer')
+            .orderBy('customer.createdAt', 'DESC')
+            .addOrderBy('customer.id', 'DESC');
+        return await paginate(qb, dto);
     }
 }
 

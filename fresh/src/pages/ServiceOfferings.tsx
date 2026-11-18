@@ -65,10 +65,11 @@ const ServiceOfferings = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get<ServiceOffering[]>(
+      const response = await axios.get<any>(
         `${API_BASE_URL}/service-offerings`
       );
-      setServices(response.data);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+      setServices(list);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load service offerings");

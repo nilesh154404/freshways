@@ -115,11 +115,12 @@ const RefundCancel = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await axios.get<RefundCancelRequest[]>(
+      const response = await axios.get<any>(
         `${API_BASE_URL}/order-return/customer/${customerId}`,
         { headers: getAuthHeaders() }
       );
-      setRequests(response.data);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+      setRequests(list);
     } catch (error) {
       console.error('Failed to fetch requests', error);
       toast.error('Failed to load cancellation requests history');
@@ -129,13 +130,14 @@ const RefundCancel = () => {
   const fetchOrderHistory = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<any[]>(
+      const response = await axios.get<any>(
         `${API_BASE_URL}/orders/customer/${customerId}`,
         { headers: getAuthHeaders() }
       );
       
+      const orderList = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
       const parsedItems: OrderedItem[] = [];
-      response.data.forEach((order: any) => {
+      orderList.forEach((order: any) => {
         if (order.listedOrders) {
           order.listedOrders.forEach((item: any) => {
             parsedItems.push({

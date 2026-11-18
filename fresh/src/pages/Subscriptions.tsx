@@ -89,8 +89,9 @@ const Subscriptions = () => {
       let url = `${API_BASE}/vendor-subscription-plans`;
       if (role !== "Admin") url = `${API_BASE}/vendor-subscription-plans/vendor/${profileId}`;
 
-      const response = await axios.get<Plan[]>(url);
-      setPlans(response.data);
+      const response = await axios.get<any>(url);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+      setPlans(list);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load plans");

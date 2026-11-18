@@ -143,10 +143,11 @@ export default function PathologyOrderReport() {
 
     const fetchOrders = async () => {
         try {
-            const response = await axios.get<APIOrder[]>(
+            const response = await axios.get<any>(
                 `${API_BASE_URL}/orders?vendorId=3`
             );
-            setOrders(response.data);
+            const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+            setOrders(list);
         } catch (error) {
             toast.error("Failed to load orders");
         } finally {
@@ -168,10 +169,11 @@ export default function PathologyOrderReport() {
 
     const fetchCommunities = async () => {
         try {
-            const response = await axios.get<Community[]>(
+            const response = await axios.get<any>(
                 `${API_BASE_URL}/community`
             );
-            setCommunities(response.data);
+            const list = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.items || []);
+            setCommunities(list);
         } catch { }
     };
 

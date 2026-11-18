@@ -62,10 +62,13 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get<Category[]>(
+      const response = await axios.get<any>(
         `${API_BASE_URL}/categories/get-categories`
       );
-      setCategories(response.data);
+      const list = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data || response.data?.items || []);
+      setCategories(list);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load categories");
@@ -162,8 +165,9 @@ const Categories = () => {
     setIsProductsModalOpen(true);
     setIsLoadingProducts(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/products?categoryId=${category.id}&page=1&limit=500`);
-      setCategoryProducts(res.data.items || []);
+      const res = await axios.get(`${API_BASE_URL}/products?categoryId=${category.id}&page=1&limit=50`);
+      const list = res.data?.items || (Array.isArray(res.data) ? res.data : res.data?.data) || [];
+      setCategoryProducts(list);
     } catch (err) {
       toast.error("Failed to load products for this category");
     } finally {

@@ -118,8 +118,9 @@ const Marketing = () => {
     if (role !== "Admin") url += `&vendorId=${profileId}`;
 
     try {
-      const res = await axios.get<ProductsResponse>(url);
-      setProducts(res.data.items.map((p) => ({ id: p.id, name: p.label })));
+      const res = await axios.get<any>(url);
+      const list = res.data?.items || (Array.isArray(res.data) ? res.data : res.data?.data) || [];
+      setProducts(list.map((p: any) => ({ id: p.id, name: p.label || p.name })));
     } catch {
       toast.error("Failed to load products");
     }
@@ -133,8 +134,9 @@ const Marketing = () => {
         url += `&vendorId=${profileId}`;
       }
       const res = await axios.get(url);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.items || []);
 
-      const normalized: MarketingItem[] = res.data.map((item: any) => {
+      const normalized: MarketingItem[] = list.map((item: any) => {
         // Get vendorId and vendor name from the API response
         const vendorId = item.vendor?.id || item.vendorId;
         const vendorName = item.vendor?.businessName || item.vendor?.ownerName || (vendorId ? 'Unknown Vendor' : 'Admin');

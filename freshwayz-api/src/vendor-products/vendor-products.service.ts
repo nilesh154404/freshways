@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Product } from 'src/products/entities/product.entity';
 import { CreateVendorProductDto } from './dto/create-vendor-product.dto';
 import { UpdateVendorProductDto } from './dto/update-vendor-product.dto';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class VendorProductsService {
@@ -16,8 +18,18 @@ export class VendorProductsService {
     return 'This action adds a new vendorProduct';
   }
 
-  findAll() {
-    return `This action returns all vendorProducts`;
+  async findAll(dto?: RangeDTO, vendorId?: number): Promise<PaginatedResponse<Product>> {
+    const qb = this.productRepo.createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.vendor', 'vendor')
+      .leftJoinAndSelect('product.dailyPrices', 'dailyPrices')
+      .orderBy('product.id', 'DESC');
+
+    if (vendorId) {
+      qb.andWhere('product.vendor = :vendorId', { vendorId });
+    }
+
+    return paginate(qb, dto);
   }
 
   findOne(id: number) {

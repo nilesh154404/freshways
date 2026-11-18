@@ -10,12 +10,14 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { VendorSubscriptionPlanService } from './vendor-subscription-plan.service';
 import { CreateVendorSubscriptionPlanDto } from './dto/create-vendor-subscription-plan.dto';
@@ -23,6 +25,7 @@ import { UpdateVendorSubscriptionPlanDto } from './dto/update-vendor-subscriptio
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('Vendor Subscription Plans')
 @Controller('vendor-subscription-plans')
@@ -40,8 +43,10 @@ export class VendorSubscriptionPlanController {
 
   @Get()
   @ApiOkResponse({ description: 'List of plans' })
-  findAll() {
-    return this.service.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.service.findAll(dto);
   }
 
   @Get(':id')
@@ -75,7 +80,12 @@ export class VendorSubscriptionPlanController {
   // ⭐ EXTRA ENDPOINT — Get plan by vendor
   @Get('vendor/:vendorId')
   @ApiOkResponse({ description: 'Get plan of a vendor by vendorId' })
-  getPlanByVendor(@Param('vendorId', ParseIntPipe) vendorId: number) {
-    return this.service.findByVendor(vendorId);
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getPlanByVendor(
+    @Param('vendorId', ParseIntPipe) vendorId: number,
+    @Query() dto: RangeDTO,
+  ) {
+    return this.service.findByVendor(vendorId, dto);
   }
 }

@@ -7,6 +7,8 @@ import { OrderReturn } from './entities/order-return.entity';
 import { Customer } from 'src/customer/entities/customer.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class OrderReturnService {
@@ -66,30 +68,41 @@ export class OrderReturnService {
     return this.orderReturnRepo.save(orderReturn);
   }
 
-  async findAll(): Promise<OrderReturn[]> {
-    return this.orderReturnRepo.find({
-      relations: ['customer', 'order', 'product'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<OrderReturn>> {
+    const qb = this.orderReturnRepo.createQueryBuilder('orderReturn')
+      .leftJoinAndSelect('orderReturn.customer', 'customer')
+      .leftJoinAndSelect('orderReturn.order', 'order')
+      .leftJoinAndSelect('orderReturn.product', 'product')
+      .orderBy('orderReturn.createdAt', 'DESC')
+      .addOrderBy('orderReturn.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
-  async findByCustomerId(customerId: number): Promise<OrderReturn[]> {
-    return this.orderReturnRepo.find({
-      where: { customer: { id: customerId } },
-      relations: ['customer', 'order', 'product'],
-      order: { createdAt: 'DESC' },
-    });
+  async findByCustomerId(customerId: number, dto?: RangeDTO): Promise<PaginatedResponse<OrderReturn>> {
+    const qb = this.orderReturnRepo.createQueryBuilder('orderReturn')
+      .leftJoinAndSelect('orderReturn.customer', 'customer')
+      .leftJoinAndSelect('orderReturn.order', 'order')
+      .leftJoinAndSelect('orderReturn.product', 'product')
+      .where('orderReturn.customerId = :customerId', { customerId })
+      .orderBy('orderReturn.createdAt', 'DESC')
+      .addOrderBy('orderReturn.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
-  async findByVendorId(vendorId: number): Promise<OrderReturn[]> {
-    return this.orderReturnRepo.find({
-      where: [
-        { order: { vendor: { id: vendorId } } },
-        { product: { vendor: { id: vendorId } } }
-      ],
-      relations: ['customer', 'order', 'product', 'order.vendor', 'product.vendor'],
-      order: { createdAt: 'DESC' },
-    });
+  async findByVendorId(vendorId: number, dto?: RangeDTO): Promise<PaginatedResponse<OrderReturn>> {
+    const qb = this.orderReturnRepo.createQueryBuilder('orderReturn')
+      .leftJoinAndSelect('orderReturn.customer', 'customer')
+      .leftJoinAndSelect('orderReturn.order', 'order')
+      .leftJoinAndSelect('orderReturn.product', 'product')
+      .leftJoinAndSelect('order.vendor', 'orderVendor')
+      .leftJoinAndSelect('product.vendor', 'productVendor')
+      .where('(orderVendor.id = :vendorId OR productVendor.id = :vendorId)', { vendorId })
+      .orderBy('orderReturn.createdAt', 'DESC')
+      .addOrderBy('orderReturn.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   async findOne(id: number): Promise<OrderReturn> {

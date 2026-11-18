@@ -6,15 +6,17 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { CategoriesService } from './categories.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('categories')
 @Controller('categories')
@@ -22,8 +24,9 @@ export class CategoriesController {
     constructor(private service: CategoriesService) { }
 
     @Get('get-categories')
-    async getCategories() {
-        return await this.service.getCategories();
+    @ApiOperation({ summary: 'Get active categories with pagination' })
+    async getCategories(@Query() dto: RangeDTO) {
+        return await this.service.getCategories(dto);
     }
 
     @Post()
@@ -35,8 +38,9 @@ export class CategoriesController {
     }
 
     @Get()
-    findAll() {
-        return this.service.findAll();
+    @ApiOperation({ summary: 'Get all categories with pagination' })
+    findAll(@Query() dto: RangeDTO) {
+        return this.service.findAll(dto);
     }
 
     @Get(":id")

@@ -1,11 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { VendorProductsService } from './vendor-products.service';
 import { CreateVendorProductDto } from './dto/create-vendor-product.dto';
 import { UpdateVendorProductDto } from './dto/update-vendor-product.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('vendor-products')
 @Controller('vendor-products')
@@ -23,8 +24,12 @@ export class VendorProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.vendorProductsService.findAll();
+  @ApiOperation({ summary: 'Get all vendor products with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'vendorId', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO, @Query('vendorId') vendorId?: number) {
+    return this.vendorProductsService.findAll(dto, vendorId ? Number(vendorId) : undefined);
   }
 
   @Get(':id')

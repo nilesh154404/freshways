@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { VendorSubscriptionPlan } from './entities/vendor-subscription-plan.entity';
 import { CreateVendorSubscriptionPlanDto } from './dto/create-vendor-subscription-plan.dto';
 import { UpdateVendorSubscriptionPlanDto } from './dto/update-vendor-subscription-plan.dto';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class VendorSubscriptionPlanService {
@@ -41,9 +43,16 @@ export class VendorSubscriptionPlanService {
     return this.transformToResponse(saved);
   }
 
-  async findAll() {
-    const plans = await this.repo.find({ relations: ['vendor'] });
-    return plans.map(plan => this.transformToResponse(plan));
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<any>> {
+    const qb = this.repo.createQueryBuilder('plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .orderBy('plan.id', 'DESC');
+
+    const result = await paginate(qb, dto);
+    return {
+      data: result.data.map(plan => this.transformToResponse(plan)),
+      pagination: result.pagination,
+    };
   }
 
   async findOne(id: number) {
@@ -89,15 +98,16 @@ export class VendorSubscriptionPlanService {
   }
 
   // ⭐ EXTRA: Get plan by vendor
-  async findByVendor(vendorId: number) {
-    const plans = await this.repo.find({
-      where: { vendor: { id: vendorId } },
-      relations: ['vendor'],
-    });
+  async findByVendor(vendorId: number, dto?: RangeDTO): Promise<PaginatedResponse<any>> {
+    const qb = this.repo.createQueryBuilder('plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .where('plan.vendor = :vendorId', { vendorId })
+      .orderBy('plan.id', 'DESC');
 
-    if (!plans || plans.length === 0) {
-      return []; // Return empty array instead of throwing error
-    }
-    return plans.map(plan => this.transformToResponse(plan));
+    const result = await paginate(qb, dto);
+    return {
+      data: result.data.map(plan => this.transformToResponse(plan)),
+      pagination: result.pagination,
+    };
   }
 }

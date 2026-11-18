@@ -98,10 +98,11 @@ const BrowseVendors = () => {
       const response = await fetch(`${API_URL}/vendors`);
       if (response.ok) {
         const data = await response.json();
-        setVendors(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : (data?.data || data?.items || []);
+        setVendors(list);
         
         // Fetch plans for each vendor
-        data.forEach((vendor: Vendor) => {
+        list.forEach((vendor: Vendor) => {
           fetchVendorPlans(vendor.id);
         });
       }

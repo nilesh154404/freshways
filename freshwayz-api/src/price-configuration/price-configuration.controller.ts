@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { PriceConfigurationService } from './price-configuration.service';
 import { CreatePriceConfigurationDto } from './dto/create-price-configuration.dto';
 import { UpdatePriceConfigurationDto } from './dto/update-price-configuration.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Controller('price-configurations')
 export class PriceConfigurationController {
@@ -23,8 +25,8 @@ export class PriceConfigurationController {
   }
 
   @Get()
-  findAll() {
-    return this.priceConfigurationService.findAll();
+  findAll(@Query() dto: RangeDTO) {
+    return this.priceConfigurationService.findAll(dto);
   }
 
   @Get(':label')

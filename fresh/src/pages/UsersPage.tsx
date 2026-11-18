@@ -32,9 +32,10 @@ const UsersPage = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/auth/customer`);
         const data = await res.json();
+        const list = Array.isArray(data) ? data : (data?.data || data?.items || []);
 
         // Map backend response to User type
-        const mappedUsers: User[] = data.map((u: any) => ({
+        const mappedUsers: User[] = list.map((u: any) => ({
           id: u.id.toString(),
           name: u.fullName,
           email: u.email,

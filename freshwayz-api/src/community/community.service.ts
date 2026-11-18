@@ -5,6 +5,8 @@ import { Community } from './entities/community.entity';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
 import { Customer } from 'src/customer/entities/customer.entity';
+import { paginate, paginateArray, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class CommunityService {
@@ -53,33 +55,23 @@ export class CommunityService {
         return { success: true, communityId, customerId };
     }
 
-    async getCommunityMembers(communityId: number) {
+    async getCommunityMembers(communityId: number, dto?: RangeDTO) {
         const members = await this.communityRepo.manager
             .createQueryBuilder()
             .relation(Community, 'customers')
             .of(communityId)
             .loadMany();
 
-        return {
-            success: true,
-            communityId,
-            totalMembers: members.length,
-            members,
-        };
+        return paginateArray(members, dto);
     }
-    async getMemberCommunities(customerId: number) {
+    async getMemberCommunities(customerId: number, dto?: RangeDTO) {
         const communities = await this.communityRepo.manager
             .createQueryBuilder()
             .relation(Customer, 'communities')
             .of(customerId)
             .loadMany();
 
-        return {
-            success: true,
-            customerId,
-            totalCommunities: communities.length,
-            communities,
-        };
+        return paginateArray(communities, dto);
     }
 
 
@@ -89,8 +81,11 @@ export class CommunityService {
         return this.communityRepo.save(community);
     }
 
-    async findAll(): Promise<Community[]> {
-        return this.communityRepo.find();
+    async findAll(dto?: RangeDTO): Promise<PaginatedResponse<Community>> {
+        const qb = this.communityRepo.createQueryBuilder('community')
+            .orderBy('community.id', 'ASC');
+
+        return paginate(qb, dto);
     }
 
     async findOne(id: number): Promise<Community> {
@@ -112,12 +107,11 @@ export class CommunityService {
     }
 
     // 🔍 Search by slug OR name
-    async search(keyword: string): Promise<Community[]> {
-        return this.communityRepo.find({
-            where: [
-                { name: ILike(`%${keyword}%`) },
-                { slug: ILike(`%${keyword}%`) }
-            ]
-        });
+    async search(keyword: string, dto?: RangeDTO): Promise<PaginatedResponse<Community>> {
+        const qb = this.communityRepo.createQueryBuilder('community')
+            .where('community.name ILIKE :keyword OR community.slug ILIKE :keyword', { keyword: `%${keyword}%` })
+            .orderBy('community.id', 'ASC');
+
+        return paginate(qb, dto);
     }
 }

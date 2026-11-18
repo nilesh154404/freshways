@@ -10,15 +10,17 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  Query,
 } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Customer } from './entities/customer.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @ApiTags('Customer')
 @Controller('customer')
@@ -33,8 +35,10 @@ export class CustomerController {
   @Get()
   @ApiOperation({ summary: 'Get all customers (admin view — includes soft-deleted)' })
   @ApiResponse({ status: 200, description: 'Returns all customers. isActive and deletedAt indicate account status.' })
-  findAll() {
-    return this.customerService.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.customerService.findAll(dto);
   }
 
   @Get(':id')

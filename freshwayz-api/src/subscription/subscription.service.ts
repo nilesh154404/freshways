@@ -6,6 +6,8 @@ import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { Customer } from 'src/customer/entities/customer.entity';
 import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/vendor-subscription-plan.entity';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class SubscriptionService {
@@ -48,10 +50,14 @@ export class SubscriptionService {
     return this.subscriptionRepo.save(subscription);
   }
 
-  findAll() {
-    return this.subscriptionRepo.find({
-      relations: ['customer', 'plan', 'plan.vendor'],
-    });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<Subscription>> {
+    const qb = this.subscriptionRepo.createQueryBuilder('subscription')
+      .leftJoinAndSelect('subscription.customer', 'customer')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .orderBy('subscription.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   async findOne(id: number) {
@@ -93,34 +99,49 @@ export class SubscriptionService {
   }
 
   // 🔹 New methods
-  async findByCustomer(customerId: number, onlyActive = false) {
-    return this.subscriptionRepo.find({
-      where: {
-        customer: { id: customerId },
-        ...(onlyActive ? { active: true } : {}),
-      },
-      relations: ['customer', 'plan', 'plan.vendor'],
-    });
+  async findByCustomer(customerId: number, onlyActive = false, dto?: RangeDTO): Promise<PaginatedResponse<Subscription>> {
+    const qb = this.subscriptionRepo.createQueryBuilder('subscription')
+      .leftJoinAndSelect('subscription.customer', 'customer')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .where('customer.id = :customerId', { customerId })
+      .orderBy('subscription.id', 'DESC');
+
+    if (onlyActive) {
+      qb.andWhere('subscription.active = :active', { active: true });
+    }
+
+    return paginate(qb, dto);
   }
 
-  async findByVendor(vendorId: number, onlyActive = false) {
-    return this.subscriptionRepo.find({
-      where: {
-        plan: { vendor: { id: vendorId } },
-        ...(onlyActive ? { active: true } : {}),
-      },
-      relations: ['customer', 'plan', 'plan.vendor'],
-    });
+  async findByVendor(vendorId: number, onlyActive = false, dto?: RangeDTO): Promise<PaginatedResponse<Subscription>> {
+    const qb = this.subscriptionRepo.createQueryBuilder('subscription')
+      .leftJoinAndSelect('subscription.customer', 'customer')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .where('vendor.id = :vendorId', { vendorId })
+      .orderBy('subscription.id', 'DESC');
+
+    if (onlyActive) {
+      qb.andWhere('subscription.active = :active', { active: true });
+    }
+
+    return paginate(qb, dto);
   }
 
-  async findByCustomerAndVendor(customerId: number, vendorId: number, onlyActive = false) {
-    return this.subscriptionRepo.find({
-      where: {
-        customer: { id: customerId },
-        plan: { vendor: { id: vendorId } },
-        ...(onlyActive ? { active: true } : {}),
-      },
-      relations: ['customer', 'plan', 'plan.vendor'],
-    });
+  async findByCustomerAndVendor(customerId: number, vendorId: number, onlyActive = false, dto?: RangeDTO): Promise<PaginatedResponse<Subscription>> {
+    const qb = this.subscriptionRepo.createQueryBuilder('subscription')
+      .leftJoinAndSelect('subscription.customer', 'customer')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .leftJoinAndSelect('plan.vendor', 'vendor')
+      .where('customer.id = :customerId', { customerId })
+      .andWhere('vendor.id = :vendorId', { vendorId })
+      .orderBy('subscription.id', 'DESC');
+
+    if (onlyActive) {
+      qb.andWhere('subscription.active = :active', { active: true });
+    }
+
+    return paginate(qb, dto);
   }
 }

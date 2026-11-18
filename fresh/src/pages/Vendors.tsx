@@ -56,8 +56,9 @@ const Vendors = () => {
 
   const fetchVendors = async () => {
     try {
-      const res = await axios.get<Vendor[]>(`${API_BASE_URL}/vendors`);
-      setVendors(res.data);
+      const res = await axios.get<any>(`${API_BASE_URL}/vendors`);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.items || []);
+      setVendors(list);
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch vendors");
@@ -88,8 +89,8 @@ const Vendors = () => {
     }
   };
 
-  const countOrders = (orders: Order[], status: string) =>
-    orders.filter((o) => o.orderStatus === status && !o?.isDeleted).length;
+  const countOrders = (orders: Order[] = [], status: string) =>
+    (orders || []).filter((o) => o?.orderStatus === status && !o?.isDeleted).length;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -111,13 +112,13 @@ const Vendors = () => {
 
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Total Orders: {vendor.orders.length}</span>
-                  <span>Drafted: {countOrders(vendor.orders, "DRAFTED")}</span>
+                  <span>Total Orders: {(vendor.orders || []).length}</span>
+                  <span>Drafted: {countOrders(vendor.orders || [], "DRAFTED")}</span>
                 </div>
 
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Cancelled: {countOrders(vendor.orders, "CANCELLED")}</span>
-                  <span>Completed: {countOrders(vendor.orders, "COMPLETED")}</span>
+                  <span>Cancelled: {countOrders(vendor.orders || [], "CANCELLED")}</span>
+                  <span>Completed: {countOrders(vendor.orders || [], "COMPLETED")}</span>
                 </div>
 
                 <div className="flex gap-2 mt-2">
@@ -196,9 +197,9 @@ const Vendors = () => {
                 <DialogDescription>List of daily prices</DialogDescription>
               </DialogHeader>
               <div className="mt-4 max-h-80 overflow-auto">
-                {selectedVendor.dailyPrice.length > 0 ? (
+                {(selectedVendor.dailyPrice || []).length > 0 ? (
                   <ul className="space-y-2">
-                    {selectedVendor.dailyPrice.map((price) => (
+                    {(selectedVendor.dailyPrice || []).map((price) => (
                       <li
                         key={price.id}
                         className="flex justify-between border p-2 rounded hover:bg-gray-50 transition"

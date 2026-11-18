@@ -8,6 +8,8 @@ import { Vendor } from 'src/vendor/entities/vendor.entity';
 import { CreateDailyPriceDto } from './dto/create-daily-price.dto';
 import { UpdateDailyPriceDto } from './dto/update-daily-price.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class DailyPriceService {
@@ -114,7 +116,7 @@ export class DailyPriceService {
     return this.dailyPriceRepo.save(dailyPrice);
   }
 
-  findAll(vendorId?: number, productId?: number) {
+  async findAll(dto?: RangeDTO, vendorId?: number, productId?: number): Promise<PaginatedResponse<DailyPrice>> {
     const query = this.dailyPriceRepo
       .createQueryBuilder('daily_price')
       .leftJoinAndSelect('daily_price.product', 'product')
@@ -131,7 +133,7 @@ export class DailyPriceService {
       query.andWhere('product.id = :productId', { productId });
     }
 
-    return query.getMany();
+    return paginate(query, dto);
   }
 
   async findOne(id: number) {
@@ -200,7 +202,7 @@ export class DailyPriceService {
   }
 
   // Get price history for a specific product and vendor
-  async getPriceHistory(productId: number, vendorId?: number) {
+  async getPriceHistory(productId: number, vendorId?: number, dto?: RangeDTO): Promise<PaginatedResponse<PriceLog>> {
     const query = this.priceLogRepo
       .createQueryBuilder('price_log')
       .leftJoinAndSelect('price_log.product', 'product')
@@ -218,13 +220,14 @@ export class DailyPriceService {
         'vendor.businessName'
       ])
       .where('product.id = :productId', { productId })
-      .orderBy('price_log.changedAt', 'DESC');
+      .orderBy('price_log.changedAt', 'DESC')
+      .addOrderBy('price_log.id', 'DESC');
 
     if (vendorId) {
       query.andWhere('vendor.id = :vendorId', { vendorId });
     }
 
-    return query.getMany();
+    return paginate(query, dto);
   }
 
   // Cron job to monitor price changes every 5 minutes

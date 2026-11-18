@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UserTypeService } from './user-type.service';
 import { CreateUserTypeDto } from './dto/create-user-type.dto';
 import { UpdateUserTypeDto } from './dto/update-user-type.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Controller('user-type')
 export class UserTypeController {
@@ -13,8 +14,8 @@ export class UserTypeController {
   }
 
   @Get()
-  findAll() {
-    return this.userTypeService.findAll();
+  findAll(@Query() dto: RangeDTO) {
+    return this.userTypeService.findAll(dto);
   }
 
   @Get(':id')

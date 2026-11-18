@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { ListedOrder } from './entities/listed-order.entity';
 import { CreateListedOrderDto } from './dto/create-listed-order.dto';
 import { UpdateListedOrderDto } from './dto/update-listed-order.dto';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class ListedOrderService {
@@ -12,16 +14,17 @@ export class ListedOrderService {
     private readonly listedOrderRepository: Repository<ListedOrder>,
   ) { }
 
-  async findAll(user?: any): Promise<ListedOrder[]> {
+  async findAll(user?: any, dto?: RangeDTO): Promise<PaginatedResponse<ListedOrder>> {
+    const qb = this.listedOrderRepository.createQueryBuilder('listedOrder')
+      .leftJoinAndSelect('listedOrder.order', 'order')
+      .leftJoinAndSelect('listedOrder.product', 'product')
+      .orderBy('listedOrder.id', 'DESC');
+
     if (user && user.role?.toLowerCase() === 'vendor') {
-      return this.listedOrderRepository.find({
-        where: { order: { vendor: { id: user.profileId } } },
-        relations: ['order', 'product'],
-      });
+      qb.andWhere('order.vendor = :vendorId', { vendorId: user.profileId });
     }
-    return this.listedOrderRepository.find({
-      relations: ['order', 'product'],
-    });
+
+    return paginate(qb, dto);
   }
 
   async findOne(id: number, user?: any): Promise<ListedOrder> {

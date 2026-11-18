@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Categories } from './categories.entity';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -30,9 +32,16 @@ export class CategoriesService {
         return category;
     }
 
-    async getCategories() {
-        const categories: Categories[] = await this.repository.find({ where: { is_active: true } });
-        return categories.map(c => this.normalizeCategory(c));
+    async getCategories(dto?: RangeDTO): Promise<PaginatedResponse<Categories>> {
+        const qb = this.repository.createQueryBuilder('category')
+            .where('category.is_active = :active', { active: true })
+            .orderBy('category.id', 'ASC');
+
+        const result = await paginate(qb, dto);
+        return {
+            data: result.data.map(c => this.normalizeCategory(c)),
+            pagination: result.pagination,
+        };
     }
 
     async create(dto: CreateCategoryDto): Promise<Categories> {
@@ -41,12 +50,16 @@ export class CategoriesService {
         return this.normalizeCategory(saved);
     }
 
-    async findAll(): Promise<Categories[]> {
-        const categories = await this.repository.find({
-            where: { is_active: true },
-            relations: ["products"],
-        });
-        return categories.map(c => this.normalizeCategory(c));
+    async findAll(dto?: RangeDTO): Promise<PaginatedResponse<Categories>> {
+        const qb = this.repository.createQueryBuilder('category')
+            .where('category.is_active = :active', { active: true })
+            .orderBy('category.id', 'ASC');
+
+        const result = await paginate(qb, dto);
+        return {
+            data: result.data.map(c => this.normalizeCategory(c)),
+            pagination: result.pagination,
+        };
     }
 
     async findOne(id: number): Promise<Categories> {

@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { PriceConfiguration } from './entities/price-configuration.entity';
 import { CreatePriceConfigurationDto } from './dto/create-price-configuration.dto';
 import { UpdatePriceConfigurationDto } from './dto/update-price-configuration.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
+import { paginate } from 'src/helpers/pagination/pagination';
 
 @Injectable()
 export class PriceConfigurationService {
@@ -17,8 +19,11 @@ export class PriceConfigurationService {
     return this.priceConfigRepo.save(config);
   }
 
-  findAll() {
-    return this.priceConfigRepo.find();
+  async findAll(dto?: RangeDTO) {
+    const qb = this.priceConfigRepo
+      .createQueryBuilder('pc')
+      .orderBy('pc.label', 'ASC');
+    return await paginate(qb, dto);
   }
 
   async findOne(label: string) {

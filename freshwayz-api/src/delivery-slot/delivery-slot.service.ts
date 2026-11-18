@@ -6,6 +6,8 @@ import { CreateDeliverySlotDto } from './dto/create-delivery-slot.dto';
 import { UpdateDeliverySlotDto } from './dto/update-delivery-slot.dto';
 import { DeliverySlot } from './entities/delivery-slot.entity';
 import { VendorSubscriptionPlan } from 'src/vendor-subscription-plan/entities/vendor-subscription-plan.entity';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class DeliverySlotsService {
@@ -35,8 +37,12 @@ export class DeliverySlotsService {
     return this.slotRepository.save(slot);
   }
 
-  findAll() {
-    return this.slotRepository.find({ order: { date: 'ASC' } });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<DeliverySlot>> {
+    const qb = this.slotRepository.createQueryBuilder('slot')
+      .orderBy('slot.date', 'ASC')
+      .addOrderBy('slot.id', 'ASC');
+
+    return paginate(qb, dto);
   }
 
   async findOne(id: number) {
@@ -45,10 +51,13 @@ export class DeliverySlotsService {
     return slot;
   }
 
-  async findOneByVendorSubscriptionPlanId(id: number) {
-    const slot = await this.slotRepository.find({ where: { vendorSubscriptionPlan: { id } } });
-    if (!slot) throw new NotFoundException('Delivery slot not found');
-    return slot;
+  async findOneByVendorSubscriptionPlanId(id: number, dto?: RangeDTO): Promise<PaginatedResponse<DeliverySlot>> {
+    const qb = this.slotRepository.createQueryBuilder('slot')
+      .where('slot.vendorSubscriptionPlan = :id', { id })
+      .orderBy('slot.date', 'ASC')
+      .addOrderBy('slot.id', 'ASC');
+
+    return paginate(qb, dto);
   }
 
   async update(id: number, dto: UpdateDeliverySlotDto, user?: any) {

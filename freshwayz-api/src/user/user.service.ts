@@ -13,6 +13,8 @@ import { Auth } from 'src/auth/entities/auth.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import * as nodemailer from 'nodemailer';
 import * as bcrypt from 'bcrypt';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
+import { paginate } from 'src/helpers/pagination/pagination';
 
 @Injectable()
 export class UserService {
@@ -134,8 +136,13 @@ export class UserService {
     return 'This action adds a new user';
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll(dto?: RangeDTO) {
+    const qb = this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.userType', 'userType')
+      .orderBy('user.createdAt', 'DESC')
+      .addOrderBy('user.id', 'DESC');
+    return await paginate(qb, dto);
   }
 
   findOne(id: number) {

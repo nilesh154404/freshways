@@ -6,6 +6,8 @@ import { ProductDiscount } from './entities/product-discount.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from 'src/products/entities/product.entity';
+import { paginate, PaginatedResponse } from 'src/helpers/pagination/pagination';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
 @Injectable()
 export class ProductDiscountService {
@@ -63,8 +65,12 @@ export class ProductDiscountService {
   }
 
   /** Get all product discounts */
-  async findAll(): Promise<ProductDiscount[]> {
-    return this.discountRepo.find({ relations: ['product'] });
+  async findAll(dto?: RangeDTO): Promise<PaginatedResponse<ProductDiscount>> {
+    const qb = this.discountRepo.createQueryBuilder('discount')
+      .leftJoinAndSelect('discount.product', 'product')
+      .orderBy('discount.id', 'DESC');
+
+    return paginate(qb, dto);
   }
 
   /** Get one discount by id */

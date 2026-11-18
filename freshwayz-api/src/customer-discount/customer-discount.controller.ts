@@ -1,8 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CustomerDiscountService } from './customer-discount.service';
 import { CreateCustomerDiscountDto } from './dto/create-customer-discount.dto';
 import { UpdateCustomerDiscountDto } from './dto/update-customer-discount.dto';
+import { RangeDTO } from 'src/helpers/pagination/dto/range.dto';
 
+@ApiTags('Customer Discount')
 @Controller('customer-discount')
 export class CustomerDiscountController {
   constructor(private readonly customerDiscountService: CustomerDiscountService) {}
@@ -13,8 +16,11 @@ export class CustomerDiscountController {
   }
 
   @Get()
-  findAll() {
-    return this.customerDiscountService.findAll();
+  @ApiOperation({ summary: 'Get all customer discounts with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(@Query() dto: RangeDTO) {
+    return this.customerDiscountService.findAll(dto);
   }
 
   @Get(':id')
