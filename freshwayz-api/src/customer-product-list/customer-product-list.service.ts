@@ -57,17 +57,29 @@ export class CustomerProductListService {
       if (!product) throw new NotFoundException('Product not found');
       
       // Fetch base product price (dailyPrice)
-      const whereCondition: any = { product: { id: product.id }, isActive: true };
+      let dailyPrice: DailyPrice | null = null;
       if (plan && plan.vendor) {
-        whereCondition.vendor = { id: plan.vendor.id };
+        dailyPrice = await this.dailyPriceRepo.findOne({
+          where: { product: { id: product.id }, vendor: { id: plan.vendor.id }, isActive: true },
+          order: { id: 'DESC' }
+        });
       }
-      const dailyPrice = await this.dailyPriceRepo.findOne({
-        where: whereCondition,
-        order: { id: 'DESC' }
-      });
+      // Fallback 1: Any active daily price for this product
+      if (!dailyPrice) {
+        dailyPrice = await this.dailyPriceRepo.findOne({
+          where: { product: { id: product.id }, isActive: true },
+          order: { id: 'DESC' }
+        });
+      }
       if (dailyPrice) {
         basePrice = Number(dailyPrice.amount);
+      } else if (dto.amount != null && Number(dto.amount) > 0) {
+        // Fallback 2: Provided amount
+        basePrice = Number(dto.amount);
       }
+    } else if (dto.amount != null && Number(dto.amount) > 0) {
+      // Manual/custom product without product ID
+      basePrice = Number(dto.amount);
     }
 
     let finalAmount = basePrice;
@@ -94,7 +106,7 @@ export class CustomerProductListService {
 
       productName: dto.productName ?? null,
       quantity: dto.quantity ?? null,
-      amount: finalAmount, // Use recalculated amount instead of trusting frontend
+      amount: finalAmount,
       notes: dto.notes ?? null,
       customizationOptionIds: dto.customizationOptionIds ?? null,
     });

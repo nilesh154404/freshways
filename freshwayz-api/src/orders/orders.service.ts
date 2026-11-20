@@ -314,7 +314,7 @@ export class OrderService {
         customer: { id: customerId },
         vendorSubscriptionPlan: { id: vendorSubscriptionPlanId },
       },
-      relations: ['product'],
+      relations: ['product', 'product.discounts'],
     });
 
     if (!productListItems || productListItems.length === 0) {
@@ -341,40 +341,92 @@ export class OrderService {
     // Create listed orders from customer product list
     let totalAmount = 0;
     const listedOrders: ListedOrder[] = [];
+    const now = new Date();
 
     for (const item of productListItems) {
-      const unitPrice = item.amount ? Number(item.amount) : 0;
+      let unitPrice = item.amount ? Number(item.amount) : 0;
+
+      // Fallback: If unitPrice is 0 or not saved, look up the active DailyPrice for the product
+      if (unitPrice <= 0 && item.product) {
+        let dailyPrice: DailyPrice | null = null;
+        if (vendor) {
+          dailyPrice = await this.dailyPriceRepo.findOne({
+            where: { product: { id: item.product.id }, vendor: { id: vendor.id }, isActive: true },
+            order: { id: 'DESC' },
+          });
+        }
+        if (!dailyPrice) {
+          dailyPrice = await this.dailyPriceRepo.findOne({
+            where: { product: { id: item.product.id }, isActive: true },
+            order: { id: 'DESC' },
+          });
+        }
+        if (dailyPrice) {
+          unitPrice = Number(dailyPrice.amount);
+        }
+      }
+
+      // Calculate Customizations
+      let customizationsTotal = 0;
+      let matchedOptions: ProductCustomizationOption[] = [];
+      if (item.customizationOptionIds && item.customizationOptionIds.length > 0) {
+        matchedOptions = await this.customOptionRepo.find({
+          where: { id: In(item.customizationOptionIds) },
+          relations: ['group'],
+        });
+        for (const opt of matchedOptions) {
+          customizationsTotal += Number(opt.additionalPrice || 0);
+        }
+      }
+
+      const basePrice = unitPrice + customizationsTotal;
       const quantity = item.quantity ? Number(item.quantity) : 1;
-      const lineTotal = unitPrice * quantity;
+
+      // Check for active discounts on product (same logic as createNew)
+      let lineTotal = basePrice * quantity;
+      let appliedDiscount: any = null;
+
+      if (item.product?.discounts && item.product.discounts.length > 0) {
+        const activeDiscount = item.product.discounts.find(d =>
+          d.isActive &&
+          d.startDate <= now &&
+          d.endDate >= now &&
+          quantity >= (d.minCartQuantity ?? 0)
+        );
+
+        if (activeDiscount) {
+          const discountResult = this.discountService.calculatePrice(
+            basePrice,
+            quantity,
+            activeDiscount
+          );
+          lineTotal = discountResult.finalTotal ?? (basePrice * quantity);
+          appliedDiscount = activeDiscount;
+        }
+      }
 
       const listedOrder = this.listedOrderRepo.create({
         order: savedOrder,
         product: item.product || null,
         productName: item.productName || item.product?.label || null,
         quantity: quantity,
-        amount: unitPrice,
+        amount: basePrice,
         discountedAmount: lineTotal,
+        productDiscount: appliedDiscount,
         notes: item.notes || null,
       });
       await this.listedOrderRepo.save(listedOrder);
       listedOrders.push(listedOrder);
       
       // Process Customizations
-      if (item.customizationOptionIds && item.customizationOptionIds.length > 0) {
-        const options = await this.customOptionRepo.find({
-          where: { id: In(item.customizationOptionIds) },
-          relations: ['group']
+      for (const option of matchedOptions) {
+        const loCustomization = this.listedOrderCustomizationRepo.create({
+          listedOrder: listedOrder,
+          customizationGroup: option.group,
+          customizationOption: option,
+          additionalPrice: option.additionalPrice, // snapshot the price at order time
         });
-        
-        for (const option of options) {
-          const loCustomization = this.listedOrderCustomizationRepo.create({
-            listedOrder: listedOrder,
-            customizationGroup: option.group,
-            customizationOption: option,
-            additionalPrice: option.additionalPrice, // snapshot the price at order time
-          });
-          await this.listedOrderCustomizationRepo.save(loCustomization);
-        }
+        await this.listedOrderCustomizationRepo.save(loCustomization);
       }
 
       totalAmount += lineTotal;
