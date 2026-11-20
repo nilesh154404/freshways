@@ -41,7 +41,7 @@ export class DexpertCryptoUtil {
     const key = this.formatKey(keyString);
     const iv = this.formatKey(ivString);
     const cipher = crypto.createCipheriv(this.CIPHER_ALGORITHM, key, iv);
-    
+
     let encrypted = cipher.update(data, 'utf-8', 'base64');
     encrypted += cipher.final('base64');
     return encrypted;
@@ -71,7 +71,7 @@ export class DexpertCryptoUtil {
       decipherNoPad.setAutoPadding(false);
       let decrypted = decipherNoPad.update(sanitizedData, 'base64', 'utf-8');
       decrypted += decipherNoPad.final('utf-8');
-      
+
       // Manual unpad (PKCS7)
       const lastChar = decrypted.charCodeAt(decrypted.length - 1);
       if (lastChar > 0 && lastChar <= 16) {
@@ -183,13 +183,18 @@ export class DexpertCryptoUtil {
    */
   private static isValidDecryptedResponse(text: string): boolean {
     if (!text || typeof text !== 'string') return false;
+    // Reject any candidate containing binary control characters (corrupted bytes from wrong key)
+    if (/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
+      return false;
+    }
     return (
       text.includes('mtxnId=') ||
       text.includes('transId=') ||
       text.includes('status=') ||
       text.includes('pgTransId=') ||
       text.includes('respCode=') ||
-      (text.includes('&') && text.includes('='))
+      text.includes('mcode=') ||
+      text.includes('amount=')
     );
   }
 

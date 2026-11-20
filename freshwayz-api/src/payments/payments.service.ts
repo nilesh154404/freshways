@@ -265,7 +265,7 @@ export class PaymentsService {
       await queryRunner.manager.save(Payment, payment);
       this.logger.log(
         `[${source}] Payment ${transactionId}: ${previousStatus} -> ${payment.status}` +
-          (receiptNumber ? ` | receipt=${receiptNumber}` : ''),
+        (receiptNumber ? ` | receipt=${receiptNumber}` : ''),
       );
 
       // 4. Update order payment status (never downgrade PAID)
@@ -331,10 +331,10 @@ export class PaymentsService {
       try {
         decText = DexpertCryptoUtil.decryptDexpertResponse(
           sanitizedQuery,
-          this.aesKey,
-          this.aesIv,
           this.privateKey,
           this.privateValue,
+          this.aesKey,
+          this.aesIv,
         );
       } catch {
         decText = DexpertCryptoUtil.decrypt(
@@ -345,6 +345,9 @@ export class PaymentsService {
       }
 
       const parsed = DexpertCryptoUtil.parseDecryptedQuery(decText);
+
+      this.logger.log(`Raw decrypted decText: "${decText}"`);
+      this.logger.log(`Parsed Raw: ${JSON.stringify(parsed.raw)}`);
 
       paymentDebugLogs.push({
         time: new Date().toISOString(),
@@ -373,20 +376,32 @@ export class PaymentsService {
       );
 
       if (transactionId) {
-        if (isSuccess && parsed.amount) {
+        if (isSuccess && (parsed.amount || parsed.requestedAmount)) {
           const payment = await this.paymentRepository.findOne({ where: { transactionId } });
           if (payment) {
-            const receivedAmt = parseFloat(parsed.amount);
-            const expectedAmt = parseFloat(String(payment.amount));
-            if (!isNaN(receivedAmt) && Math.abs(receivedAmt - expectedAmt) > 0.01) {
-              this.logger.warn(
-                'Redirect: AMOUNT MISMATCH for txnId=' + transactionId + '. Expected=' + expectedAmt + ', Received=' + receivedAmt,
-              );
-              return {
-                success: false,
-                message: 'Payment amount mismatch. Payment flagged for review.',
-                transactionId,
-              };
+            const effectiveAmountStr =
+              parsed.amount && parsed.amount !== 'null'
+                ? parsed.amount
+                : parsed.requestedAmount && parsed.requestedAmount !== 'null'
+                  ? parsed.requestedAmount
+                  : undefined;
+
+            if (effectiveAmountStr !== undefined) {
+              const receivedAmt = parseFloat(effectiveAmountStr);
+              const expectedAmt = parseFloat(String(payment.amount));
+              const diff = Math.round(Math.abs(receivedAmt - expectedAmt) * 100) / 100;
+
+              if (!isNaN(receivedAmt) && diff > 0.05) {
+                this.logger.warn(
+                  'Redirect: AMOUNT MISMATCH for txnId=' + transactionId + '. Expected=' + expectedAmt + ', Received=' + receivedAmt,
+                );
+                return {
+                  success: false,
+                  message: 'Payment amount mismatch. Payment flagged for review.',
+                  transactionId,
+                  orderStatus: 'Amount Mismatch',
+                };
+              }
             }
           }
         }
@@ -420,6 +435,7 @@ export class PaymentsService {
         success: false,
         message: 'Invalid payment response signature or data',
         error: error.message,
+        orderStatus: 'Verification Failed',
       };
     }
   }
@@ -556,20 +572,21 @@ export class PaymentsService {
       const transactionId = payment.transactionId;
       const previousStatus = String(payment.status);
 
-      // 7. Validate amount (tolerance: 0.01) - checks amount or requestedAmount
+      // 7. Validate amount (tolerance: 0.05 to handle 1-5 paise surcharge and JS float precision)
       const effectiveAmountStr =
         parsed.amount && parsed.amount !== 'null'
           ? parsed.amount
           : parsed.requestedAmount && parsed.requestedAmount !== 'null'
-          ? parsed.requestedAmount
-          : undefined;
+            ? parsed.requestedAmount
+            : undefined;
 
       if (effectiveAmountStr !== undefined && effectiveAmountStr !== '') {
         const receivedAmt = parseFloat(effectiveAmountStr);
         const expectedAmt = parseFloat(String(payment.amount));
 
         if (!isNaN(receivedAmt)) {
-          if (Math.abs(receivedAmt - expectedAmt) > 0.01) {
+          const diff = Math.round(Math.abs(receivedAmt - expectedAmt) * 100) / 100;
+          if (diff > 0.05) {
             this.logger.warn(
               `Webhook: AMOUNT MISMATCH for txnId=${transactionId}. Expected=${expectedAmt}, Received=${receivedAmt}`,
             );
@@ -656,8 +673,8 @@ export class PaymentsService {
 
         this.logger.log(
           `Webhook complete: txnId=${transactionId} outcome=${result.outcome} ` +
-            `${previousStatus} -> ${latestStatus}` +
-            (result.receiptNumber ? ` receipt=${result.receiptNumber}` : ''),
+          `${previousStatus} -> ${latestStatus}` +
+          (result.receiptNumber ? ` receipt=${result.receiptNumber}` : ''),
         );
 
         return {

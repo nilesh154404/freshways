@@ -166,20 +166,25 @@ export class PaymentsController {
   }
 
   @Get('response')
+  @Post('response')
   async handlePaymentResponse(
     @Query('query') query: string,
+    @Body() body: Record<string, any>,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    if (!query) {
-      res.status(400).json({ success: false, message: 'Missing query parameter' });
+    const rawQuery = query || body?.query || body?.encResponse || body?.encData || body?.data;
+    if (!rawQuery) {
+      this.logger.warn('handlePaymentResponse: received callback with missing query/body parameter');
+      res.status(400).send(`<!doctype html>
+<html><body><h1>Payment Error</h1><p>Missing payment response data from gateway.</p><a href="freshways://gateway?success=false">Return to App</a></body></html>`);
       return;
     }
-    console.log('Received query parameter:', query);
-    const verificationResult = await this.paymentsService.verifyPaymentResponse(query);
+    console.log('Received payment response parameter length:', rawQuery.length);
+    const verificationResult = await this.paymentsService.verifyPaymentResponse(rawQuery);
     const transactionId = verificationResult.transactionId || '';
     const success = verificationResult.success ? 'true' : 'false';
-    const status = verificationResult.orderStatus || 'Unknown';
+    const status = verificationResult.orderStatus || (verificationResult.success ? 'Success' : 'Failed');
     const receiptNumber = verificationResult.receiptNumber || '';
     const redirectUrl = `freshways://gateway?success=${success}&txnId=${encodeURIComponent(transactionId)}&status=${encodeURIComponent(status)}&receiptNumber=${encodeURIComponent(receiptNumber)}`;
     const receiptViewUrl = receiptNumber
